@@ -1,6 +1,12 @@
 #pragma once
 #include "../../SDK/SDK.h"
 
+struct DatamapRestore_t
+{
+	byte* m_pData = nullptr;
+	size_t m_iSize = 0;
+};
+
 struct RestoreInfo_t
 {
 	Vec3 m_vOrigin = {};
@@ -24,11 +30,15 @@ private:
 	Vec3 m_vOriginalOrigin = {};
 	Vec3 m_vOriginalVelocity = {};
 
+	DatamapRestore_t m_tLocal = {};
+
 	std::unordered_map<CTFPlayer*, RestoreInfo_t> m_mRestore = {};
 
 public:
 	void Start(CTFPlayer* pLocal, CUserCmd* pCmd);
 	void End(CTFPlayer* pLocal, CUserCmd* pCmd);
+
+	void Unload();
 
 	void AdjustPlayers(CBaseEntity* pLocal);
 	void RestorePlayers();

@@ -32,8 +32,21 @@ void CEnginePrediction::RestorePlayers()
 
 void CEnginePrediction::Simulate(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
+	FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file) {
+		fprintf(log_file, "EnginePrediction::Simulate - Function called\n");
+		fclose(log_file);
+	}
+
 	if (!I::MoveHelper)
+	{
+		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file) {
+			fprintf(log_file, "EnginePrediction::Simulate - MoveHelper is null, returning\n");
+			fclose(log_file);
+		}
 		return;
+	}
 
 	const int nOldTickBase = pLocal->m_nTickBase();
 	const bool bOldIsFirstPrediction = I::Prediction->m_bFirstTimePredicted;
@@ -91,8 +104,26 @@ void CEnginePrediction::Simulate(CTFPlayer* pLocal, CUserCmd* pCmd)
 
 void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
+	// File-based logging that works in Release builds
+	FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file) {
+		fprintf(log_file, "EnginePrediction::Start - Function called\n");
+		fclose(log_file);
+	}
+
 	m_bInPrediction = true;
 	if (!pLocal || !pLocal->IsAlive())
+	{
+		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file) {
+			fprintf(log_file, "EnginePrediction::Start - pLocal invalid or not alive, returning\n");
+			fclose(log_file);
+		}
+		return;
+	}
+
+	auto pMap = pLocal->GetPredDescMap();
+	if (!pMap)
 		return;
 
 	m_nOldTickCount = I::GlobalVars->tickcount;
@@ -103,6 +134,61 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 	I::GlobalVars->curtime = TICKS_TO_TIME(I::GlobalVars->tickcount);
 	I::GlobalVars->frametime = I::Prediction->m_bEnginePaused ? 0.f : TICK_INTERVAL;
 
+	size_t iSize = pLocal->GetIntermediateDataSize();
+	if (!I::MemAlloc)
+	{
+		// MemAlloc interface not initialized - skip prediction
+		return;
+	}
+
+	if (!m_tLocal.m_pData)
+	{
+		m_tLocal.m_pData = reinterpret_cast<byte*>(I::MemAlloc->Alloc(iSize));
+		m_tLocal.m_iSize = iSize;
+	}
+	else if (m_tLocal.m_iSize != iSize)
+	{
+		m_tLocal.m_pData = reinterpret_cast<byte*>(I::MemAlloc->Realloc(m_tLocal.m_pData, iSize));
+		m_tLocal.m_iSize = iSize;
+	}
+
+	CPredictionCopy copy = { PC_EVERYTHING, m_tLocal.m_pData, PC_DATA_PACKED, pLocal, PC_DATA_NORMAL };
+	FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file1) {
+		fprintf(log_file1, "EnginePrediction::Start - About to call TransferData START\n");
+		fclose(log_file1);
+	}
+
+	// TEMPORARY: Disable CPredictionCopy completely to isolate crash
+	// TODO: Remove this when crash is fixed
+	const bool DISABLE_CPREDICTIONCOPY = true;
+	if (DISABLE_CPREDICTIONCOPY)
+	{
+		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file) {
+			fprintf(log_file, "EnginePrediction::Start - CPredictionCopy DISABLED, calling Simulate directly\n");
+			fclose(log_file);
+		}
+		Simulate(pLocal, pCmd);
+		return;
+	}
+
+	int result = copy.TransferData("EnginePredictionStart", pLocal->entindex(), pMap);
+	if (result == -1)
+	{
+		// Signature failed - skip prediction to prevent crash
+		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file) {
+			fprintf(log_file, "EnginePrediction::Start - TransferData START failed, skipping prediction\n");
+			fclose(log_file);
+		}
+		return;
+	}
+	FILE* log_file2 = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file2) {
+		fprintf(log_file2, "EnginePrediction::Start - TransferData START success, calling Simulate\n");
+		fclose(log_file2);
+	}
 	Simulate(pLocal, pCmd);
 }
 
@@ -112,16 +198,57 @@ void CEnginePrediction::End(CTFPlayer* pLocal, CUserCmd* pCmd)
 	if (!pLocal || !pLocal->IsAlive())
 		return;
 
+	auto pMap = pLocal->GetPredDescMap();
+	if (!pMap)
+		return;
+
 	I::GlobalVars->tickcount = m_nOldTickCount;
 	I::GlobalVars->curtime = m_flOldCurrentTime;
 	I::GlobalVars->frametime = m_flOldFrameTime;
 
-	if (m_bDoubletap && !F::Ticks.m_bAntiWarp && !G::Attacking)
-	{
-		pLocal->m_vecOrigin() = m_vOriginalOrigin;
-		pLocal->m_vecVelocity() = m_vOriginalVelocity;
-		pLocal->SetAbsVelocity(m_vOriginalVelocity);
+	CPredictionCopy copy = { PC_EVERYTHING, pLocal, PC_DATA_NORMAL, m_tLocal.m_pData, PC_DATA_PACKED };
+	FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file1) {
+		fprintf(log_file1, "EnginePrediction::End - About to call TransferData END\n");
+		fclose(log_file1);
+	}
 
-		Simulate(pLocal, pCmd);
+	// TEMPORARY: Disable CPredictionCopy completely to isolate crash
+	// TODO: Remove this when crash is fixed
+	const bool DISABLE_CPREDICTIONCOPY = true;
+	if (DISABLE_CPREDICTIONCOPY)
+	{
+		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file) {
+			fprintf(log_file, "EnginePrediction::End - CPredictionCopy DISABLED, skipping restore\n");
+			fclose(log_file);
+		}
+		return;
+	}
+
+	int result = copy.TransferData("EnginePredictionEnd", pLocal->entindex(), pMap);
+	if (result == -1)
+	{
+		// Signature failed - skip restore to prevent crash
+		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file) {
+			fprintf(log_file, "EnginePrediction::End - TransferData END failed, skipping restore\n");
+			fclose(log_file);
+		}
+		return;
+	}
+	FILE* log_file2 = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file2) {
+		fprintf(log_file2, "EnginePrediction::End - TransferData END success\n");
+		fclose(log_file2);
+	}
+}
+
+void CEnginePrediction::Unload()
+{
+	if (m_tLocal.m_pData && I::MemAlloc)
+	{
+		I::MemAlloc->Free(m_tLocal.m_pData);
+		m_tLocal = {};
 	}
 }
