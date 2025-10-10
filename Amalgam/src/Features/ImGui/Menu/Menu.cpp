@@ -1568,6 +1568,7 @@ void CMenu::MenuComp(int iTab)
 					FToggle(Vars::Competitive::Features::ChatBubblesEnemyOnly, FToggleEnum::Left);
 					FToggle(Vars::Competitive::Features::ChatBubblesTextChat, FToggleEnum::Right);
 					FToggle(Vars::Competitive::Features::ChatBubblesVoiceSounds, FToggleEnum::Left);
+					FToggle(Vars::Competitive::Features::ChatBubblesReplaceMessage, FToggleEnum::Right);
 				} EndSection();
 
 				if (Section("Movement Features"))
@@ -1643,6 +1644,24 @@ void CMenu::MenuComp(int iTab)
 					FSlider(Vars::Competitive::HealthBarESP::PolygonSegments, FSliderEnum::Right);
 					Dummy({ 0, H::Draw.Scale(4) }); // Add spacing before color picker
 					FColorPicker(Vars::Competitive::HealthBarESP::OverhealColor, FColorPickerEnum::Left);
+				} EndSection();
+
+				if (Section("Medic Uber Bar ESP"))
+				{
+					FToggle(Vars::Competitive::MedicUberBar::ShowFriendly, FToggleEnum::Left);
+					FToggle(Vars::Competitive::MedicUberBar::ShowEnemy, FToggleEnum::Right);
+					FToggle(Vars::Competitive::MedicUberBar::ShowThroughWalls, FToggleEnum::Left);
+					FToggle(Vars::Competitive::MedicUberBar::ShowPercentage, FToggleEnum::Right);
+					FSlider(Vars::Competitive::MedicUberBar::BarWidth, FSliderEnum::Left);
+					FSlider(Vars::Competitive::MedicUberBar::BarHeight, FSliderEnum::Right);
+					FSlider(Vars::Competitive::MedicUberBar::MaxDistance, FSliderEnum::Left);
+					FSlider(Vars::Competitive::MedicUberBar::Alpha, FSliderEnum::Right);
+					Dummy({ 0, H::Draw.Scale(4) }); // Add spacing before color pickers
+					FColorPicker(Vars::Competitive::MedicUberBar::LowUberColor, FColorPickerEnum::Left);
+					FColorPicker(Vars::Competitive::MedicUberBar::MidUberColor, FColorPickerEnum::Right);
+					FColorPicker(Vars::Competitive::MedicUberBar::HighUberColor, FColorPickerEnum::Left);
+					FColorPicker(Vars::Competitive::MedicUberBar::FullUberColor, FColorPickerEnum::Right);
+					FColorPicker(Vars::Competitive::MedicUberBar::DeadColor, FColorPickerEnum::Left);
 				} EndSection();
 
 				if (Section("Ammo Tracker"))
@@ -1787,6 +1806,7 @@ void CMenu::MenuComp(int iTab)
 				{
 					FToggle(Vars::Competitive::Features::HealthBarESP, FToggleEnum::Left);
 					FToggle(Vars::Competitive::Features::UberTracker, FToggleEnum::Right);
+					FToggle(Vars::Competitive::Features::MedicUberBar, FToggleEnum::Left);
 					FToggle(Vars::Competitive::Features::AmmoTracker, FToggleEnum::Left);
 					FToggle(Vars::Competitive::Features::MarkSpot, FToggleEnum::Right);
 					FToggle(Vars::Competitive::Features::OffScreenIndicators, FToggleEnum::Left);

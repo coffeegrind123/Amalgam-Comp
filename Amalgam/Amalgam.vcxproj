@@ -988,6 +988,7 @@
     <ClCompile Include="src\Features\Visuals\Glow\Glow.cpp" />
     <ClCompile Include="src\Features\Visuals\Groups\Groups.cpp" />
     <ClCompile Include="src\Features\Visuals\HealthBarESP\HealthBarESP.cpp" />
+    <ClCompile Include="src\Features\Visuals\MedicUberBar\MedicUberBar.cpp" />
     <ClCompile Include="src\Features\Visuals\OffScreenIndicators\OffScreenIndicators.cpp" />
     <ClCompile Include="src\Features\Visuals\PlayerTrails\PlayerTrails.cpp" />
     <ClCompile Include="src\Features\Visuals\PylonESP\PylonESP.cpp" />
@@ -1317,6 +1318,7 @@
     <ClInclude Include="src\Features\Visuals\Glow\Glow.h" />
     <ClInclude Include="src\Features\Visuals\Groups\Groups.h" />
     <ClInclude Include="src\Features\Visuals\HealthBarESP\HealthBarESP.h" />
+    <ClInclude Include="src\Features\Visuals\MedicUberBar\MedicUberBar.h" />
     <ClInclude Include="src\Features\Visuals\OffScreenIndicators\OffScreenIndicators.h" />
     <ClInclude Include="src\Features\Visuals\PlayerTrails\PlayerTrails.h" />
     <ClInclude Include="src\Features\Visuals\PylonESP\PylonESP.h" />

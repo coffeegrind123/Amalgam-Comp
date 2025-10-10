@@ -31,7 +31,6 @@ private:
 	static constexpr float TARGET_LOCK_DURATION = 5.0f;
 	static constexpr float TARGET_SEARCH_RADIUS = 584.0f; // 146 * 4
 	static constexpr float OCCLUSION_CHECK_INTERVAL = 0.1f;
-	static constexpr float ANGLE_INTERPOLATION_SPEED = 0.1f;
 	static constexpr float STICKY_DORMANT_DISTANCE = 1200.0f;
 	static constexpr float STICKY_WARNING_THRESHOLD = 0.70f;
 	static constexpr float KEY_DELAY = 0.2f;
@@ -40,7 +39,7 @@ private:
 	std::vector<StickyData> m_Stickies;
 	CBaseEntity* m_pCurrentSticky = nullptr;
 	CTFPlayer* m_pCurrentTarget = nullptr;
-	Vec3 m_vSmoothedAngles = Vec3(0, 0, 0);
+	Vec3 m_vCurrentAngles = Vec3(0, 0, 0);
 	float m_flTargetLockTime = 0.0f;
 	bool m_bTargetVisible = false;
 	float m_flLastOcclusionCheck = 0.0f;
@@ -77,7 +76,6 @@ private:
 	Vec3 GetStickyNormal(CBaseEntity* pSticky);
 	Vec3 CalculateCameraOffset(const Vec3& stickyPos, const Vec3& normal);
 	CTFPlayer* FindNearestVisiblePlayer(const Vec3& position);
-	Vec3 LerpAngles(const Vec3& start, const Vec3& target, float factor);
 	void UpdateStickies();
 	bool IsCameraViewClear(const Vec3& origin, const Vec3& angles);
 	void CycleNextSticky();

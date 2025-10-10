@@ -288,21 +288,6 @@ CTFPlayer* CStickyCam::FindNearestVisiblePlayer(const Vec3& position)
 	return pNearest;
 }
 
-Vec3 CStickyCam::LerpAngles(const Vec3& start, const Vec3& target, float factor)
-{
-	float dx = target.x - start.x;
-	float dy = target.y - start.y;
-	
-	// Normalize yaw difference
-	while (dy > 180.0f) dy -= 360.0f;
-	while (dy < -180.0f) dy += 360.0f;
-	
-	return Vec3(
-		start.x + dx * factor,
-		start.y + dy * factor,
-		0
-	);
-}
 
 void CStickyCam::UpdateStickies()
 {
@@ -874,7 +859,7 @@ void CStickyCam::Draw()
 		Vec3 targetPos = m_pCurrentTarget->GetAbsOrigin();
 		targetPos.z += 50.0f;
 		Vec3 targetAngles = CalculateAngles(cameraPos, targetPos);
-		m_vSmoothedAngles = LerpAngles(m_vSmoothedAngles, targetAngles, Vars::Competitive::StickyCam::AngleSpeed.Value);
+		m_vCurrentAngles = targetAngles;
 	}
 	
 	// Check if we should display the camera
@@ -969,14 +954,14 @@ void CStickyCam::RenderView(void* ecx, const CViewSetup& view)
 		return;
 	}
 	
-	if (!IsCameraViewClear(cameraOrigin, m_vSmoothedAngles))
+	if (!IsCameraViewClear(cameraOrigin, m_vCurrentAngles))
 		return;
 	
 	// Apply offset if configured
 	if (GetViewMode() == EStickyViewMode::OFFSET)
 	{
 		Vec3 forward, up;
-		Math::AngleVectors(m_vSmoothedAngles, &forward, nullptr, &up);
+		Math::AngleVectors(m_vCurrentAngles, &forward, nullptr, &up);
 		
 		float offsetX = Vars::Competitive::StickyCam::OffsetX.Value;
 		float offsetY = Vars::Competitive::StickyCam::OffsetY.Value;
@@ -994,7 +979,7 @@ void CStickyCam::RenderView(void* ecx, const CViewSetup& view)
 	stickyView.m_flAspectRatio = static_cast<float>(GetCameraWidth()) / static_cast<float>(GetCameraHeight());
 	stickyView.fov = 90;
 	stickyView.origin = cameraOrigin;
-	stickyView.angles = m_vSmoothedAngles;
+	stickyView.angles = m_vCurrentAngles;
 	
 	// Render to texture
 	if (!I::MaterialSystem || !m_pCameraTexture)
@@ -1030,7 +1015,7 @@ void CStickyCam::Reset()
 {
 	m_pCurrentSticky = nullptr;
 	m_pCurrentTarget = nullptr;
-	m_vSmoothedAngles = Vec3(0, 0, 0);
+	m_vCurrentAngles = Vec3(0, 0, 0);
 	m_flTargetLockTime = 0.0f;
 	m_bTargetVisible = false;
 	m_flLastOcclusionCheck = 0.0f;

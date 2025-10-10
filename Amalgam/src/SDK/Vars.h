@@ -898,12 +898,14 @@ namespace Vars
 			CVar(CritHeals, "Critical Heal Indicators", true, VISUAL);
 			CVar(ChatBubbles, "Chat Bubbles", true, VISUAL);
 			CVar(ChatBubblesSteamIDColor, "Chat Bubbles SteamID Color", false, VISUAL);
-			CVar(ChatBubblesNonFloat, "Chat Bubbles Non-Float", false, VISUAL);
+			CVar(ChatBubblesNonFloat, "Chat Bubbles Non-Float", true, VISUAL);
 			CVar(ChatBubblesEnemyOnly, "Chat Bubbles Enemy Only", true, VISUAL);
 			CVar(ChatBubblesTextChat, "Chat Bubbles Text Chat", false, VISUAL);
 			CVar(ChatBubblesVoiceSounds, "Chat Bubbles Voice Sounds", true, VISUAL);
+			CVar(ChatBubblesReplaceMessage, "Replace Last Message", false, VISUAL);
 			CVar(HealthBarESP, "Health Bar ESP", true, VISUAL);
 			CVar(UberTracker, "Uber Advantage Tracker", true, VISUAL);
+			CVar(MedicUberBar, "Medic Uber Bar ESP", true, VISUAL);
 			CVar(AmmoTracker, "Ammo Pack Respawn ESP", true, VISUAL);
 			CVar(MarkSpot, "Mark Spot Feature", true, VISUAL);
 			CVar(OffScreenIndicators, "Off-Screen Player Indicators", false, VISUAL);
@@ -1011,6 +1013,22 @@ namespace Vars
 			CVar(ShowPolygonFill, "Show polygon fill", true, VISUAL);
 			CVar(ShowPolygonEdge, "Show polygon edge", true, VISUAL);
 		SUBNAMESPACE_END(HealthBarESP);
+
+		SUBNAMESPACE_BEGIN(MedicUberBar, Medic Uber Bar ESP)
+			CVar(ShowFriendly, "Show friendly medics", true, VISUAL);
+			CVar(ShowEnemy, "Show enemy medics", true, VISUAL);
+			CVar(BarWidth, "Bar width", 90, VISUAL | SLIDER_CLAMP, 50, 150, 5);
+			CVar(BarHeight, "Bar height", 10, VISUAL | SLIDER_CLAMP, 5, 25, 1);
+			CVar(MaxDistance, "Max distance", 2000.0f, VISUAL | SLIDER_MIN | SLIDER_PRECISION, 500.0f, 5000.0f, 100.0f);
+			CVar(Alpha, "Transparency", 200, VISUAL | SLIDER_CLAMP, 50, 255, 5);
+			CVar(ShowThroughWalls, "Show through walls", false, VISUAL);
+			CVar(ShowPercentage, "Show percentage text", true, VISUAL);
+			CVar(LowUberColor, "Low uber color (0-33%)", Color_t(255, 0, 0, 255), VISUAL);
+			CVar(MidUberColor, "Mid uber color (34-66%)", Color_t(255, 255, 0, 255), VISUAL);
+			CVar(HighUberColor, "High uber color (67-99%)", Color_t(0, 255, 0, 255), VISUAL);
+			CVar(FullUberColor, "Full uber color (100%)", Color_t(0, 255, 255, 255), VISUAL);
+			CVar(DeadColor, "Dead medic color", Color_t(128, 128, 128, 255), VISUAL);
+		SUBNAMESPACE_END(MedicUberBar);
 
 		SUBNAMESPACE_BEGIN(PylonESP, Pylon ESP)
 			CVar(PylonWidth, "Pylon width", 6, VISUAL | SLIDER_CLAMP, 2, 15, 1);

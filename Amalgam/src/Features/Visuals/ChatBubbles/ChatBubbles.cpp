@@ -122,24 +122,35 @@ void CChatBubbles::AddChatMessage(const std::string& message, const std::string&
             newMessage.isVoice = isVoice;
             newMessage.hasSmoothPos = false;
             newMessage.count = 1;
-            
-            // Add to front of list
-            playerData.messages.insert(playerData.messages.begin(), newMessage);
-            
+
+            // Check if replace message mode is enabled
+            if (Vars::Competitive::Features::ChatBubblesReplaceMessage.Value)
+            {
+                // Replace mode: clear all existing messages and add only this one
+                playerData.messages.clear();
+                playerData.messages.push_back(newMessage);
+            }
+            else
+            {
+                // Normal mode: add to front of list and limit
+                playerData.messages.insert(playerData.messages.begin(), newMessage);
+
+                // Limit messages per player
+                while (playerData.messages.size() > MAX_MESSAGES_PER_PLAYER)
+                {
+                    playerData.messages.pop_back();
+                }
+            }
+
 #ifdef _DEBUG
             // Debug: Confirm message was added (only for voicelines and non-action sounds)
             if (isVoice || message.find("[Voice]") != std::string::npos)
             {
-                I::CVar->ConsolePrintf("AddChatMessage: Added '%s' for player %d\n", 
-                                      message.c_str(), entityIndex);
+                I::CVar->ConsolePrintf("AddChatMessage: Added '%s' for player %d (Replace mode: %s)\n",
+                                      message.c_str(), entityIndex,
+                                      Vars::Competitive::Features::ChatBubblesReplaceMessage.Value ? "ON" : "OFF");
             }
 #endif
-            
-            // Limit messages per player
-            while (playerData.messages.size() > MAX_MESSAGES_PER_PLAYER)
-            {
-                playerData.messages.pop_back();
-            }
         }
     }
     
