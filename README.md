@@ -36,7 +36,7 @@ All features are fully configurable through the COMP tab menu with individual to
 | Feature | Category | Description |
 |---------|----------|-------------|
 | **UberTracker** | Medical | Comprehensive uber advantage tracking with detailed medic information, weapon types, and advantage calculations |
-| **MedicUberBar* | Medical | Show bars above medics heads and never lose track of uber percentage |
+| **MedicUberBar** | Medical | Show bars above medics heads and never lose track of uber percentage |
 | **HealthBarESP** | Visual | Health bars for visible-only players. Includes medic mode, health-responsive visibility, and overheal display |
 | **CritHeals Indicator** | Medical | Triangle indicators above players eligible for crit heals (medic-only) with uber build rate warnings |
 | **PlayerTrails** | Movement | Colored movement trails for enemy players showing recent paths with visibility-based display and fade-out |
