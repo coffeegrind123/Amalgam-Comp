@@ -80,6 +80,11 @@ MAKE_HOOK(IBaseClientDLL_FrameStageNotify, U::Memory.GetVirtual(I::BaseClientDLL
 
 			pLocal->m_iObserverMode() = OBS_MODE_THIRDPERSON;
 			pLocal->m_hObserverTarget().Set(nullptr);
+
+			// Clear freezecam viewangles to prevent inheritance
+			QAngle neutralAngles(0.0f, 0.0f, 0.0f);
+			I::EngineClient->SetViewAngles(neutralAngles);
+
 			bNeedsMixerReset = true;
 		}
 
