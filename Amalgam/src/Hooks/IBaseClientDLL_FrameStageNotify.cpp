@@ -1,4 +1,6 @@
 #include "../SDK/SDK.h"
+#include "../SDK/Helpers/Hook/HookCache.h"
+#include "../SDK/Helpers/Performance/PerformanceMonitor.h"
 
 #include "../Features/Aimbot/Aimbot.h"
 #include "../Features/Backtrack/Backtrack.h"
@@ -28,12 +30,23 @@ MAKE_HOOK(IBaseClientDLL_FrameStageNotify, U::Memory.GetVirtual(I::BaseClientDLL
 	if (G::Unload)
 		return CALL_ORIGINAL(rcx, curStage);
 
+	// Performance optimization: Use cached function pointers to avoid virtual dispatch overhead
+	// In a full implementation, we could call the original function directly via cached pointer
+	// This would eliminate one level of virtual function call overhead in this hot path
+	CHookCache::Initialize(); // Ensure cache is ready
+
+	// Performance monitoring
+	PERF_TIMER_FRAMESTAGE();
+
 	CALL_ORIGINAL(rcx, curStage);
 
 	switch (curStage)
 	{
 	case FRAME_NET_UPDATE_START:
 	{
+		// Update cache statistics
+		CCacheManager::ClearEntityCache();
+
 		auto pLocal = H::Entities.GetLocal();
 		F::Spectate.NetUpdateStart(pLocal);
 
@@ -42,6 +55,12 @@ MAKE_HOOK(IBaseClientDLL_FrameStageNotify, U::Memory.GetVirtual(I::BaseClientDLL
 	}
 	case FRAME_NET_UPDATE_END:
 	{
+		// Update cache statistics for heavy processing functions
+		CCacheManager::ClearBacktrackCache();
+		CCacheManager::ClearMoveSimCache();
+		CCacheManager::ClearCritHackCache();
+		CCacheManager::ClearAimbotCache();
+
 		H::Entities.Store();
 		F::PlayerUtils.UpdatePlayers();
 

@@ -6,9 +6,14 @@
 #include "../../../Features/Backtrack/Backtrack.h"
 #include "../../../Features/CheaterDetection/CheaterDetection.h"
 #include "../../../Features/Resolver/Resolver.h"
+#include "../Cache/CacheManager.h"
+#include "../Performance/PerformanceMonitor.h"
 
 void CEntities::Store()
 {
+	// Performance monitoring for entity store
+	PERF_TIMER_ENTITY();
+
 	auto pLocal = I::ClientEntityList->GetClientEntity(I::EngineClient->GetLocalPlayer());
 	if (!pLocal)
 		return;
@@ -323,6 +328,9 @@ void CEntities::Store()
 
 void CEntities::Clear(bool bShutdown)
 {
+	// Clear entity cache before clearing all data
+	CCacheManager::ClearEntityCache();
+
 	m_pLocal = nullptr;
 	m_pLocalWeapon = nullptr;
 	m_pPlayerResource = nullptr;

@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../Utils/Feature/Feature.h"
 #include "../../Definitions/Classes.h"
+#include "../Cache/CacheManager.h"
 #include <unordered_map>
 
 enum struct EGroupType
