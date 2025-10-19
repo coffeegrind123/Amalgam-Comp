@@ -830,10 +830,10 @@ void CMenu::MenuVisuals(int iTab)
 					}
 					PopTransparent();
 					if (tGroup.m_iConditions & ConditionsEnum::Relative)
-						FDropdown("Conditions", &tGroup.m_iConditions, { "Relative", "Enemy", "Team", "Local", "Friends", "Party", "Priority", "Target", "##Divider", "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" },
-							{ ConditionsEnum::Relative, ConditionsEnum::Enemy, ConditionsEnum::Team, ConditionsEnum::Local, ConditionsEnum::Friends, ConditionsEnum::Party, ConditionsEnum::Priority, ConditionsEnum::Target, ConditionsEnum::Scout, ConditionsEnum::Soldier, ConditionsEnum::Pyro, ConditionsEnum::Demoman, ConditionsEnum::Heavy, ConditionsEnum::Engineer, ConditionsEnum::Medic, ConditionsEnum::Sniper, ConditionsEnum::Spy }, FDropdownEnum::Multi);
-					else	
-						FDropdown("Conditions", &tGroup.m_iConditions, { "Relative", "Enemy", "Team", "BLU", "RED", "Local", "Friends", "Party", "Priority", "Target", "##Divider", "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, {}, FDropdownEnum::Multi);
+						FDropdown("Conditions", &tGroup.m_iConditions, { "Relative", "Enemy", "Team", "Local", "Friends", "Party", "Priority", "Target" },
+							{ ConditionsEnum::Relative, ConditionsEnum::Enemy, ConditionsEnum::Team, ConditionsEnum::Local, ConditionsEnum::Friends, ConditionsEnum::Party, ConditionsEnum::Priority, ConditionsEnum::Target }, FDropdownEnum::Multi);
+					else
+						FDropdown("Conditions", &tGroup.m_iConditions, { "Relative", "Enemy", "Team", "BLU", "RED", "Local", "Friends", "Party", "Priority", "Target" }, {}, FDropdownEnum::Multi);
 				} EndSection();
 				if (Section("ESP"))
 				{
