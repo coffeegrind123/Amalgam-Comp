@@ -18,40 +18,10 @@ bool CSpectateAll::ShouldSpectate()
     if (shouldActivate)
     {
         int observerMode = pLocal->m_iObserverMode();
-        
-        // Track and handle freezecam transitions with audio-safe delays
-        if (observerMode == OBS_MODE_FREEZECAM)
+
+        // Remember non-freezecam modes for later restoration
+        if (observerMode != OBS_MODE_NONE)
         {
-            // Remember what mode we should return to (if we haven't already stored it)
-            if (m_iLastObserverMode == OBS_MODE_NONE)
-            {
-                // Default to third person if no previous mode
-                m_iLastObserverMode = OBS_MODE_THIRDPERSON;
-            }
-            
-            // Add audio-safe delay to prevent audio system conflicts
-            static float lastModeChange = 0;
-            float currentTime = I::GlobalVars->realtime;
-            if (currentTime - lastModeChange > 0.15f) // 150ms delay for audio stability
-            {
-                // Force out of freezecam using the remembered mode
-                pLocal->m_iObserverMode() = m_iLastObserverMode;
-                pLocal->m_hObserverTarget().Set(nullptr);
-                
-                // Clear freezecam viewangles to prevent inheritance
-                QAngle neutralAngles(0.0f, 0.0f, 0.0f);
-                I::EngineClient->SetViewAngles(neutralAngles);
-                
-                // Reset our stored angles to prevent contamination
-                m_vThirdPersonAngles = neutralAngles;
-                m_bForceAngleReset = true;
-                
-                lastModeChange = currentTime;
-            }
-        }
-        else if (observerMode != OBS_MODE_FREEZECAM && observerMode != OBS_MODE_NONE)
-        {
-            // Remember non-freezecam modes for later restoration
             m_iLastObserverMode = observerMode;
         }
         
@@ -129,6 +99,10 @@ bool CSpectateAll::ShouldSpectate()
         m_bInFreeCam = false;
         m_iCurrentEnemyIndex = 0;
         m_iLastObserverMode = OBS_MODE_NONE; // Reset observer mode tracking on death
+
+        // Schedule audio reset for death transition
+        m_flAudioResetTime = I::GlobalVars->realtime;
+        m_bNeedsAudioReset = true;
     }
     // Reset when respawning
     else if (!m_bWasAlive && isAlive)
@@ -136,6 +110,10 @@ bool CSpectateAll::ShouldSpectate()
         m_bIsSpectating = false;
         m_bInFreeCam = false;
         m_iLastObserverMode = OBS_MODE_NONE; // Reset observer mode tracking
+
+        // Schedule audio reset for respawn transition
+        m_flAudioResetTime = I::GlobalVars->realtime;
+        m_bNeedsAudioReset = true;
     }
     
     m_bWasAlive = isAlive;
@@ -588,9 +566,12 @@ void CSpectateAll::OverrideView(CViewSetup* pView)
 {
     // Always handle respawn mouse lock regardless of spectate state
     HandleRespawnMouseLock();
-    
+
     // Always handle mouse input to allow freecam activation when alive/taunting
     HandleMouseInput();
+
+    // Always handle audio system reset regardless of spectate state
+    HandleAudioReset();
     
     // Check if we're in freecam mode while alive
     auto pLocal = H::Entities.GetLocal();
@@ -620,9 +601,12 @@ void CSpectateAll::OverrideView(CViewSetup* pView)
     
     // Handle mouse input for freecam and player cycling (already called above)
     // HandleMouseInput();
-    
+
     // Check if current spectated player died and auto-switch if enabled
     CheckForPlayerDeath();
+
+    // Handle audio system reset for death/respawn transitions
+    HandleAudioReset();
     
     // Handle different spectate modes
     SpectateMode mode = GetCurrentMode();
@@ -900,9 +884,12 @@ void CSpectateAll::HandleRespawnMouseLock()
         // Reset killer tracking
         m_pLastKiller = nullptr;
     }
-    
+
     // Update the alive state for next frame
     m_bWasAlive = isAlive;
+
+    // Handle audio reset (backup call for consistency)
+    HandleAudioReset();
 }
 
 void CSpectateAll::OnPlayerDeath(IGameEvent* pEvent)
@@ -923,7 +910,7 @@ void CSpectateAll::OnPlayerDeath(IGameEvent* pEvent)
     if (Vars::Competitive::SpectateAll::PreferKillerSpectate.Value)
     {
         int attackerIndex = I::EngineClient->GetPlayerForUserID(pEvent->GetInt("attacker"));
-        
+
         if (attackerIndex > 0 && attackerIndex != deadPlayerIndex)
         {
             // Get the attacker entity
@@ -939,6 +926,10 @@ void CSpectateAll::OnPlayerDeath(IGameEvent* pEvent)
             }
         }
     }
+
+    // Schedule audio reset for death event
+    m_flAudioResetTime = I::GlobalVars->realtime;
+    m_bNeedsAudioReset = true;
 }
 
 bool CSpectateAll::ShouldLockMouse()
@@ -961,6 +952,21 @@ bool CSpectateAll::ShouldLockMouse()
         m_flMouseLockEndTime = 0.0f;
         m_bJustRespawned = false;
     }
-    
+
     return false;
+}
+
+void CSpectateAll::HandleAudioReset()
+{
+    // Reset audio mixer after TF2's natural timing (1.4 seconds after death/respawn)
+    if (m_bNeedsAudioReset && m_flAudioResetTime > 0.0f && I::GlobalVars->realtime - m_flAudioResetTime >= 1.4f)
+    {
+        static auto snd_soundmixer = U::ConVars.FindVar("snd_soundmixer");
+        if (snd_soundmixer)
+        {
+            snd_soundmixer->SetValue("Default_Mix");
+        }
+        m_bNeedsAudioReset = false;
+        m_flAudioResetTime = 0.0f;
+    }
 }

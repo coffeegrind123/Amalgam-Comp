@@ -35,9 +35,13 @@ private:
     float m_flMouseLockEndTime = 0.0f;
     CTFPlayer* m_pLastKiller = nullptr;
     bool m_bJustRespawned = false;
-    
+
     // Taunt freecam tracking
     bool m_bFreecamStartedDuringTaunt = false;
+
+    // Audio system reset tracking
+    float m_flAudioResetTime = 0.0f;
+    bool m_bNeedsAudioReset = false;
     
     // Helper functions
     void HandleMouseInput();
@@ -52,6 +56,7 @@ private:
     void SwitchToNextAvailablePlayer();
     void HandleRespawnMouseLock();
     CTFPlayer* FindPlayerKiller(CTFPlayer* pDeadPlayer);
+    void HandleAudioReset();
     
 public:
     void OverrideView(CViewSetup* pView);
