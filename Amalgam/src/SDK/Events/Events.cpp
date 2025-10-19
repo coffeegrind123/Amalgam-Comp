@@ -8,6 +8,7 @@
 #include "../../Features/Misc/Misc.h"
 #include "../../Features/PacketManip/AntiAim/AntiAim.h"
 #include "../../Features/Output/Output.h"
+#include "../../SDK/Helpers/Memory/KeyValuesPool.h"
 #include "../../Features/Resolver/Resolver.h"
 #include "../../Features/Visuals/Visuals.h"
 #include "../../Features/Visuals/CritHeals/CritHeals.h"
@@ -76,7 +77,7 @@ void CEventListener::FireGameEvent(IGameEvent* pEvent)
 		if (!Vars::Misc::MannVsMachine::InstantRevive.Value || pEvent->GetInt("entindex") != I::EngineClient->GetLocalPlayer())
 			break;
 
-		KeyValues* kv = new KeyValues("MVM_Revive_Response");
+		KeyValues* kv = CKeyValuesPool::Alloc("MVM_Revive_Response");
 		kv->SetInt("accepted", 1);
 		I::EngineClient->ServerCmdKeyValues(kv);
 	}

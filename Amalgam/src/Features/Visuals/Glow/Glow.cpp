@@ -5,6 +5,7 @@
 #include "../../Backtrack/Backtrack.h"
 #include "../../Players/PlayerUtils.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
+#include "../../../SDK/Helpers/Memory/KeyValuesPool.h"
 
 static inline bool GetPlayerGlow(CBaseEntity* pPlayer, CBaseEntity* pEntity, CTFPlayer* pLocal, Glow_t* pGlow, Color_t* pColor, bool bEnemy, bool bTeam)
 {
@@ -602,7 +603,7 @@ void CGlow::Initialize()
 
 	if (!m_pMatHaloAddToScreen)
 	{
-		KeyValues* kv = new KeyValues("UnlitGeneric");
+		KeyValues* kv = CKeyValuesPool::Alloc("UnlitGeneric");
 		kv->SetString("$basetexture", "RenderBuffer1");
 		kv->SetString("$additive", "1");
 		m_pMatHaloAddToScreen = F::Materials.Create("MatHaloAddToScreen", kv);
@@ -610,14 +611,14 @@ void CGlow::Initialize()
 
 	if (!m_pMatBlurX)
 	{
-		KeyValues* kv = new KeyValues("BlurFilterX");
+		KeyValues* kv = CKeyValuesPool::Alloc("BlurFilterX");
 		kv->SetString("$basetexture", "RenderBuffer1");
 		m_pMatBlurX = F::Materials.Create("MatBlurX", kv);
 	}
 
 	if (!m_pMatBlurY)
 	{
-		KeyValues* kv = new KeyValues("BlurFilterY");
+		KeyValues* kv = CKeyValuesPool::Alloc("BlurFilterY");
 		kv->SetString("$basetexture", "RenderBuffer2");
 		m_pMatBlurY = F::Materials.Create("MatBlurY", kv);
 	}

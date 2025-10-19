@@ -1,6 +1,7 @@
 #include "CameraWindow.h"
 
 #include "../../Visuals/Materials/Materials.h"
+#include "../../../SDK/Helpers/Memory/KeyValuesPool.h"
 
 // Draws camera to the screen
 void CCameraWindow::Draw()
@@ -95,7 +96,7 @@ void CCameraWindow::Initialize()
 {
 	if (!m_pCameraMaterial)
 	{
-		KeyValues* kv = new KeyValues("UnlitGeneric");
+		KeyValues* kv = CKeyValuesPool::Alloc("UnlitGeneric");
 		kv->SetString("$basetexture", "m_pCameraTexture");
 		m_pCameraMaterial = F::Materials.Create("CameraMaterial", kv);
 	}

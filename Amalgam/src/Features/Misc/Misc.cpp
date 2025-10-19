@@ -5,6 +5,7 @@
 #include "../Players/PlayerUtils.h"
 #include "../Aimbot/AutoRocketJump/AutoRocketJump.h"
 #include "SafeBhop/SafeBhop.h"
+#include "../../SDK/Helpers/Memory/KeyValuesPool.h"
 
 void CMisc::RunPre(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
@@ -212,7 +213,7 @@ void CMisc::InstantRespawnMVM(CTFPlayer* pLocal)
 {
 	if (Vars::Misc::MannVsMachine::InstantRespawn.Value && I::EngineClient->IsInGame() && !pLocal->IsAlive())
 	{
-		KeyValues* kv = new KeyValues("MVM_Revive_Response");
+		KeyValues* kv = CKeyValuesPool::Alloc("MVM_Revive_Response");
 		kv->SetInt("accepted", 1);
 		I::EngineClient->ServerCmdKeyValues(kv);
 	}
