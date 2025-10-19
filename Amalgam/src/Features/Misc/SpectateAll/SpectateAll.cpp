@@ -887,9 +887,6 @@ void CSpectateAll::HandleRespawnMouseLock()
 
     // Update the alive state for next frame
     m_bWasAlive = isAlive;
-
-    // Handle audio reset (backup call for consistency)
-    HandleAudioReset();
 }
 
 void CSpectateAll::OnPlayerDeath(IGameEvent* pEvent)
