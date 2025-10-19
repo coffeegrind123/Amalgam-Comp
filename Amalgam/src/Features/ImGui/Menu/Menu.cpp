@@ -595,6 +595,7 @@ void CMenu::MenuAimbot(int iTab)
 void CMenu::MenuVisuals(int iTab)
 {
 	using namespace ImGui;
+	static size_t iCurrentGroup = 0;
 
 	switch (iTab)
 	{

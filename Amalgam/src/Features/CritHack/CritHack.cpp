@@ -479,6 +479,7 @@ void CCritHack::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 		if (iVictim == iAttacker || iAttacker != I::EngineClient->GetLocalPlayer())
 			break;
 
+		const int iInsanePlayerDamage = 1500;
 		if (auto pGameRules = I::TFGameRules())
 		{
 			auto pMatchDesc = pGameRules->GetMatchGroupDescription();
@@ -491,9 +492,9 @@ void CCritHack::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 					return;
 				}
 			}
+			if (pGameRules->m_bPlayingMannVsMachine())
+				iInsanePlayerDamage = 5000;
 		}
-
-		const int iInsanePlayerDamage = pGameRules->m_bPlayingMannVsMachine() ? 5000 : 1500;
 		if (iDamage > iInsanePlayerDamage)
 			return;
 
