@@ -352,31 +352,3 @@ bool CGroups::ShouldTarget(Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLo
 
 	return false;
 }
-
-bool CGroups::ShouldTargetOwner(bool bType, Group_t& tGroup, CBaseEntity* pOwner, CBaseEntity* pEntity, CTFPlayer* pLocal)
-{
-	if (!bType || !pOwner)
-		return true;
-
-	return ShouldTarget(tGroup, pOwner, pLocal);
-}
-
-bool CGroups::ShouldTargetTeam(bool bType, Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLocal)
-{
-	if (!bType)
-		return true;
-
-	if (tGroup.m_iConditions & ConditionsEnum::Enemy && pEntity->m_iTeamNum() != pLocal->m_iTeamNum())
-		return true;
-
-	if (tGroup.m_iConditions & ConditionsEnum::Team && pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
-		return true;
-
-	if (tGroup.m_iConditions & ConditionsEnum::BLU && pEntity->m_iTeamNum() == TF_TEAM_BLUE)
-		return true;
-
-	if (tGroup.m_iConditions & ConditionsEnum::RED && pEntity->m_iTeamNum() == TF_TEAM_RED)
-		return true;
-
-	return false;
-}
