@@ -479,7 +479,7 @@ void CCritHack::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 		if (iVictim == iAttacker || iAttacker != I::EngineClient->GetLocalPlayer())
 			break;
 
-		const int iInsanePlayerDamage = 1500;
+		int iInsanePlayerDamage = 1500;
 		if (auto pGameRules = I::TFGameRules())
 		{
 			auto pMatchDesc = pGameRules->GetMatchGroupDescription();

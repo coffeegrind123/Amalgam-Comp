@@ -891,7 +891,6 @@ void CMenu::MenuVisuals(int iTab)
 				} EndSection();
 			}
 			EndTable();
-			*/
 		}
 		break;
 	}

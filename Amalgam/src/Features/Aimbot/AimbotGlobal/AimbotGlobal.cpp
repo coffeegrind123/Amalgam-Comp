@@ -35,7 +35,7 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 	float flMinFOV = 180.f;
 	for (int nHitbox = 0; nHitbox < pTarget->GetNumOfHitboxes(); nHitbox++)
 	{
-		if (!IsHitboxValid(H::Entities.GetModel(pTarget->entindex()), nHitbox, iHitboxes))
+		if (!IsHitboxValid(pTarget, nHitbox, iHitboxes))
 			continue;
 
 		Vec3 vCurPos = pTarget->GetHitboxCenter(aBones, nHitbox);

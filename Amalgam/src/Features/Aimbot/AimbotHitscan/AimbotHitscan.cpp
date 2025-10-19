@@ -337,7 +337,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			std::vector<std::tuple<const mstudiobbox_t*, int, int>> vHitboxes;
 			for (int i = 0; i < pSet->numhitboxes; i++)
 			{
-				if (!F::AimbotGlobal.IsHitboxValid(H::Entities.GetModel(tTarget.m_pEntity->entindex()), i, Vars::Aimbot::Hitscan::Hitboxes.Value))
+				if (!F::AimbotGlobal.IsHitboxValid(tTarget.m_pEntity, i, Vars::Aimbot::Hitscan::Hitboxes.Value))
 					continue;
 
 				auto pBox = pSet->pHitbox(i);
