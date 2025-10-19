@@ -18,6 +18,13 @@
 static std::unordered_map<std::string, int> mTraceCount = {};
 #endif
 
+struct RestoreInfo_t
+{
+	Vec3 m_vOrigin;
+	Vec3 m_vMins;
+	Vec3 m_vMaxs;
+};
+
 std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 {
 	std::vector<Target_t> vTargets;
@@ -1165,8 +1172,10 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 	}
 
 	bool bDidHit = false, bPrimeTime = false;
-	const Vec3 vOriginal = tTarget.m_pEntity->GetAbsOrigin();
+	const RestoreInfo_t tOriginal = { tTarget.m_pEntity->GetAbsOrigin(), tTarget.m_pEntity->m_vecMins(), tTarget.m_pEntity->m_vecMaxs() };
 	tTarget.m_pEntity->SetAbsOrigin(tTarget.m_vPos);
+	tTarget.m_pEntity->m_vecMins() = { -24, -24, tTarget.m_pEntity->m_vecMins().z };
+	tTarget.m_pEntity->m_vecMaxs() = { 24, 24, tTarget.m_pEntity->m_vecMaxs().z };
 	for (int n = 1; n <= iSimTime; n++)
 	{
 		Vec3 vOld = F::ProjSim.GetOrigin();
@@ -1285,7 +1294,7 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 					if (!aBones)
 						break;
 
-					Vec3 vOffset = vOriginal - tTarget.m_vPos;
+					Vec3 vOffset = tOriginal.m_vOrigin - tTarget.m_vPos;
 					Vec3 vPos = trace.endpos + F::ProjSim.GetVelocity().Normalized() * 16 + vOffset;
 
 					float flClosest = 0.f; int iClosest = -1;
@@ -1325,7 +1334,9 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 				break;
 		}
 	}
-	tTarget.m_pEntity->SetAbsOrigin(vOriginal);
+	tTarget.m_pEntity->SetAbsOrigin(tOriginal.m_vOrigin);
+	tTarget.m_pEntity->m_vecMins() = tOriginal.m_vMins;
+	tTarget.m_pEntity->m_vecMaxs() = tOriginal.m_vMaxs;
 
 	if (bDidHit && pProjectilePath)
 	{

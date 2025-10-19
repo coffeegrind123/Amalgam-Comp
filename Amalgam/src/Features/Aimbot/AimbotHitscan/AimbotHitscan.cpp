@@ -204,67 +204,21 @@ int CAimbotHitscan::GetHitboxPriority(int nHitbox, CTFPlayer* pLocal, CTFWeaponB
 		}
 	}
 
-	switch (H::Entities.GetModel(pTarget->entindex()))
+	int iHeadPriority = bHeadshot ? 0 : 2;
+	int iBodyPriority = bHeadshot ? 1 : 0;
+	int iLimbPriority = 2;
+
+	switch (pTarget->GetHitboxToBase(nHitbox))
 	{
-	case FNV1A::Hash32Const("models/vsh/player/saxton_hale.mdl"):
-	case FNV1A::Hash32Const("models/vsh/player/hell_hale.mdl"):
-	case FNV1A::Hash32Const("models/vsh/player/santa_hale.mdl"):
-	{
-		switch (nHitbox)
-		{
-		case HITBOX_SAXTON_HEAD: return bHeadshot ? 0 : 2;
-		//case HITBOX_SAXTON_NECK:
-		//case HITBOX_SAXTON_PELVIS: return 2;
-		case HITBOX_SAXTON_BODY:
-		case HITBOX_SAXTON_THORAX:
-		case HITBOX_SAXTON_CHEST:
-		case HITBOX_SAXTON_UPPER_CHEST: return bHeadshot ? 1 : 0;
-		/*
-		case HITBOX_SAXTON_LEFT_UPPER_ARM:
-		case HITBOX_SAXTON_LEFT_FOREARM:
-		case HITBOX_SAXTON_LEFT_HAND:
-		case HITBOX_SAXTON_RIGHT_UPPER_ARM:
-		case HITBOX_SAXTON_RIGHT_FOREARM:
-		case HITBOX_SAXTON_RIGHT_HAND:
-		case HITBOX_SAXTON_LEFT_THIGH:
-		case HITBOX_SAXTON_LEFT_CALF:
-		case HITBOX_SAXTON_LEFT_FOOT:
-		case HITBOX_SAXTON_RIGHT_THIGH:
-		case HITBOX_SAXTON_RIGHT_CALF:
-		case HITBOX_SAXTON_RIGHT_FOOT:
-		*/
-		}
-		break;
-	}
-	default:
-	{
-		switch (nHitbox)
-		{
-		case HITBOX_HEAD: return bHeadshot ? 0 : 2;
-		//case HITBOX_PELVIS: return 2;
-		case HITBOX_BODY:
-		case HITBOX_THORAX:
-		case HITBOX_CHEST:
-		case HITBOX_UPPER_CHEST: return bHeadshot ? 1 : 0;
-		/*
-		case HITBOX_LEFT_UPPER_ARM:
-		case HITBOX_LEFT_FOREARM:
-		case HITBOX_LEFT_HAND:
-		case HITBOX_RIGHT_UPPER_ARM:
-		case HITBOX_RIGHT_FOREARM:
-		case HITBOX_RIGHT_HAND:
-		case HITBOX_LEFT_THIGH:
-		case HITBOX_LEFT_CALF:
-		case HITBOX_LEFT_FOOT:
-		case HITBOX_RIGHT_THIGH:
-		case HITBOX_RIGHT_CALF:
-		case HITBOX_RIGHT_FOOT:
-		*/
-		}
-	}
+	case HITBOX_HEAD: return iHeadPriority;
+	case HITBOX_SPINE0:
+	case HITBOX_SPINE1:
+	case HITBOX_SPINE2:
+	case HITBOX_SPINE3: return iBodyPriority;
+	case HITBOX_PELVIS: return iLimbPriority;
 	}
 
-	return 2;
+	return iLimbPriority;
 };
 
 int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pWeapon)

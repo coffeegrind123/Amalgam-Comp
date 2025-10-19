@@ -52,21 +52,200 @@ bool CGroups::ShouldTargetOwner(bool bType, Group_t& tGroup, CBaseEntity* pOwner
 	return ShouldTargetTeam(bType, tGroup, pEntity, pLocal);
 }
 
+static inline bool ShouldTargetPlayer(Group_t& tGroup, int iBit, CBaseEntity* pEntity, CTFPlayer* pLocal)
+{
+    if (!(tGroup.m_iTargets & iBit))
+        return false;
+
+    auto pPlayer = pEntity->As<CTFPlayer>();
+    if (pPlayer == pLocal && !(tGroup.m_iConditions & ConditionsEnum::Local))
+        return false;
+
+    if (tGroup.m_iPlayers)
+    {
+        if (tGroup.m_iPlayers & PlayerEnum::Classes)
+        {
+            int iFlag = 0;
+            switch (pPlayer->m_iClass())
+            {
+            case TF_CLASS_SCOUT: iFlag = PlayerEnum::Scout; break;
+            case TF_CLASS_SOLDIER: iFlag = PlayerEnum::Soldier; break;
+            case TF_CLASS_PYRO: iFlag = PlayerEnum::Pyro; break;
+            case TF_CLASS_DEMOMAN: iFlag = PlayerEnum::Demoman; break;
+            case TF_CLASS_HEAVY: iFlag = PlayerEnum::Heavy; break;
+            case TF_CLASS_ENGINEER: iFlag = PlayerEnum::Engineer; break;
+            case TF_CLASS_MEDIC: iFlag = PlayerEnum::Medic; break;
+            case TF_CLASS_SNIPER: iFlag = PlayerEnum::Sniper; break;
+            case TF_CLASS_SPY: iFlag = PlayerEnum::Spy; break;
+            }
+            if (!(tGroup.m_iPlayers & iFlag))
+                return false;
+        }
+        if (tGroup.m_iPlayers & PlayerEnum::Conds)
+        {
+            if (tGroup.m_iPlayers & PlayerEnum::Invulnerable && !pPlayer->IsInvulnerable()
+                || tGroup.m_iPlayers & PlayerEnum::Crits && !pPlayer->IsCritBoosted()
+                || tGroup.m_iPlayers & PlayerEnum::Invisible && !pPlayer->IsInvisible()
+                || tGroup.m_iPlayers & PlayerEnum::Disguise && !pPlayer->InCond(TF_COND_DISGUISED)
+                || tGroup.m_iPlayers & PlayerEnum::Hurt && pPlayer->m_iHealth() >= pPlayer->GetMaxHealth())
+                return false;
+        }
+    }
+
+    return ShouldTargetOwner(tGroup.m_iTargets & iBit, tGroup, pEntity, pEntity, pLocal);
+}
+
+static inline bool ShouldTargetBuilding(Group_t& tGroup, int iBit, CBaseEntity* pEntity, CTFPlayer* pLocal)
+{
+    if (!(tGroup.m_iTargets & iBit))
+        return false;
+
+    auto pBuilding = pEntity->As<CBaseObject>();
+    if (!pBuilding->m_iHealth() || pBuilding->m_bCarried())
+        return false;
+
+    if (tGroup.m_iBuildings)
+    {
+        if (tGroup.m_iBuildings & BuildingEnum::Classes)
+        {
+            int iFlag = 0;
+            switch (pBuilding->GetClassID())
+            {
+            case ETFClassID::CObjectSentrygun: iFlag = BuildingEnum::Sentry; break;
+            case ETFClassID::CObjectDispenser: iFlag = BuildingEnum::Dispenser; break;
+            case ETFClassID::CObjectTeleporter: iFlag = BuildingEnum::Teleporter; break;
+            }
+            if (!(tGroup.m_iBuildings & iFlag))
+                return false;
+        }
+        if (tGroup.m_iBuildings & BuildingEnum::Conds)
+        {
+            if (tGroup.m_iBuildings & BuildingEnum::Hurt && pBuilding->m_iHealth() >= pBuilding->m_iMaxHealth())
+                return false;
+        }
+    }
+
+    auto pOwner = pBuilding->m_hBuilder().Get();
+    if (!pOwner) pOwner = pBuilding;
+    return ShouldTargetOwner(tGroup.m_iTargets & iBit, tGroup, pOwner, pEntity, pLocal);
+}
+
+static inline bool ShouldTargetProjectile(Group_t& tGroup, int iBit, CBaseEntity* pEntity, CTFPlayer* pLocal)
+{
+    if (!(tGroup.m_iTargets & iBit))
+        return false;
+
+    if (tGroup.m_iProjectiles)
+    {
+        if (tGroup.m_iProjectiles & ProjectileEnum::Classes)
+        {
+            int iFlag = ProjectileEnum::Misc;
+            switch (pEntity->GetClassID())
+            {
+            case ETFClassID::CTFProjectile_Rocket:
+            case ETFClassID::CTFProjectile_EnergyBall:
+            case ETFClassID::CTFProjectile_SentryRocket: iFlag = ProjectileEnum::Rocket; break;
+            case ETFClassID::CTFGrenadePipebombProjectile: iFlag = pEntity->As<CTFGrenadePipebombProjectile>()->HasStickyEffects() ? ProjectileEnum::Sticky : ProjectileEnum::Pipe; break;
+            case ETFClassID::CTFProjectile_Arrow: iFlag = pEntity->As<CTFProjectile_Arrow>()->m_iProjectileType() == TF_PROJECTILE_BUILDING_REPAIR_BOLT ? ProjectileEnum::Repair : ProjectileEnum::Arrow; break;
+            case ETFClassID::CTFProjectile_HealingBolt: iFlag = ProjectileEnum::Heal; break;
+            case ETFClassID::CTFProjectile_Flare: iFlag = ProjectileEnum::Flare; break;
+            case ETFClassID::CTFProjectile_BallOfFire: iFlag = ProjectileEnum::Fire; break;
+            case ETFClassID::CTFProjectile_Cleaver: iFlag = ProjectileEnum::Cleaver; break;
+            case ETFClassID::CTFProjectile_JarMilk:
+            case ETFClassID::CTFProjectile_ThrowableBreadMonster: iFlag = ProjectileEnum::Milk; break;
+            case ETFClassID::CTFProjectile_Jar: iFlag = ProjectileEnum::Jarate; break;
+            case ETFClassID::CTFProjectile_JarGas: iFlag = ProjectileEnum::Gas; break;
+            case ETFClassID::CTFBall_Ornament: iFlag = ProjectileEnum::Bauble; break;
+            case ETFClassID::CTFStunBall: iFlag = ProjectileEnum::Baseball; break;
+            case ETFClassID::CTFProjectile_EnergyRing: iFlag = ProjectileEnum::Energy; break;
+            case ETFClassID::CTFProjectile_MechanicalArmOrb: iFlag = ProjectileEnum::ShortCircuit; break;
+            case ETFClassID::CTFProjectile_SpellMeteorShower: iFlag = ProjectileEnum::MeteorShower; break;
+            case ETFClassID::CTFProjectile_SpellLightningOrb: iFlag = ProjectileEnum::Lightning; break;
+            case ETFClassID::CTFProjectile_SpellFireball: iFlag = ProjectileEnum::Fireball; break;
+            case ETFClassID::CTFWeaponBaseMerasmusGrenade: iFlag = ProjectileEnum::Bomb; break;
+            case ETFClassID::CTFProjectile_SpellBats:
+            case ETFClassID::CTFProjectile_SpellKartBats: iFlag = ProjectileEnum::Bats; break;
+            case ETFClassID::CTFProjectile_SpellMirv:
+            case ETFClassID::CTFProjectile_SpellPumpkin: iFlag = ProjectileEnum::Pumpkin; break;
+            case ETFClassID::CTFProjectile_SpellSpawnBoss: iFlag = ProjectileEnum::Monoculus; break;
+            case ETFClassID::CTFProjectile_SpellSpawnHorde:
+            case ETFClassID::CTFProjectile_SpellSpawnZombie: iFlag = ProjectileEnum::Skeleton; break;
+            }
+            if (!(tGroup.m_iProjectiles & iFlag))
+                return false;
+        }
+        if (tGroup.m_iProjectiles & ProjectileEnum::Conds)
+        {
+            bool bCrit = false, bMinicrit = false;
+            switch (pEntity->GetClassID())
+            {
+            case ETFClassID::CTFWeaponBaseMerasmusGrenade:
+            case ETFClassID::CTFGrenadePipebombProjectile:
+            case ETFClassID::CTFStunBall:
+            case ETFClassID::CTFBall_Ornament:
+            case ETFClassID::CTFProjectile_Jar:
+            case ETFClassID::CTFProjectile_Cleaver:
+            case ETFClassID::CTFProjectile_JarGas:
+            case ETFClassID::CTFProjectile_JarMilk:
+            case ETFClassID::CTFProjectile_SpellBats:
+            case ETFClassID::CTFProjectile_SpellKartBats:
+            case ETFClassID::CTFProjectile_SpellMeteorShower:
+            case ETFClassID::CTFProjectile_SpellMirv:
+            case ETFClassID::CTFProjectile_SpellPumpkin:
+            case ETFClassID::CTFProjectile_SpellSpawnBoss:
+            case ETFClassID::CTFProjectile_SpellSpawnHorde:
+            case ETFClassID::CTFProjectile_SpellSpawnZombie:
+                bCrit = pEntity->As<CTFWeaponBaseGrenadeProj>()->m_bCritical();
+                bMinicrit = pEntity->As<CTFWeaponBaseGrenadeProj>()->m_iDeflected() && (pEntity->GetClassID() != ETFClassID::CTFGrenadePipebombProjectile || !pEntity->GetAbsVelocity().IsZero());
+                break;
+            case ETFClassID::CTFProjectile_Arrow:
+            case ETFClassID::CTFProjectile_HealingBolt:
+                bCrit = pEntity->As<CTFProjectile_Arrow>()->m_bCritical();
+                bMinicrit = pEntity->As<CTFBaseRocket>()->m_iDeflected();
+                break;
+            case ETFClassID::CTFProjectile_Rocket:
+            case ETFClassID::CTFProjectile_BallOfFire:
+            case ETFClassID::CTFProjectile_MechanicalArmOrb:
+            case ETFClassID::CTFProjectile_SentryRocket:
+            case ETFClassID::CTFProjectile_SpellFireball:
+            case ETFClassID::CTFProjectile_SpellLightningOrb:
+                bCrit = pEntity->As<CTFProjectile_Rocket>()->m_bCritical();
+                bMinicrit = pEntity->As<CTFBaseRocket>()->m_iDeflected();
+                break;
+            case ETFClassID::CTFProjectile_EnergyBall:
+                bMinicrit = pEntity->As<CTFProjectile_EnergyBall>()->m_bChargedShot() || pEntity->As<CTFBaseRocket>()->m_iDeflected();
+                break;
+            case ETFClassID::CTFProjectile_Flare:
+                bCrit = pEntity->As<CTFProjectile_Flare>()->m_bCritical();
+                bMinicrit = pEntity->As<CTFBaseRocket>()->m_iDeflected();
+                break;
+            }
+
+            if (/*tGroup.m_iProjectiles & (ProjectileEnum::Crit | ProjectileEnum::Minicrit)
+                &&*/ !(tGroup.m_iProjectiles & ProjectileEnum::Crit && bCrit)
+                && !(tGroup.m_iProjectiles & ProjectileEnum::Minicrit && bMinicrit))
+                return false;
+        }
+    }
+
+    auto pOwner = F::ProjSim.GetEntities(pEntity).second->As<CBaseEntity>();
+    if (!pOwner) pOwner = pEntity;
+    return ShouldTargetOwner(tGroup.m_iTargets & iBit, tGroup, pOwner, pEntity, pLocal);
+}
+
 bool CGroups::ShouldTarget(Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLocal)
 {
 	switch (pEntity->GetClassID())
 	{
 	// players
 	case ETFClassID::CTFPlayer:
-		return ShouldTargetOwner(tGroup.m_iTargets & TargetsEnum::Players, tGroup, pEntity, pEntity, pLocal);
+		return ShouldTargetPlayer(tGroup, TargetsEnum::Players, pEntity, pLocal);
 	// buildings
 	case ETFClassID::CObjectSentrygun:
 	case ETFClassID::CObjectDispenser:
 	case ETFClassID::CObjectTeleporter:
 	{
-		auto pOwner = pEntity->As<CBaseObject>()->m_hBuilder().Get();
-		if (!pOwner) pOwner = pEntity;
-		return ShouldTargetOwner(tGroup.m_iTargets & TargetsEnum::Buildings, tGroup, pOwner, pEntity, pLocal);
+		return ShouldTargetBuilding(tGroup, TargetsEnum::Buildings, pEntity, pLocal);
 	}
 	// projectiles
 	case ETFClassID::CBaseProjectile:
@@ -111,9 +290,7 @@ bool CGroups::ShouldTarget(Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLo
 	case ETFClassID::CTFProjectile_EnergyRing:
 	//case ETFClassID::CTFProjectile_Syringe:
 	{
-		auto pOwner = F::ProjSim.GetEntities(pEntity).second->As<CBaseEntity>();
-		if (!pOwner) pOwner = pEntity;
-		return ShouldTargetOwner(tGroup.m_iTargets & TargetsEnum::Projectiles, tGroup, pOwner, pEntity, pLocal);
+		return ShouldTargetProjectile(tGroup, TargetsEnum::Projectiles, pEntity, pLocal);
 	}
 	// ragdolls
 	case ETFClassID::CTFRagdoll:

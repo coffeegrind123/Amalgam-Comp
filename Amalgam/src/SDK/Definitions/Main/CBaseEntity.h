@@ -293,4 +293,6 @@ public:
 	Vec3 GetRenderCenter();
 	int IsInValidTeam();
 	int SolidMask();
+	int GetHitboxToBase(int nHitbox);
+	int GetBaseToHitbox(int nHitbox);
 };

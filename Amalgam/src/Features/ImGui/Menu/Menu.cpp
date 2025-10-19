@@ -805,7 +805,7 @@ void CMenu::MenuVisuals(int iTab)
 					FToggle(Vars::ESP::Other::PickupTimers);
 				} EndSection();
 			}
-			/* Column 2 * /
+			/* Column 2 */
 			TableNextColumn();
 			if (0 <= iCurrentGroup && iCurrentGroup < F::Groups.m_vGroups.size())
 			{
@@ -813,6 +813,21 @@ void CMenu::MenuVisuals(int iTab)
 				if (Section("Target"))
 				{
 					FDropdown("Targets", &tGroup.m_iTargets, { "Players", "Buildings", "Projectiles", "Ragdolls", "Objective", "NPCs", "Health", "Ammo", "Money", "Powerups", "Bombs", "Spellbook", "Gargoyle" }, {}, FDropdownEnum::Multi);
+					PushTransparent(!(tGroup.m_iTargets & TargetsEnum::Players));
+					{
+						FDropdown("Players", &tGroup.m_iPlayers, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy", "##Divider", "Invulnerable", "Crits", "Invisible", "Disguise", "Hurt" }, {}, FDropdownEnum::Multi, 0, "All");
+					}
+					PopTransparent();
+					PushTransparent(!(tGroup.m_iTargets & TargetsEnum::Buildings));
+					{
+						FDropdown("Buildings", &tGroup.m_iBuildings, { "Sentry", "Dispenser", "Teleporter", "##Divider", "Hurt" }, {}, FDropdownEnum::Multi, 0, "All");
+					}
+					PopTransparent();
+					PushTransparent(!(tGroup.m_iTargets & TargetsEnum::Projectiles));
+					{
+						FDropdown("Projectiles", &tGroup.m_iProjectiles, { "Rocket", "Sticky", "Pipe", "Arrow", "Heal", "Flare", "Fire", "Repair", "Cleaver", "Milk", "Jarate", "Gas", "Bauble", "Baseball", "Energy", "Short circuit", "Meteor shower", "Lightning", "Fireball", "Bomb", "Bats", "Pumpkin", "Monoculus", "Skeleton", "Misc", "##Divider", "Crit", "Minicrit" }, {}, FDropdownEnum::Multi, 0, "All");
+					}
+					PopTransparent();
 					if (tGroup.m_iConditions & ConditionsEnum::Relative)
 						FDropdown("Conditions", &tGroup.m_iConditions, { "Relative", "Enemy", "Team", "Local", "Friends", "Party", "Priority", "Target", "##Divider", "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" },
 							{ ConditionsEnum::Relative, ConditionsEnum::Enemy, ConditionsEnum::Team, ConditionsEnum::Local, ConditionsEnum::Friends, ConditionsEnum::Party, ConditionsEnum::Priority, ConditionsEnum::Target, ConditionsEnum::Scout, ConditionsEnum::Soldier, ConditionsEnum::Pyro, ConditionsEnum::Demoman, ConditionsEnum::Heavy, ConditionsEnum::Engineer, ConditionsEnum::Medic, ConditionsEnum::Sniper, ConditionsEnum::Spy }, FDropdownEnum::Multi);
