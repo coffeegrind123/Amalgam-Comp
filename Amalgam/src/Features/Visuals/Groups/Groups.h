@@ -47,9 +47,7 @@ class CGroups
 {
 private:
 	bool ShouldTarget(Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLocal);
-	bool ShouldTargetOwner(bool bType, Group_t& tGroup, CBaseEntity* pOwner, CBaseEntity* pEntity, CTFPlayer* pLocal);
-	bool ShouldTargetTeam(bool bType, Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLocal);
-
+	
 public:
 	// GetESP
 	// GetChams

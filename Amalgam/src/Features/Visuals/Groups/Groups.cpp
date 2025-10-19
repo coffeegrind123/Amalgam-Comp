@@ -3,7 +3,7 @@
 #include "../../Players/PlayerUtils.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
 
-bool CGroups::ShouldTargetTeam(bool bType, Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLocal)
+static bool ShouldTargetTeam(bool bType, Group_t& tGroup, CBaseEntity* pEntity, CTFPlayer* pLocal)
 {
 	if (!bType)
 		return false;
@@ -35,7 +35,7 @@ bool CGroups::ShouldTargetTeam(bool bType, Group_t& tGroup, CBaseEntity* pEntity
 	return false;
 }
 
-bool CGroups::ShouldTargetOwner(bool bType, Group_t& tGroup, CBaseEntity* pOwner, CBaseEntity* pEntity, CTFPlayer* pLocal)
+static bool ShouldTargetOwner(bool bType, Group_t& tGroup, CBaseEntity* pOwner, CBaseEntity* pEntity, CTFPlayer* pLocal)
 {
 	if (!bType)
 		return false;
