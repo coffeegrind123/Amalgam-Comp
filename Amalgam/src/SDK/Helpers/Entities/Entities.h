@@ -15,12 +15,14 @@ enum struct EGroupType
 	MISC_LOCAL_STICKIES, MISC_LOCAL_FLARES, MISC_DOTS
 };
 
+// Entity storage constants for MSVC compatibility
+enum { MAX_PLAYERS = 64, MAX_BUILDINGS = 128, MAX_PROJECTILES = 256 };
+
 // Optimized hot-path entity storage
 class COptimizedEntityStorage
 {
 private:
     // Optimized vectors for hot groups (O(1) access, better cache locality)
-    enum { MAX_PLAYERS = 64, MAX_BUILDINGS = 128, MAX_PROJECTILES = 256 };
 
     std::vector<CBaseEntity*> m_vPlayersAll;
     std::vector<CBaseEntity*> m_vPlayersEnemies;

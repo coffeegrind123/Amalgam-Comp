@@ -1,5 +1,6 @@
 #include "GameMemoryPools.h"
 #include "KeyValuesPool.h"
+#include <cstring>
 
 // Static member definitions
 KeyValues* CGameMemoryPools::s_pKeyValuesPool[KEYVALUES_POOL_SIZE] = {nullptr};
