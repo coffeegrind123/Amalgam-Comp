@@ -162,3 +162,5 @@ void* CHookCache::s_pViewRender = nullptr;
 void* CHookCache::s_pModelRender = nullptr;
 void* CHookCache::s_pSurface = nullptr;
 bool CHookCache::s_bInitialized = false;
+bool CHookCache::s_bValidationEnabled = true;
+uint32_t CHookCache::s_nErrorCount = 0;
