@@ -140,4 +140,4 @@ public:
 };
 
 // Global instance to ensure initialization
-static CHookCacheInitializer g_HookCacheInitializer;
+extern CHookCacheInitializer g_HookCacheInitializer;
