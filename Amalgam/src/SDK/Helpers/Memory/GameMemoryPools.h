@@ -5,29 +5,31 @@
 #include <unordered_map>
 #include <string>
 
+// Memory pool constants for MSVC compatibility
+#define KEYVALUES_POOL_SIZE 128
+#define STRING_POOL_SIZE 256
+#define MAX_STRING_LENGTH 256
+#define VECTOR_POOL_SIZE 512
+#define COLOR_POOL_SIZE 256
+
 // Expanded memory pool system for frequently allocated game objects
 class CGameMemoryPools
 {
 private:
     // KeyValues pool (already implemented)
-    static constexpr int KEYVALUES_POOL_SIZE = 128;
     static KeyValues* s_pKeyValuesPool[KEYVALUES_POOL_SIZE];
     static std::bitset<KEYVALUES_POOL_SIZE> s_bKeyValuesUsed;
 
     // String pool for frequently allocated strings
-    static constexpr int STRING_POOL_SIZE = 256;
-    static constexpr int MAX_STRING_LENGTH = 256;
     static char s_sStringPool[STRING_POOL_SIZE][MAX_STRING_LENGTH];
     static std::bitset<STRING_POOL_SIZE> s_bStringUsed;
     static std::unordered_map<std::string_view, char*> s_mStringCache;
 
     // Vector math pool for Vec3, Vec2 operations
-    static constexpr int VECTOR_POOL_SIZE = 512;
     static float s_fVectorPool[VECTOR_POOL_SIZE * 4]; // 4 floats per Vec3
     static std::bitset<VECTOR_POOL_SIZE> s_bVectorUsed;
 
     // Color pool for color operations
-    static constexpr int COLOR_POOL_SIZE = 256;
     static uint32_t s_nColorPool[COLOR_POOL_SIZE];
     static std::bitset<COLOR_POOL_SIZE> s_bColorUsed;
 
