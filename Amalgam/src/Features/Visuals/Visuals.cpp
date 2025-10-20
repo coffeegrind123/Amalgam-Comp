@@ -33,8 +33,7 @@ static std::vector<Vec3> SplashTrace(Vec3 vOrigin, float flRadius, Vec3 vNormal 
 	std::vector<Vec3> vPoints = {};
 	for (float i = 0.f; i < iSegments; i++)
 	{
-		float flAngle = 2.0f * PI * i / iSegments;
-		Vec3 vPoint = vOrigin + (vRight * CSIMDMath::FastCos(flAngle) + vUp * CSIMDMath::FastSin(flAngle)) * flRadius;
+		Vec3 vPoint = vOrigin + (vRight * cos(2 * PI * i / iSegments) + vUp * sin(2 * PI * i / iSegments)) * flRadius;
 		if (bTrace)
 		{
 			CGameTrace trace = {};
