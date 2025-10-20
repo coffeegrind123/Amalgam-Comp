@@ -189,10 +189,10 @@ void CCore::Load()
 		return;
 	}
 
-	FILE* log_file5 = fopen("C:\\temp\\amalgam_debug.log", "a");
-	if (log_file5) {
-		fprintf(log_file5, "Core::Load: About to initialize Hooks\n");
-		fclose(log_file5);
+	FILE* log_file_hooks = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file_hooks) {
+		fprintf(log_file_hooks, "Core::Load: About to initialize Hooks\n");
+		fclose(log_file_hooks);
 	}
 
 	if (!U::Hooks.Initialize())
