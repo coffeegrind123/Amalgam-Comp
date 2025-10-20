@@ -1148,4 +1148,4 @@ void CVisuals::CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 		r_aspectratio->SetValue(flNewRatio);
 
 	DrawHitboxes(2);
-}// SIMD optimizations enabled
+}
