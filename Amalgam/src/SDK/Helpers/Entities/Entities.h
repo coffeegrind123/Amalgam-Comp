@@ -158,8 +158,8 @@ class CEntities
 
 	// Performance metrics
 	uint32_t m_nLastStoreTick = 0;
-	uint32_t m_nOptimizationHits = 0;
-	uint32_t m_nOptimizationMisses = 0;
+	mutable uint32_t m_nOptimizationHits = 0;
+	mutable uint32_t m_nOptimizationMisses = 0;
 
 	std::unordered_map<int, float> m_mSimTimes = {}, m_mOldSimTimes = {}, m_mDeltaTimes = {}, m_mLagTimes = {};
 	std::unordered_map<int, int> m_mChokes = {}, m_mSetTicks = {};

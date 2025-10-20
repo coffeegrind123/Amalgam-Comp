@@ -33,7 +33,7 @@ private:
         }
 
         // Basic vtable structure validation
-        if (IsBadCodePtr(vtable[0])) {
+        if (IsBadCodePtr(reinterpret_cast<FARPROC>(vtable[0]))) {
             s_nErrorCount++;
             return false;
         }
@@ -50,7 +50,7 @@ private:
         void** vtable = *(void***)interface_ptr;
 
         // Validate vtable entry
-        if (IsBadCodePtr(vtable[index])) {
+        if (IsBadCodePtr(reinterpret_cast<FARPROC>(vtable[index]))) {
             s_nErrorCount++;
             return nullptr;
         }
@@ -156,17 +156,7 @@ public:
         Initialize();
     }
 
-    // Validate cached pointers (debugging)
-    static bool ValidateCache()
-    {
-        if (!s_bInitialized)
-            return false;
-
-        return (s_pFrameStageNotify != nullptr &&
-                s_pCreateMove != nullptr &&
-                s_pPaintTraverse != nullptr);
-    }
-
+    
     // Clear cache (for debugging)
     static void ClearCache()
     {
