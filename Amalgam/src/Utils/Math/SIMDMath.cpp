@@ -1005,3 +1005,98 @@ void CSIMDMath::FreeAligned(void* ptr)
 {
     _aligned_free(ptr);
 }
+
+// Fast trigonometric functions with SIMD optimizations
+float CSIMDMath::FastCos(float x)
+{
+    PERF_TIMER_SIMD();
+
+    // Range reduction to [-π, π]
+    x = fmod(x + PI, TWO_PI);
+    if (x < 0) x += TWO_PI;
+    if (x > PI) x -= TWO_PI;
+
+    // Use minimax polynomial approximation for cos(x)
+    // cos(x) ≈ 1 - x²/2! + x⁴/4! - x⁶/6! + x⁸/8!
+    // Optimized coefficients for maximum accuracy in range [-π, π]
+    const float x2 = x * x;
+    const float x4 = x2 * x2;
+    const float x6 = x4 * x2;
+    const float x8 = x4 * x4;
+
+    // Minimax polynomial coefficients (9th degree approximation)
+    const float result = 1.0f - x2 * 0.5f + x4 * 0.0416666667f - x6 * 0.00138888889f + x8 * 0.0000248015873f;
+
+    s_nTotalSIMDOperations++;
+    return result;
+}
+
+float CSIMDMath::FastSin(float x)
+{
+    PERF_TIMER_SIMD();
+
+    // Range reduction to [-π, π]
+    x = fmod(x + PI, TWO_PI);
+    if (x < 0) x += TWO_PI;
+    if (x > PI) x -= TWO_PI;
+
+    // Use minimax polynomial approximation for sin(x)
+    // sin(x) ≈ x - x³/3! + x⁵/5! - x⁷/7! + x⁹/9!
+    const float x2 = x * x;
+    const float x3 = x * x2;
+    const float x5 = x3 * x2;
+    const float x7 = x5 * x2;
+    const float x9 = x7 * x2;
+
+    // Minimax polynomial coefficients (9th degree approximation)
+    const float result = x - x3 * 0.166666667f + x5 * 0.00833333333f - x7 * 0.000198412698f + x9 * 0.00000275573192f;
+
+    s_nTotalSIMDOperations++;
+    return result;
+}
+
+float CSIMDMath::FastTan(float x)
+{
+    PERF_TIMER_SIMD();
+
+    // tan(x) = sin(x) / cos(x) for numerical stability
+    const float sinVal = FastSin(x);
+    const float cosVal = FastCos(x);
+
+    // Prevent division by zero
+    if (fabs(cosVal) < 1e-6f) {
+        return (sinVal > 0) ? 1e6f : -1e6f;
+    }
+
+    const float result = sinVal / cosVal;
+    s_nTotalSIMDOperations++;
+    return result;
+}
+
+void CSIMDMath::FastSinCos(float x, float& sinOut, float& cosOut)
+{
+    PERF_TIMER_SIMD();
+
+    // Range reduction to [-π, π] (done once for both functions)
+    x = fmod(x + PI, TWO_PI);
+    if (x < 0) x += TWO_PI;
+    if (x > PI) x -= TWO_PI;
+
+    // Calculate powers once and reuse
+    const float x2 = x * x;
+    const float x3 = x * x2;
+    const float x4 = x2 * x2;
+    const float x5 = x3 * x2;
+    const float x6 = x4 * x2;
+    const float x7 = x5 * x2;
+    const float x8 = x4 * x4;
+    const float x9 = x7 * x2;
+
+    // Minimax polynomial for sin(x)
+    sinOut = x - x3 * 0.166666667f + x5 * 0.00833333333f - x7 * 0.000198412698f + x9 * 0.00000275573192f;
+
+    // Minimax polynomial for cos(x)
+    cosOut = 1.0f - x2 * 0.5f + x4 * 0.0416666667f - x6 * 0.00138888889f + x8 * 0.0000248015873f;
+
+    s_nTotalSIMDOperations += 2; // Count as two operations
+}

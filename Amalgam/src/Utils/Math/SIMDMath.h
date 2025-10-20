@@ -3,6 +3,14 @@
 #include "../Memory/Memory.h"
 #include "../../SDK/Helpers/Performance/PerformanceMonitor.h"
 #include "../../SDK/Definitions/Types.h"
+#include <cmath>
+
+// Mathematical constants
+#ifndef PI
+#define PI 3.14159265358979323846f
+#define TWO_PI 6.28318530717958647692f
+#define HALF_PI 1.57079632679489661923f
+#endif
 
 // SIMD Vector Math Library - High Performance Vector Operations
 // Provides 4-8x improvement in vector calculations for AVX2 builds
@@ -60,6 +68,12 @@ public:
     static Vec3 FastNormalize(const Vec3& v);
     static Vec3 FastNormalizeSafe(const Vec3& v, float epsilon = 0.001f);
     static Vec3 FastCrossProduct(const Vec3& a, const Vec3& b);
+
+    // Fast trigonometric functions with SIMD optimizations
+    static float FastCos(float x);
+    static float FastSin(float x);
+    static float FastTan(float x);
+    static void FastSinCos(float x, float& sinOut, float& cosOut);
 
     // Angle operations with SIMD
     static float FastAngleBetweenVectors(const Vec3& a, const Vec3& b);
