@@ -13,19 +13,9 @@ Read Amalgam's original documentation and features [here](https://github.com/rei
   <a href="https://nightly.link/coffeegrind123/Amalgam-Comp/workflows/msbuild/master/Amalgamx64Release.zip">
     <img src=".github/assets/download.png" alt="Download Button" width="400" height="auto" align="center">
   </a>
-  <br/><br/>
-  <a href="https://nightly.link/coffeegrind123/Amalgam-Comp/workflows/msbuild/master/Amalgamx64ReleaseAVX2.zip">
-    <img src=".github/assets/download_avx2.png" alt="Download AVX2" width="auto" height="auto">
-  </a>
-  <a href="https://nightly.link/coffeegrind123/Amalgam-Comp/workflows/msbuild/master/Amalgamx64ReleaseFreetype.zip">
-    <img src=".github/assets/freetype.png" alt="Download Freetype" width="auto" height="auto">
-  </a>
-  <a href="https://nightly.link/coffeegrind123/Amalgam-Comp/workflows/msbuild/master/Amalgamx64ReleaseFreetypeAVX2.zip">
-    <img src=".github/assets/freetype_avx2.png" alt="Download Freetype AVX2" width="auto" height="auto">
-  </a>
 </p>
 
-###### AVX2 may be faster than SSE2 though not all CPUs support it (`Steam > Help > System Information > Processor Information > AVX2`). Freetype uses freetype as the text rasterizer and includes some custom fonts, which results in better looking text but larger DLL sizes.
+###### This build includes AVX2 optimizations and Freetype text rendering for maximum performance and visual quality. AVX2 provides significant performance improvements on supported CPUs (`Steam > Help > System Information > Processor Information > AVX2`).
 ###### If nightly.link is down, you can still download through [github](https://github.com/coffeegrind123/Amalgam-Comp/actions) with an account.
 
 ## Added Features

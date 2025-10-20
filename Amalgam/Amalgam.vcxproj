@@ -233,7 +233,7 @@
     <IncludePath>$(ProjectDir)include\;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>Amalgamx64Release</TargetName>
-    <OutDir>$(SolutionDir)output\$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)output\$(Platform)\Release\</OutDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
