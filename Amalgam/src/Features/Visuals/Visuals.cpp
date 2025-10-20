@@ -12,6 +12,7 @@
 #include "../Players/PlayerUtils.h"
 #include "../Spectate/Spectate.h"
 #include "../../SDK/Helpers/Memory/KeyValuesPool.h"
+#include "../../Utils/Math/SIMDMath.h"
 
 MAKE_SIGNATURE(CTFPlayer_FireEvent, "client.dll", "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 4C 89 64 24 ? 55 41 56 41 57 48 8D 6C 24", 0x0);
 MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects, "client.dll", "40 57 48 81 EC ? ? ? ? 8B 91 ? ? ? ? 48 8B F9 85 D2 0F 84 ? ? ? ? 48 89 B4 24", 0x0);
