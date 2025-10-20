@@ -498,3 +498,11 @@ uint64_t CEntities::GetParty(int iIndex) { return m_mIParty.contains(iIndex) ? m
 uint64_t CEntities::GetParty(uint32_t uFriendsID) { return m_mUParty.contains(uFriendsID) ? m_mUParty[uFriendsID] : 0; }
 
 bool CEntities::IsSettingUpBones() { return m_bSettingUpBones; }
+
+// Static member definitions for CCacheManager
+CCacheManager::CacheInfo CCacheManager::s_EntityCache;
+CCacheManager::CacheInfo CCacheManager::s_PlayerUtilsCache;
+CCacheManager::CacheInfo CCacheManager::s_BacktrackCache;
+CCacheManager::CacheInfo CCacheManager::s_MoveSimCache;
+CCacheManager::CacheInfo CCacheManager::s_CritHackCache;
+CCacheManager::CacheInfo CCacheManager::s_AimbotCache;

@@ -618,3 +618,6 @@ bool CMisc::SteamRPC()
 
 	return true;
 }
+
+// Static member definition for CKeyValuesPool
+CKeyValuesPool* CKeyValuesPool::s_pInstance = nullptr;

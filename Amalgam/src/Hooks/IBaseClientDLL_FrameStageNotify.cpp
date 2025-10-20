@@ -153,3 +153,12 @@ MAKE_HOOK(IBaseClientDLL_FrameStageNotify, U::Memory.GetVirtual(I::BaseClientDLL
 		}
 	}
 }
+
+// Static member definitions for CHookCache
+void* CHookCache::s_pFrameStageNotify = nullptr;
+void* CHookCache::s_pCreateMove = nullptr;
+void* CHookCache::s_pPaintTraverse = nullptr;
+void* CHookCache::s_pViewRender = nullptr;
+void* CHookCache::s_pModelRender = nullptr;
+void* CHookCache::s_pSurface = nullptr;
+bool CHookCache::s_bInitialized = false;
