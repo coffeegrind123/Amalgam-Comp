@@ -16,7 +16,9 @@ enum struct EGroupType
 };
 
 // Entity storage constants for MSVC compatibility
-enum { MAX_PLAYERS = 64, MAX_BUILDINGS = 128, MAX_PROJECTILES = 256 };
+#define MAX_PLAYERS 64
+#define MAX_BUILDINGS 128
+#define MAX_PROJECTILES 256
 
 // Optimized hot-path entity storage
 class COptimizedEntityStorage
