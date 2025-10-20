@@ -5,11 +5,14 @@
 #include "../../SDK/Definitions/Types.h"
 #include <cmath>
 
-// Mathematical constants
-#ifndef PI
-#define PI 3.14159265358979323846f
-#define TWO_PI 6.28318530717958647692f
-#define HALF_PI 1.57079632679489661923f
+// Mathematical constants - use unique names to avoid conflicts
+#ifndef SIMD_PI_CONST
+#define SIMD_PI_CONST 3.14159265358979323846f
+#define SIMD_TWO_PI_CONST 6.28318530717958647692f
+#define SIMD_HALF_PI_CONST 1.57079632679489661923f
+#define PI SIMD_PI_CONST
+#define TWO_PI SIMD_TWO_PI_CONST
+#define HALF_PI SIMD_HALF_PI_CONST
 #endif
 
 // SIMD Vector Math Library - High Performance Vector Operations

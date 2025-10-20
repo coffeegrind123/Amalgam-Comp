@@ -1,6 +1,7 @@
 #include "SIMDMath.h"
 #include <cstring>
 #include <algorithm>
+#include <cmath>
 
 // Static member definitions
 bool CSIMDMath::s_bAVX2Supported = false;
