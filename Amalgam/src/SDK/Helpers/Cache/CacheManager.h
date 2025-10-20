@@ -181,7 +181,7 @@ public:
     {
         uint64_t nTotal = s_BacktrackCache.cacheHits + s_BacktrackCache.cacheMisses;
         nHits = s_BacktrackCache.cacheHits;
-        nMisses = s_Backtrack.cacheMisses;
+        nMisses = s_BacktrackCache.cacheMisses;
         nHitRate = nTotal > 0 ? (static_cast<float>(nHits) / static_cast<float>(nTotal)) : 0.0f;
     }
 
@@ -223,13 +223,14 @@ public:
     }
 
     // Get global cache statistics
-    static void GetAllCacheStats(uint64_t& nTotalHits, uint64_t nTotalMisses, float& nHitRate)
+    static void GetAllCacheStats(uint64_t& nTotalHits, uint64_t& nTotalMisses, float& nHitRate)
     {
         nTotalHits = s_EntityCache.cacheHits + s_PlayerUtilsCache.cacheHits + s_BacktrackCache.cacheHits +
                     s_MoveSimCache.cacheHits + s_CritHackCache.cacheHits + s_AimbotCache.cacheHits;
         nTotalMisses = s_EntityCache.cacheMisses + s_PlayerUtilsCache.cacheMisses + s_BacktrackCache.cacheMisses +
-                       s_MoveSimCache.cacheMisses + s_CritHack.cacheMisses + s_AimbotCache.cacheMisses;
-        nHitRate = nTotalHits > 0 ? (static_cast<float>(nTotalHits) / static_cast<float>(nTotal)) : 0.0f;
+                       s_MoveSimCache.cacheMisses + s_CritHackCache.cacheMisses + s_AimbotCache.cacheMisses;
+        uint64_t nTotal = nTotalHits + nTotalMisses;
+        nHitRate = nTotal > 0 ? (static_cast<float>(nTotalHits) / static_cast<float>(nTotal)) : 0.0f;
     }
 
     // Check if any caches need clearing
@@ -246,7 +247,7 @@ public:
 class CCacheTimer
 {
 private:
-    static float m_fStartTime;
+    float m_fStartTime;
 
 public:
     CCacheTimer() : m_fStartTime(static_cast<float>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
@@ -269,3 +270,11 @@ public:
         m_fStartTime = static_cast<float>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     }
 };
+
+// Static member definitions
+CCacheManager::CacheInfo CCacheManager::s_EntityCache;
+CCacheManager::CacheInfo CCacheManager::s_PlayerUtilsCache;
+CCacheManager::CacheInfo CCacheManager::s_BacktrackCache;
+CCacheManager::CacheInfo CCacheManager::s_MoveSimCache;
+CCacheManager::CacheInfo CCacheManager::s_CritHackCache;
+CCacheManager::CacheInfo CCacheManager::s_AimbotCache;
