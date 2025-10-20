@@ -26,6 +26,7 @@ private:
     static PerformanceMetrics s_EntityStore;
     static PerformanceMetrics s_PlayerUtilsUpdate;
     static PerformanceMetrics s_KeyValuesAlloc;
+    static PerformanceMetrics s_MemoryPools;
     static bool s_bInitialized;
 
     static void UpdateMetrics(PerformanceMetrics& metrics, double elapsedMs)
@@ -90,12 +91,21 @@ public:
     #define PERF_TIMER_ENTITY() CPerformanceMonitor::ScopedTimer timer(CPerformanceMonitor::GetEntityStoreMetrics())
     #define PERF_TIMER_PLAYER() CPerformanceMonitor::ScopedTimer timer(CPerformanceMonitor::GetPlayerUtilsMetrics())
     #define PERF_TIMER_KEYVALUES() CPerformanceMonitor::ScopedTimer timer(CPerformanceMonitor::GetKeyValuesMetrics())
+#define PERF_TIMER_MEMORY_POOLS() CPerformanceMonitor::ScopedTimer timer(CPerformanceMonitor::GetMemoryPoolsMetrics())
 
     // Get metrics for external timing
     static PerformanceMetrics& GetFrameStageMetrics() { return s_FrameStageNotify; }
     static PerformanceMetrics& GetEntityStoreMetrics() { return s_EntityStore; }
     static PerformanceMetrics& GetPlayerUtilsMetrics() { return s_PlayerUtilsUpdate; }
     static PerformanceMetrics& GetKeyValuesMetrics() { return s_KeyValuesAlloc; }
+    static PerformanceMetrics& GetMemoryPoolsMetrics() { return s_MemoryPools; }
+
+    // Get performance statistics for memory pools
+    static void GetMemoryPoolsStats(uint64_t& calls, double& avgMs)
+    {
+        calls = s_MemoryPools.totalCalls;
+        avgMs = s_MemoryPools.avgTimeMs;
+    }
 
     // Get performance statistics
     static void GetFrameStageStats(uint64_t& calls, double& avgMs, double& fps)

@@ -3,6 +3,7 @@
 #include "../../Definitions/Classes.h"
 #include "../Cache/CacheManager.h"
 #include <unordered_map>
+#include <vector>
 
 enum struct EGroupType
 {
@@ -12,6 +13,121 @@ enum struct EGroupType
 	PICKUPS_HEALTH, PICKUPS_AMMO, PICKUPS_MONEY, PICKUPS_POWERUP, PICKUPS_SPELLBOOK,
 	WORLD_PROJECTILES, WORLD_OBJECTIVE, WORLD_NPC, WORLD_BOMBS, WORLD_GARGOYLE,
 	MISC_LOCAL_STICKIES, MISC_LOCAL_FLARES, MISC_DOTS
+};
+
+// Optimized hot-path entity storage
+class COptimizedEntityStorage
+{
+private:
+    // Optimized vectors for hot groups (O(1) access, better cache locality)
+    static constexpr size_t MAX_PLAYERS = 64;
+    static constexpr size_t MAX_BUILDINGS = 128;
+    static constexpr size_t MAX_PROJECTILES = 256;
+
+    std::vector<CBaseEntity*> m_vPlayersAll;
+    std::vector<CBaseEntity*> m_vPlayersEnemies;
+    std::vector<CBaseEntity*> m_vPlayersTeammates;
+    std::vector<CBaseEntity*> m_vBuildingsEnemies;
+    std::vector<CBaseEntity*> m_vWorldProjectiles;
+
+    // Fallback to unordered_map for less frequently accessed groups
+    std::unordered_map<EGroupType, std::vector<CBaseEntity*>> m_mFallbackGroups;
+
+    // Cache optimization
+    bool m_bGroupsDirty = true;
+    uint32_t m_nLastUpdateTick = 0;
+
+public:
+    COptimizedEntityStorage()
+    {
+        // Pre-allocate memory for hot vectors to avoid reallocations
+        m_vPlayersAll.reserve(MAX_PLAYERS);
+        m_vPlayersEnemies.reserve(MAX_PLAYERS);
+        m_vPlayersTeammates.reserve(MAX_PLAYERS);
+        m_vBuildingsEnemies.reserve(MAX_BUILDINGS);
+        m_vWorldProjectiles.reserve(MAX_PROJECTILES);
+    }
+
+    // Fast access for hot groups
+    const std::vector<CBaseEntity*>& GetPlayersAll() const { return m_vPlayersAll; }
+    const std::vector<CBaseEntity*>& GetPlayersEnemies() const { return m_vPlayersEnemies; }
+    const std::vector<CBaseEntity*>& GetPlayersTeammates() const { return m_vPlayersTeammates; }
+    const std::vector<CBaseEntity*>& GetBuildingsEnemies() const { return m_vBuildingsEnemies; }
+    const std::vector<CBaseEntity*>& GetWorldProjectiles() const { return m_vWorldProjectiles; }
+
+    // Clear all optimized vectors (fast operation)
+    void ClearOptimizedGroups()
+    {
+        m_vPlayersAll.clear();
+        m_vPlayersEnemies.clear();
+        m_vPlayersTeammates.clear();
+        m_vBuildingsEnemies.clear();
+        m_vWorldProjectiles.clear();
+        m_bGroupsDirty = true;
+    }
+
+    // Add entity to optimized storage
+    void AddEntity(CBaseEntity* pEntity, EGroupType group)
+    {
+        switch (group)
+        {
+        case EGroupType::PLAYERS_ALL:
+            m_vPlayersAll.push_back(pEntity);
+            break;
+        case EGroupType::PLAYERS_ENEMIES:
+            m_vPlayersEnemies.push_back(pEntity);
+            break;
+        case EGroupType::PLAYERS_TEAMMATES:
+            m_vPlayersTeammates.push_back(pEntity);
+            break;
+        case EGroupType::BUILDINGS_ENEMIES:
+            m_vBuildingsEnemies.push_back(pEntity);
+            break;
+        case EGroupType::WORLD_PROJECTILES:
+            m_vWorldProjectiles.push_back(pEntity);
+            break;
+        default:
+            // Use fallback for less common groups
+            m_mFallbackGroups[group].push_back(pEntity);
+            break;
+        }
+        m_bGroupsDirty = true;
+    }
+
+    // Get group (optimized for hot groups, fallback for others)
+    const std::vector<CBaseEntity*>& GetGroup(EGroupType group)
+    {
+        switch (group)
+        {
+        case EGroupType::PLAYERS_ALL:
+            return m_vPlayersAll;
+        case EGroupType::PLAYERS_ENEMIES:
+            return m_vPlayersEnemies;
+        case EGroupType::PLAYERS_TEAMMATES:
+            return m_vPlayersTeammates;
+        case EGroupType::BUILDINGS_ENEMIES:
+            return m_vBuildingsEnemies;
+        case EGroupType::WORLD_PROJECTILES:
+            return m_vWorldProjectiles;
+        default:
+            return m_mFallbackGroups[group];
+        }
+    }
+
+    // Memory optimization - shrink vectors if significantly oversized
+    void OptimizeMemory()
+    {
+        m_vPlayersAll.shrink_to_fit();
+        m_vPlayersEnemies.shrink_to_fit();
+        m_vPlayersTeammates.shrink_to_fit();
+        m_vBuildingsEnemies.shrink_to_fit();
+        m_vWorldProjectiles.shrink_to_fit();
+    }
+
+    bool IsDirty() const { return m_bGroupsDirty; }
+    void MarkClean() { m_bGroupsDirty = false; }
+    uint32_t GetLastUpdateTick() const { return m_nLastUpdateTick; }
+    void SetUpdateTick(uint32_t tick) { m_nLastUpdateTick = tick; }
 };
 
 struct DormantData
@@ -32,7 +148,16 @@ class CEntities
 	CTFWeaponBase* m_pLocalWeapon = nullptr;
 	CTFPlayerResource* m_pPlayerResource = nullptr;
 
+	// Legacy group system (kept for compatibility)
 	std::unordered_map<EGroupType, std::vector<CBaseEntity*>> m_mGroups = {};
+
+	// Optimized entity storage for hot paths
+	COptimizedEntityStorage m_OptimizedStorage;
+
+	// Performance metrics
+	uint32_t m_nLastStoreTick = 0;
+	uint32_t m_nOptimizationHits = 0;
+	uint32_t m_nOptimizationMisses = 0;
 
 	std::unordered_map<int, float> m_mSimTimes = {}, m_mOldSimTimes = {}, m_mDeltaTimes = {}, m_mLagTimes = {};
 	std::unordered_map<int, int> m_mChokes = {}, m_mSetTicks = {};
@@ -73,6 +198,17 @@ public:
 	CTFPlayerResource* GetPR();
 
 	const std::vector<CBaseEntity*>& GetGroup(const EGroupType& Group);
+
+	// Optimized hot-path access methods (use these for performance)
+	const std::vector<CBaseEntity*>& GetPlayersAll() const;
+	const std::vector<CBaseEntity*>& GetPlayersEnemies() const;
+	const std::vector<CBaseEntity*>& GetPlayersTeammates() const;
+	const std::vector<CBaseEntity*>& GetBuildingsEnemies() const;
+	const std::vector<CBaseEntity*>& GetWorldProjectiles() const;
+
+	// Performance metrics
+	void GetOptimizationStats(uint32_t& hits, uint32_t& misses) const;
+	float GetOptimizationHitRate() const;
 
 	float GetSimTime(int iIndex);
 	float GetOldSimTime(int iIndex);

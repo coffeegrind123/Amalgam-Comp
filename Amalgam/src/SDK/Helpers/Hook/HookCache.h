@@ -13,72 +13,123 @@ private:
     static void* s_pSurface;
     static bool s_bInitialized;
 
+    // Enhanced error handling
+    static bool s_bValidationEnabled;
+    static uint32_t s_nErrorCount;
+
+    // Validate vtable integrity
+    static bool ValidateVTable(void* interface_ptr, const char* interface_name)
+    {
+        if (!interface_ptr) {
+            s_nErrorCount++;
+            return false;
+        }
+
+        // Check if vtable pointer is valid
+        void** vtable = *(void***)interface_ptr;
+        if (!vtable || IsBadReadPtr(vtable, sizeof(void*))) {
+            s_nErrorCount++;
+            return false;
+        }
+
+        // Basic vtable structure validation
+        if (IsBadCodePtr(vtable[0])) {
+            s_nErrorCount++;
+            return false;
+        }
+
+        return true;
+    }
+
+    // Safe vtable access with bounds checking
+    static void* SafeGetVTableEntry(void* interface_ptr, int index, const char* interface_name)
+    {
+        if (!ValidateVTable(interface_ptr, interface_name))
+            return nullptr;
+
+        void** vtable = *(void***)interface_ptr;
+
+        // Validate vtable entry
+        if (IsBadCodePtr(vtable[index])) {
+            s_nErrorCount++;
+            return nullptr;
+        }
+
+        return vtable[index];
+    }
+
 public:
-    // Initialize all cached function pointers
+    // Enable/disable validation (can be disabled in release builds)
+    static void SetValidationEnabled(bool enabled) { s_bValidationEnabled = enabled; }
+    static uint32_t GetErrorCount() { return s_nErrorCount; }
+    static void ResetErrorCount() { s_nErrorCount = 0; }
+
+    // Initialize all cached function pointers with enhanced error handling
     static void Initialize()
     {
         if (s_bInitialized)
             return;
 
-        // Cache frequently used virtual function pointers
-        // This reduces virtual dispatch overhead in hot paths
+        ResetErrorCount();
+
+        // Cache frequently used virtual function pointers with validation
+        // This reduces virtual dispatch overhead in hot paths while ensuring safety
 
         if (I::BaseClientDLL)
         {
-            // Get vtable pointer
-            void** vtable = *(void***)I::BaseClientDLL;
-            if (vtable)
-            {
-                s_pFrameStageNotify = vtable[36]; // FrameStageNotify vtable index
-            }
+            s_pFrameStageNotify = SafeGetVTableEntry(I::BaseClientDLL, 36, "IBaseClientDLL");
         }
 
         if (I::ClientModeShared)
         {
-            void** vtable = *(void***)I::ClientModeShared;
-            if (vtable)
-            {
-                s_pCreateMove = vtable[24]; // CreateMove vtable index
-            }
+            s_pCreateMove = SafeGetVTableEntry(I::ClientModeShared, 24, "IClientModeShared");
         }
 
         if (I::Panel)
         {
-            void** vtable = *(void***)I::Panel;
-            if (vtable)
-            {
-                s_pPaintTraverse = vtable[41]; // PaintTraverse vtable index
-            }
+            s_pPaintTraverse = SafeGetVTableEntry(I::Panel, 41, "IPanel");
         }
 
         if (I::ViewRender)
         {
-            void** vtable = *(void***)I::ViewRender;
-            if (vtable)
-            {
-                s_pViewRender = vtable[7]; // RenderView vtable index
-            }
+            s_pViewRender = SafeGetVTableEntry(I::ViewRender, 7, "IViewRender");
         }
 
         if (I::ModelRender)
         {
-            void** vtable = *(void***)I::ModelRender;
-            if (vtable)
-            {
-                s_pModelRender = vtable[21]; // DrawModelExecute vtable index
-            }
+            s_pModelRender = SafeGetVTableEntry(I::ModelRender, 21, "IVModelRender");
         }
 
         if (I::MatSystemSurface)
         {
-            void** vtable = *(void***)I::MatSystemSurface;
-            if (vtable)
-            {
-                s_pSurface = vtable[71]; // GetTextSize vtable index
-            }
+            s_pSurface = SafeGetVTableEntry(I::MatSystemSurface, 71, "IMatSystemSurface");
         }
 
         s_bInitialized = true;
+    }
+
+    // Reinitialize cache (useful if interfaces change)
+    static void Reinitialize()
+    {
+        s_bInitialized = false;
+        s_pFrameStageNotify = nullptr;
+        s_pCreateMove = nullptr;
+        s_pPaintTraverse = nullptr;
+        s_pViewRender = nullptr;
+        s_pModelRender = nullptr;
+        s_pSurface = nullptr;
+        Initialize();
+    }
+
+    // Validate all cached pointers
+    static bool ValidateCache()
+    {
+        if (!s_bInitialized)
+            return false;
+
+        return s_pFrameStageNotify != nullptr &&
+               s_pCreateMove != nullptr &&
+               s_pPaintTraverse != nullptr;
     }
 
     // Get cached function pointers

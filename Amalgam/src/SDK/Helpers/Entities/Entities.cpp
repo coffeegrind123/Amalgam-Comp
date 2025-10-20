@@ -324,6 +324,33 @@ void CEntities::Store()
 		m_mBones[n].first = pPlayer->SetupBones(m_mBones[n].second, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, m_mSimTimes[n]);
 		m_bSettingUpBones = false;
 	}
+
+	// Update optimized storage for hot path access (after all groups are populated)
+	if (I::GlobalVars && I::GlobalVars->tickcount != m_nLastStoreTick)
+	{
+		// Clear previous optimized storage
+		m_OptimizedStorage.ClearOptimizedGroups();
+
+		// Populate optimized storage from the legacy groups
+		for (const auto& [groupType, entities] : m_mGroups)
+		{
+			for (CBaseEntity* pEntity : entities)
+			{
+				m_OptimizedStorage.AddEntity(pEntity, groupType);
+			}
+		}
+
+		// Update optimization metrics
+		m_OptimizedStorage.SetUpdateTick(I::GlobalVars->tickcount);
+		m_OptimizedStorage.MarkClean();
+		m_nLastStoreTick = I::GlobalVars->tickcount;
+
+		// Periodic memory optimization (every 300 ticks = ~5 seconds)
+		if (I::GlobalVars->tickcount % 300 == 0)
+		{
+			m_OptimizedStorage.OptimizeMemory();
+		}
+	}
 }
 
 void CEntities::Clear(bool bShutdown)
@@ -335,6 +362,9 @@ void CEntities::Clear(bool bShutdown)
 	m_pLocalWeapon = nullptr;
 	m_pPlayerResource = nullptr;
 	m_mGroups.clear();
+
+	// Clear optimized storage
+	m_OptimizedStorage.ClearOptimizedGroups();
 
 	if (bShutdown)
 	{
@@ -466,7 +496,67 @@ CTFPlayerResource* CEntities::GetPR()
 	return m_pPlayerResource;
 }
 
-const std::vector<CBaseEntity*>& CEntities::GetGroup(const EGroupType& Group) { return m_mGroups[Group]; }
+// Optimized hot-path access methods
+const std::vector<CBaseEntity*>& CEntities::GetPlayersAll() const
+{
+    m_nOptimizationHits++;
+    return m_OptimizedStorage.GetPlayersAll();
+}
+
+const std::vector<CBaseEntity*>& CEntities::GetPlayersEnemies() const
+{
+    m_nOptimizationHits++;
+    return m_OptimizedStorage.GetPlayersEnemies();
+}
+
+const std::vector<CBaseEntity*>& CEntities::GetPlayersTeammates() const
+{
+    m_nOptimizationHits++;
+    return m_OptimizedStorage.GetPlayersTeammates();
+}
+
+const std::vector<CBaseEntity*>& CEntities::GetBuildingsEnemies() const
+{
+    m_nOptimizationHits++;
+    return m_OptimizedStorage.GetBuildingsEnemies();
+}
+
+const std::vector<CBaseEntity*>& CEntities::GetWorldProjectiles() const
+{
+    m_nOptimizationHits++;
+    return m_OptimizedStorage.GetWorldProjectiles();
+}
+
+const std::vector<CBaseEntity*>& CEntities::GetGroup(const EGroupType& Group)
+{
+    // Track legacy usage for performance metrics
+    switch (Group)
+    {
+    case EGroupType::PLAYERS_ALL:
+    case EGroupType::PLAYERS_ENEMIES:
+    case EGroupType::PLAYERS_TEAMMATES:
+    case EGroupType::BUILDINGS_ENEMIES:
+    case EGroupType::WORLD_PROJECTILES:
+        m_nOptimizationMisses++;
+        break;
+    default:
+        break;
+    }
+
+    return m_mGroups[Group];
+}
+
+void CEntities::GetOptimizationStats(uint32_t& hits, uint32_t& misses) const
+{
+    hits = m_nOptimizationHits;
+    misses = m_nOptimizationMisses;
+}
+
+float CEntities::GetOptimizationHitRate() const
+{
+    uint32_t total = m_nOptimizationHits + m_nOptimizationMisses;
+    return total > 0 ? (static_cast<float>(m_nOptimizationHits) / static_cast<float>(total)) * 100.0f : 0.0f;
+}
 
 float CEntities::GetSimTime(int iIndex) { if (m_mSimTimes.contains(iIndex)) return m_mSimTimes[iIndex]; auto pEntity = I::ClientEntityList->GetClientEntity(iIndex)->As<CTFPlayer>(); if (pEntity) return pEntity->m_flSimulationTime(); return 0.f; }
 float CEntities::GetOldSimTime(int iIndex) { if (m_mOldSimTimes.contains(iIndex)) return m_mOldSimTimes[iIndex]; auto pEntity = I::ClientEntityList->GetClientEntity(iIndex)->As<CTFPlayer>(); if (pEntity) return pEntity->m_flOldSimulationTime(); return 0.f; }
@@ -510,3 +600,4 @@ CCacheManager::CacheInfo CCacheManager::s_AimbotCache;
 // Static member definitions for CPerformanceMonitor
 CPerformanceMonitor::PerformanceMetrics CPerformanceMonitor::s_FrameStageNotify;
 CPerformanceMonitor::PerformanceMetrics CPerformanceMonitor::s_EntityStore;
+CPerformanceMonitor::PerformanceMetrics CPerformanceMonitor::s_MemoryPools;
