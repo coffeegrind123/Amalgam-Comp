@@ -2,6 +2,7 @@
 
 #include "../../SDK/Definitions/Types.h"
 #include "../Output/Output.h"
+#include "../../SDK/Helpers/Cache/CacheManager.h"
 
 uint32_t CPlayerlistUtils::GetFriendsID(int iIndex)
 {

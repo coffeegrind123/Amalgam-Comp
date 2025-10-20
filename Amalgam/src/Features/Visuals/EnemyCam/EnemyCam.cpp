@@ -1,5 +1,6 @@
 #include "EnemyCam.h"
 #include "../Materials/Materials.h"
+#include "../../../SDK/Helpers/Memory/KeyValuesPool.h"
 
 void CEnemyCam::Initialize()
 {
@@ -22,7 +23,7 @@ bool CEnemyCam::InitializeMaterials()
     
     if (!m_pCameraMaterial)
     {
-        KeyValues* kv = new KeyValues("UnlitGeneric");
+        KeyValues* kv = CKeyValuesPool::Alloc("UnlitGeneric");
         kv->SetString("$basetexture", "m_pEnemyCameraTexture");
         m_pCameraMaterial = F::Materials.Create("EnemyCameraMaterial", kv);
     }

@@ -6,6 +6,7 @@
 #include "../StickyCam/StickyCam.h"
 #include "../../Configs/Configs.h"
 #include "../../Binds/Binds.h"
+#include "../../../SDK/Helpers/Memory/KeyValuesPool.h"
 #include <filesystem>
 #include <fstream>
 
@@ -216,7 +217,7 @@ void CMaterials::LoadMaterials()
 	// create materials
 	for (auto& [_, tMaterial] : m_mMaterials)
 	{
-		KeyValues* kv = new KeyValues(tMaterial.m_sName.c_str());
+		KeyValues* kv = CKeyValuesPool::Alloc(tMaterial.m_sName.c_str());
 		if (!kv)
 			continue;
 			
@@ -338,7 +339,7 @@ void CMaterials::AddMaterial(const char* sName)
 		);
 	auto& tMaterial = m_mMaterials[uHash];
 
-	KeyValues* kv = new KeyValues(sName);
+	KeyValues* kv = CKeyValuesPool::Alloc(sName);
 	if (!kv)
 		return;
 		
@@ -370,7 +371,7 @@ void CMaterials::EditMaterial(const char* sName, const char* sVMT)
 		RemoveVars(tMaterial);
 		tMaterial.m_sVMT = sVMT;
 
-		KeyValues* kv = new KeyValues(sName);
+		KeyValues* kv = CKeyValuesPool::Alloc(sName);
 		if (!kv)
 		{
 			m_bLoaded = true;

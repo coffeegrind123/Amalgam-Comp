@@ -1,5 +1,6 @@
 #include "StickyCam.h"
 #include "../Materials/Materials.h"
+#include "../../../SDK/Helpers/Memory/KeyValuesPool.h"
 
 void CStickyCam::Initialize()
 {
@@ -23,7 +24,7 @@ bool CStickyCam::InitializeMaterials()
 	// Create camera material
 	if (!m_pCameraMaterial)
 	{
-		KeyValues* kv = new KeyValues("UnlitGeneric");
+		KeyValues* kv = CKeyValuesPool::Alloc("UnlitGeneric");
 		kv->SetString("$basetexture", "m_pStickyCameraTexture");
 		kv->SetString("$ignorez", "1");
 		kv->SetString("$nofog", "1");
@@ -65,7 +66,7 @@ bool CStickyCam::InitializeMaterials()
 	// Create invisible material for sticky
 	if (!m_pInvisibleMaterial)
 	{
-		KeyValues* kv = new KeyValues("VertexLitGeneric");
+		KeyValues* kv = CKeyValuesPool::Alloc("VertexLitGeneric");
 		kv->SetString("$basetexture", "vgui/white");
 		kv->SetString("$no_draw", "1");
 		m_pInvisibleMaterial = F::Materials.Create("StickyCamInvisible", kv);
@@ -74,7 +75,7 @@ bool CStickyCam::InitializeMaterials()
 	// Create chams material for targets
 	if (!m_pChamsMaterial)
 	{
-		KeyValues* kv = new KeyValues("UnlitGeneric");
+		KeyValues* kv = CKeyValuesPool::Alloc("UnlitGeneric");
 		kv->SetString("$basetexture", "vgui/white_additive");
 		kv->SetString("$color2", "[1 0 0]");
 		m_pChamsMaterial = F::Materials.Create("StickyCamChams", kv);

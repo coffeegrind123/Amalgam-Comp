@@ -1,5 +1,6 @@
 #pragma once
 #include "../../SDK/SDK.h"
+#include "../../SDK/Helpers/Cache/CacheManager.h"
 #include <mutex>
 
 #define DEFAULT_TAG 0
