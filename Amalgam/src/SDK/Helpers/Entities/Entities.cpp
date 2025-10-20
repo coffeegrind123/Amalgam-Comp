@@ -506,3 +506,7 @@ CCacheManager::CacheInfo CCacheManager::s_BacktrackCache;
 CCacheManager::CacheInfo CCacheManager::s_MoveSimCache;
 CCacheManager::CacheInfo CCacheManager::s_CritHackCache;
 CCacheManager::CacheInfo CCacheManager::s_AimbotCache;
+
+// Static member definitions for CPerformanceMonitor
+CPerformanceMonitor::PerformanceMetrics CPerformanceMonitor::s_FrameStageNotify;
+CPerformanceMonitor::PerformanceMetrics CPerformanceMonitor::s_EntityStore;
