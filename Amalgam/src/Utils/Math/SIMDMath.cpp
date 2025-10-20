@@ -572,7 +572,7 @@ float CSIMDMath::FastAngleBetweenVectors(const Vec3& a, const Vec3& b)
     if (lengthA == 0.0f || lengthB == 0.0f) return 0.0f;
 
     float cosAngle = dot / (lengthA * lengthB);
-    cosAngle = std::max(-1.0f, std::min(1.0f, cosAngle));
+    cosAngle = (std::max)(-1.0f, (std::min)(1.0f, cosAngle));
 
     return acosf(cosAngle) * (180.0f / 3.14159265358979323846f);
 }
@@ -969,7 +969,7 @@ void CSIMDMath::BatchDotProductScalar(const Vec3* vectors1, const Vec3* vectors2
 // Helper functions for SIMD register operations
 __m256 CSIMDMath::LoadVec3ToAVX2(const Vec3& v)
 {
-    return _mm256_set_ps(0.0f, v.z, v.y, v.x);
+    return _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, v.z, v.y, v.x, 0.0f);
 }
 
 __m128 CSIMDMath::LoadVec3ToSSE(const Vec3& v)
