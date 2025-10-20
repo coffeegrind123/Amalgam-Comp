@@ -143,21 +143,7 @@ public:
     // Check if cache is initialized
     static bool IsInitialized() { return s_bInitialized; }
 
-    // Re-initialize cache (useful after interface changes)
-    static void Reinitialize()
-    {
-        s_bInitialized = false;
-        s_pFrameStageNotify = nullptr;
-        s_pCreateMove = nullptr;
-        s_pPaintTraverse = nullptr;
-        s_pViewRender = nullptr;
-        s_pModelRender = nullptr;
-        s_pSurface = nullptr;
-        Initialize();
-    }
-
-    
-    // Clear cache (for debugging)
+        // Clear cache (for debugging)
     static void ClearCache()
     {
         s_bInitialized = false;
