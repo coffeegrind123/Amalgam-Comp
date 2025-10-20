@@ -33,18 +33,18 @@ public:
             }
         }
 
-        if (I::ClientMode)
+        if (I::ClientModeShared)
         {
-            void** vtable = *(void***)I::ClientMode;
+            void** vtable = *(void***)I::ClientModeShared;
             if (vtable)
             {
                 s_pCreateMove = vtable[24]; // CreateMove vtable index
             }
         }
 
-        if (I::VGuiPanel)
+        if (I::Panel)
         {
-            void** vtable = *(void***)I::VGuiPanel;
+            void** vtable = *(void***)I::Panel;
             if (vtable)
             {
                 s_pPaintTraverse = vtable[41]; // PaintTraverse vtable index
@@ -69,9 +69,9 @@ public:
             }
         }
 
-        if (I::VGuiSurface)
+        if (I::MatSystemSurface)
         {
-            void** vtable = *(void***)I::VGuiSurface;
+            void** vtable = *(void***)I::MatSystemSurface;
             if (vtable)
             {
                 s_pSurface = vtable[71]; // GetTextSize vtable index
