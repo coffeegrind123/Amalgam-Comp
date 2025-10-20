@@ -1142,6 +1142,7 @@
     <ClCompile Include="src\Utils\NetVars\NetVars.cpp" />
     <ClCompile Include="src\Utils\Signatures\Signatures.cpp" />
     <ClCompile Include="src\Utils\Timer\Timer.cpp" />
+    <ClCompile Include="src\Utils\Math\SIMDMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\freetype\config\ftconfig.h" />
@@ -1548,6 +1549,8 @@
     <ClInclude Include="src\Utils\Interfaces\Interfaces.h" />
     <ClInclude Include="src\Utils\KeyHandler\KeyHandler.h" />
     <ClInclude Include="src\Utils\Math\Math.h" />
+    <ClInclude Include="src\Utils\Math\SIMDMath.h" />
+    <ClInclude Include="src\Utils\Math\SIMDIntegration.h" />
     <ClInclude Include="src\Utils\Memory\Memory.h" />
     <ClInclude Include="src\Utils\NetVars\NetVars.h" />
     <ClInclude Include="src\Utils\Signatures\Signatures.h" />
