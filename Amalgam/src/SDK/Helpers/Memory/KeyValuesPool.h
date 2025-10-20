@@ -76,7 +76,7 @@ public:
         {
             if (entry.pKeyValues)
             {
-                entry.pKeyValues->deleteThis();
+                entry.pKeyValues->DeleteThis();
                 entry.pKeyValues = nullptr;
             }
         }
@@ -98,7 +98,7 @@ public:
             else
             {
                 // Reuse existing KeyValues by reinitializing
-                m_vPool[nSlot].pKeyValues->deleteThis();
+                m_vPool[nSlot].pKeyValues->DeleteThis();
                 m_vPool[nSlot].pKeyValues = new KeyValues(pszName);
             }
 
@@ -137,7 +137,7 @@ public:
         }
 
         // Not found in pool, delete directly
-        pKeyValues->deleteThis();
+        pKeyValues->DeleteThis();
     }
 
     // Get statistics
@@ -155,7 +155,7 @@ public:
         {
             if (entry.pKeyValues)
             {
-                entry.pKeyValues->deleteThis();
+                entry.pKeyValues->DeleteThis();
                 entry.pKeyValues = nullptr;
             }
             entry.bInUse = false;
