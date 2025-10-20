@@ -1,68 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugAVX2|Win32">
-      <Configuration>DebugAVX2</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugAVX2|x64">
-      <Configuration>DebugAVX2</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugFreetypeAVX2|Win32">
-      <Configuration>DebugFreetypeAVX2</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugFreetypeAVX2|x64">
-      <Configuration>DebugFreetypeAVX2</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugFreetype|Win32">
-      <Configuration>DebugFreetype</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugFreetype|x64">
-      <Configuration>DebugFreetype</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseAVX2|Win32">
-      <Configuration>ReleaseAVX2</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseAVX2|x64">
-      <Configuration>ReleaseAVX2</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseFreetypeAVX2|Win32">
-      <Configuration>ReleaseFreetypeAVX2</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="ReleaseFreetypeAVX2|x64">
       <Configuration>ReleaseFreetypeAVX2</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseFreetype|Win32">
-      <Configuration>ReleaseFreetype</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseFreetype|x64">
-      <Configuration>ReleaseFreetype</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -292,7 +232,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseFreetypeAVX2|x64'">
     <IncludePath>$(ProjectDir)include\;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)$(Platform)$(Configuration)</TargetName>
+    <TargetName>Amalgamx64Release</TargetName>
     <OutDir>$(SolutionDir)output\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -1550,7 +1490,6 @@
     <ClInclude Include="src\Utils\KeyHandler\KeyHandler.h" />
     <ClInclude Include="src\Utils\Math\Math.h" />
     <ClInclude Include="src\Utils\Math\SIMDMath.h" />
-    <ClInclude Include="src\Utils\Math\SIMDIntegration.h" />
     <ClInclude Include="src\Utils\Memory\Memory.h" />
     <ClInclude Include="src\Utils\NetVars\NetVars.h" />
     <ClInclude Include="src\Utils\Signatures\Signatures.h" />
