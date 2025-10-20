@@ -11,8 +11,6 @@
 #include "EnemyCam/EnemyCam.h"
 #include "../Players/PlayerUtils.h"
 #include "../Spectate/Spectate.h"
-#include "../../SDK/Helpers/Memory/KeyValuesPool.h"
-#include "../../Utils/Math/SIMDMath.h"
 
 MAKE_SIGNATURE(CTFPlayer_FireEvent, "client.dll", "48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 4C 89 64 24 ? 55 41 56 41 57 48 8D 6C 24", 0x0);
 MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects, "client.dll", "40 57 48 81 EC ? ? ? ? 8B 91 ? ? ? ? 48 8B F9 85 D2 0F 84 ? ? ? ? 48 89 B4 24", 0x0);
@@ -25,8 +23,6 @@ MAKE_SIGNATURE(CBaseAnimating_DrawServerHitboxes_BoxAngles_Call, "server.dll", "
 
 static std::vector<Vec3> SplashTrace(Vec3 vOrigin, float flRadius, Vec3 vNormal = { 0, 0, 1 }, bool bTrace = true, int iSegments = 100)
 {
-	PERF_TIMER_SIMD();
-
 	if (!flRadius)
 		return {};
 
@@ -34,84 +30,18 @@ static std::vector<Vec3> SplashTrace(Vec3 vOrigin, float flRadius, Vec3 vNormal 
 	Vec3 vRight, vUp; Math::AngleVectors(vAngles, nullptr, &vRight, &vUp);
 
 	std::vector<Vec3> vPoints = {};
-	vPoints.reserve(iSegments + 1); // Pre-allocate for better performance
-
-	if (CSIMDMath::IsSIMDEnabled() && iSegments >= 8)
+	for (float i = 0.f; i < iSegments; i++)
 	{
-		// Use SIMD for segment generation when we have enough segments
-		size_t simdCount = (iSegments / 8) * 8; // Round down to multiple of 8
-		size_t remainder = iSegments - simdCount;
-
-		// Generate 8 points at a time with SIMD
-		for (size_t i = 0; i < simdCount; i += 8)
+		Vec3 vPoint = vOrigin + (vRight * cos(2 * PI * i / iSegments) + vUp * sin(2 * PI * i / iSegments)) * flRadius;
+		if (bTrace)
 		{
-			// Calculate 8 angles at once
-			float angles[8];
-			for (int j = 0; j < 8; ++j)
-			{
-				angles[j] = 2.0f * PI * (i * 8 + j) / static_cast<float>(iSegments);
-			}
-
-			// Use SIMD to calculate cos/sin for 8 angles simultaneously
-			__m128 cos_vals = _mm_set_ps(cos(angles[0]), cos(angles[1]), cos(angles[2]), cos(angles[3]),
-								 cos(angles[4]), cos(angles[5]), cos(angles[6]), cos(angles[7]));
-			__m128 sin_vals = _mm_set_ps(sin(angles[0]), sin(angles[1]), sin(angles[2]), sin(angles[3]),
-									sin(angles[4]), sin(angles[5]), sin(angles[6]), sin(angles[7]));
-
-			// Calculate 8 points at once
-			__m128 px = _mm_mul_ps(cos_vals, _mm_set1_ps(flRadius));
-			__m128 py = _mm_mul_ps(sin_vals, _mm_set1_ps(flRadius));
-
-			// Store results
-			float point_arrays[8];
-			_mm_storeu_ps(point_arrays, px);
-			_mm_storeu_ps(point_arrays + 4, py);
-
-			for (int j = 0; j < 8; ++j)
-			{
-				Vec3 vPoint = vOrigin + (vRight * point_arrays[j] + vUp * point_arrays[4 + j]);
-				if (bTrace)
-				{
-					CGameTrace trace = {};
-					CTraceFilterWorldAndPropsOnly filter = {};
-					SDK::Trace(vOrigin, vPoint, MASK_SHOT, &filter, &trace);
-					vPoint = trace.endpos;
-				}
-				vPoints.push_back(vPoint);
-			}
+			CGameTrace trace = {};
+			CTraceFilterWorldAndPropsOnly filter = {};
+			SDK::Trace(vOrigin, vPoint, MASK_SHOT, &filter, &trace);
+			vPoint = trace.endpos;
 		}
-
-		// Handle remainder
-		for (size_t i = simdCount; i < static_cast<size_t>(iSegments); ++i)
-		{
-			Vec3 vPoint = vOrigin + (vRight * cos(2.0f * PI * i / static_cast<float>(iSegments) + vUp * sin(2.0f * PI * i / static_cast<float>(iSegments))) * flRadius;
-			if (bTrace)
-			{
-				CGameTrace trace = {};
-				CTraceFilterWorldAndPropsOnly filter = {};
-				SDK::Trace(vOrigin, vPoint, MASK_SHOT, &filter, &trace);
-				vPoint = trace.endpos;
-			}
-			vPoints.push_back(vPoint);
-		}
+		vPoints.push_back(vPoint);
 	}
-	else
-	{
-		// Scalar fallback for small numbers of segments
-		for (float i = 0.f; i < static_cast<float>(iSegments); ++i)
-		{
-			Vec3 vPoint = vOrigin + (vRight * cos(2.0f * PI * i / static_cast<float>(iSegments) + vUp * sin(2.0f * PI * i / static_cast<float>(iSegments))) * flRadius;
-			if (bTrace)
-			{
-				CGameTrace trace = {};
-				CTraceFilterWorldAndPropsOnly filter = {};
-				SDK::Trace(vOrigin, vPoint, MASK_SHOT, &filter, &trace);
-				vPoint = trace.endpos;
-			}
-			vPoints.push_back(vPoint);
-		}
-	}
-
 	vPoints.push_back(vPoints.front());
 
 	return vPoints;
@@ -164,9 +94,7 @@ void CVisuals::ProjectileTrace(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, const
 		{
 			pNormal = &trace.plane.normal;
 			if (trace.startsolid)
-				// Use SIMD for velocity normalization (critical for projectile calculations)
-		Vec3 velocity = F::ProjSim.GetVelocity();
-		*pNormal = CSIMDMath::FastNormalize(velocity);
+				*pNormal = F::ProjSim.GetVelocity().Normalized();
 			break;
 		}
 	}
@@ -222,15 +150,11 @@ void CVisuals::ProjectileTrace(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, const
 
 	if (bQuick)
 	{
-		if (Vars::Visuals::Simulation::ProjectileCamera.Value && !I::EngineVGui->IsGameUIVisible())
-	{
-			float distance = CSIMDMath::FastDistance(pPlayer->m_vecOrigin(), trace.endpos);
-			if (distance > 500.f)
-			{
+		if (Vars::Visuals::Simulation::ProjectileCamera.Value && !I::EngineVGui->IsGameUIVisible() && pPlayer->m_vecOrigin().DistTo(trace.endpos) > 500.f)
 		{
 			CGameTrace cameraTrace = {};
 
-			auto vAngles = CSIMDMath::FastAngleBetweenVectors(trace.startpos, trace.endpos);
+			auto vAngles = Math::CalcAngle(trace.startpos, trace.endpos);
 			Vec3 vForward; Math::AngleVectors(vAngles, &vForward);
 			SDK::Trace(trace.endpos, trace.endpos - vForward * 500.f, MASK_SOLID, &filter, &cameraTrace);
 
@@ -486,7 +410,7 @@ void CVisuals::DrawDebugInfo(CTFPlayer* pLocal)
 		Vec3 vOrigin = pLocal->m_vecOrigin();
 		H::Draw.StringOutlined(fFont, x, y += nTall * 2, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Origin: ({:.3f}, {:.3f}, {:.3f})", vOrigin.x, vOrigin.y, vOrigin.z).c_str());
 		Vec3 vVelocity = pLocal->m_vecVelocity();
-		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Velocity: {:.3f} ({:.3f}, {:.3f}, {:.3f})", CSIMDMath::FastLength(vVelocity), vVelocity.x, vVelocity.y, vVelocity.z).c_str());
+		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Velocity: {:.3f} ({:.3f}, {:.3f}, {:.3f})", vVelocity.Length(), vVelocity.x, vVelocity.y, vVelocity.z).c_str());
 		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Tickbase: {}", pLocal->m_nTickBase()).c_str());
 		//H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Choke: {}, {}", G::Choking, I::ClientState->chokedcommands).c_str());
 		//H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Ticks: {}, {}", F::Ticks.m_iShiftedTicks, F::Ticks.m_iShiftedGoal).c_str());
@@ -934,7 +858,7 @@ void CVisuals::OverrideWorldTextures()
 		return;
 	}
 
-	KeyValues* kv = CKeyValuesPool::Alloc("LightmappedGeneric");
+	KeyValues* kv = new KeyValues("LightmappedGeneric");
 	if (!kv)
 		return;
 

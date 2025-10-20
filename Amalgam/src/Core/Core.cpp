@@ -180,10 +180,10 @@ void CCore::Load()
 
 	if (!CheckDXLevel())
 	{
-		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
-		if (log_file) {
-			fprintf(log_file, "Core::Load: CheckDXLevel() FAILED\n");
-			fclose(log_file);
+		FILE* log_file_dx = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file_dx) {
+			fprintf(log_file_dx, "Core::Load: CheckDXLevel() FAILED\n");
+			fclose(log_file_dx);
 		}
 		m_bUnload = m_bFailed = true;
 		return;
@@ -197,10 +197,10 @@ void CCore::Load()
 
 	if (!U::Hooks.Initialize())
 	{
-		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
-		if (log_file) {
-			fprintf(log_file, "Core::Load: Hooks.Initialize() FAILED\n");
-			fclose(log_file);
+		FILE* log_file_hooks_failed = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file_hooks_failed) {
+			fprintf(log_file_hooks_failed, "Core::Load: Hooks.Initialize() FAILED\n");
+			fclose(log_file_hooks_failed);
 		}
 		m_bUnload = m_bFailed2 = true;
 		return;
@@ -214,10 +214,10 @@ void CCore::Load()
 
 	if (!U::BytePatches.Initialize())
 	{
-		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
-		if (log_file) {
-			fprintf(log_file, "Core::Load: BytePatches.Initialize() FAILED\n");
-			fclose(log_file);
+		FILE* log_file_bytepatches_failed = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file_bytepatches_failed) {
+			fprintf(log_file_bytepatches_failed, "Core::Load: BytePatches.Initialize() FAILED\n");
+			fclose(log_file_bytepatches_failed);
 		}
 		m_bUnload = m_bFailed2 = true;
 		return;
@@ -231,10 +231,10 @@ void CCore::Load()
 
 	if (!H::Events.Initialize())
 	{
-		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
-		if (log_file) {
-			fprintf(log_file, "Core::Load: Events.Initialize() FAILED\n");
-			fclose(log_file);
+		FILE* log_file_events_failed = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file_events_failed) {
+			fprintf(log_file_events_failed, "Core::Load: Events.Initialize() FAILED\n");
+			fclose(log_file_events_failed);
 		}
 		m_bUnload = m_bFailed2 = true;
 		return;
