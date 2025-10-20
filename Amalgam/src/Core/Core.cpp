@@ -9,6 +9,7 @@
 #include "../Features/Visuals/Materials/Materials.h"
 #include "../Features/Visuals/Visuals.h"
 #include "../SDK/Events/Events.h"
+#include "../Utils/Math/SIMDMath.h"
 #include <Psapi.h>
 
 static inline std::string GetProcessName(DWORD dwProcessID)
@@ -142,8 +143,39 @@ void CCore::Load()
 
 	FILE* log_file4 = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file4) {
-		fprintf(log_file4, "Core::Load: Interfaces initialized, checking DX level\n");
+		fprintf(log_file4, "Core::Load: Interfaces initialized, initializing SIMD\n");
 		fclose(log_file4);
+	}
+
+	// Initialize SIMD math system for vector operations optimization
+	try {
+		CSIMDMath::Initialize();
+
+		FILE* log_file_simd = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file_simd) {
+			if (CSIMDMath::IsSIMDEnabled()) {
+				fprintf(log_file_simd, "Core::Load: SIMD initialized successfully (SSE: %s, AVX2: %s)\n",
+					CSIMDMath::IsSSESupported() ? "YES" : "NO",
+					CSIMDMath::IsAVX2Supported() ? "YES" : "NO");
+			} else {
+				fprintf(log_file_simd, "Core::Load: SIMD not available on this CPU\n");
+			}
+			fclose(log_file_simd);
+		}
+	}
+	catch (...) {
+		FILE* log_file_simd_error = fopen("C:\\temp\\amalgam_debug.log", "a");
+		if (log_file_simd_error) {
+			fprintf(log_file_simd_error, "Core::Load: SIMD initialization failed\n");
+			fclose(log_file_simd_error);
+		}
+		// Continue loading even if SIMD fails (fallback to scalar math)
+	}
+
+	FILE* log_file5 = fopen("C:\\temp\\amalgam_debug.log", "a");
+	if (log_file5) {
+		fprintf(log_file5, "Core::Load: Interfaces initialized, checking DX level\n");
+		fclose(log_file5);
 	}
 
 	if (!CheckDXLevel())

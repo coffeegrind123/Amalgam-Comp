@@ -2,6 +2,7 @@
 
 #include "../../EnginePrediction/EnginePrediction.h"
 #include "../../CritHack/CritHack.h"
+#include "../../../Utils/Math/SIMDMath.h"
 
 bool CProjectileSimulation::GetInfoMain(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags, float flAutoCharge)
 {
@@ -292,7 +293,7 @@ void CProjectileSimulation::GetInfo(CBaseEntity* pProjectile, ProjectileInfo& tP
 	tProjInfo.m_vAng = Math::VectorAngles(vVelocity);
 	tProjInfo.m_vHull = pProjectile->m_vecMaxs();
 
-	tProjInfo.m_flVelocity = vVelocity.Length();
+	tProjInfo.m_flVelocity = CSIMDMath::FastLength(vVelocity);
 	tProjInfo.m_flGravity = GetGravity(pProjectile, tProjInfo.m_pWeapon);
 }
 
@@ -461,9 +462,9 @@ bool CProjectileSimulation::Initialize(ProjectileInfo& tProjInfo, bool bSimulate
 					Vec3 vOwnerVelocity = tProjInfo.m_pOwner->m_vecVelocity();
 					if (!vOwnerVelocity.IsZero())
 					{
-						float flOwnerVelocity = vOwnerVelocity.Length();
+						float flOwnerVelocity = CSIMDMath::FastLength(vOwnerVelocity);
 
-						float flDot = vForward.Dot(vOwnerVelocity) / flOwnerVelocity;
+						float flDot = CSIMDMath::FastDotProduct(vForward, vOwnerVelocity) / flOwnerVelocity;
 						vVelocity = vForward * (tProjInfo.m_flVelocity + flOwnerVelocity * flDot);
 					}
 				}
