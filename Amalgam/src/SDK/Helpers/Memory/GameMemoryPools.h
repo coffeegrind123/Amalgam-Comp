@@ -5,12 +5,18 @@
 #include <unordered_map>
 #include <string>
 
+// Forward declarations for pooled types
+struct Target_t;
+class CGameTrace;
+
 // Memory pool constants for MSVC compatibility
 #define KEYVALUES_POOL_SIZE 128
 #define STRING_POOL_SIZE 256
 #define MAX_STRING_LENGTH 256
 #define VECTOR_POOL_SIZE 512
 #define COLOR_POOL_SIZE 256
+#define TARGET_POOL_SIZE 64
+#define TRACE_POOL_SIZE 32
 
 // Expanded memory pool system for frequently allocated game objects
 class CGameMemoryPools
@@ -33,11 +39,21 @@ private:
     static uint32_t s_nColorPool[COLOR_POOL_SIZE];
     static std::bitset<COLOR_POOL_SIZE> s_bColorUsed;
 
+    // Target pool for aimbot target objects (high-frequency allocation)
+    static Target_t s_pTargetPool[TARGET_POOL_SIZE];
+    static std::bitset<TARGET_POOL_SIZE> s_bTargetUsed;
+
+    // CGameTrace pool for trace operations (frequent in aimbot)
+    static CGameTrace s_pTracePool[TRACE_POOL_SIZE];
+    static std::bitset<TRACE_POOL_SIZE> s_bTraceUsed;
+
     // Statistics
     static uint32_t s_nKeyValuesAllocs;
     static uint32_t s_nStringAllocs;
     static uint32_t s_nVectorAllocs;
     static uint32_t s_nColorAllocs;
+    static uint32_t s_nTargetAllocs;
+    static uint32_t s_nTraceAllocs;
 
 public:
     // KeyValues allocation (enhanced from existing system)
