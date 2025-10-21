@@ -17,6 +17,12 @@ private:
     static bool s_bValidationEnabled;
     static uint32_t s_nErrorCount;
 
+    // Performance monitoring
+    static uint32_t s_nCacheHits;
+    static uint32_t s_nCacheMisses;
+    static uint32_t s_nValidationCalls;
+    static float s_fTotalTime;
+
     // Validate vtable integrity
     static bool ValidateVTable(void* interface_ptr, const char* interface_name)
     {
@@ -133,17 +139,34 @@ public:
     }
 
     // Get cached function pointers
-    static void* GetFrameStageNotifyPtr() { return s_pFrameStageNotify; }
-    static void* GetCreateMovePtr() { return s_pCreateMove; }
-    static void* GetPaintTraversePtr() { return s_pPaintTraverse; }
-    static void* GetViewRenderPtr() { return s_pViewRender; }
-    static void* GetModelRenderPtr() { return s_pModelRender; }
-    static void* GetSurfacePtr() { return s_pSurface; }
+    static void* GetFrameStageNotifyPtr() { s_nCacheHits++; return s_pFrameStageNotify; }
+    static void* GetCreateMovePtr() { s_nCacheHits++; return s_pCreateMove; }
+    static void* GetPaintTraversePtr() { s_nCacheHits++; return s_pPaintTraverse; }
+    static void* GetViewRenderPtr() { s_nCacheHits++; return s_pViewRender; }
+    static void* GetModelRenderPtr() { s_nCacheHits++; return s_pModelRender; }
+    static void* GetSurfacePtr() { s_nCacheHits++; return s_pSurface; }
 
     // Check if cache is initialized
     static bool IsInitialized() { return s_bInitialized; }
 
-        // Clear cache (for debugging)
+    // Performance statistics
+    static void GetCacheStats(uint32_t& hits, uint32_t& misses, uint32_t& errors, float& avgTime)
+    {
+        hits = s_nCacheHits;
+        misses = s_nCacheMisses;
+        errors = s_nErrorCount;
+        avgTime = s_fTotalTime;
+    }
+
+    static void ResetStats()
+    {
+        s_nCacheHits = 0;
+        s_nCacheMisses = 0;
+        s_nErrorCount = 0;
+        s_fTotalTime = 0.0f;
+    }
+
+    // Clear cache (for debugging)
     static void ClearCache()
     {
         s_bInitialized = false;
@@ -153,6 +176,7 @@ public:
         s_pViewRender = nullptr;
         s_pModelRender = nullptr;
         s_pSurface = nullptr;
+        ResetStats();
     }
 };
 
