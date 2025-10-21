@@ -4,6 +4,7 @@
 #include "../../Players/PlayerUtils.h"
 #include "../../Misc/Misc.h"
 #include "../../Aimbot/AutoRocketJump/AutoRocketJump.h"
+#include "../../../Utils/Math/SIMDMath.h"
 
 bool CAntiAim::AntiAimOn()
 {
@@ -203,7 +204,7 @@ void CAntiAim::MinWalk(CTFPlayer* pLocal, CUserCmd* pCmd)
 	if (!Vars::AntiAim::MinWalk.Value || !YawOn() || !pLocal->m_hGroundEntity() || pLocal->InCond(TF_COND_HALLOWEEN_KART))
 		return;
 
-	if (!pCmd->forwardmove && !pCmd->sidemove && pLocal->m_vecVelocity().Length2D() < 2.f)
+	if (!pCmd->forwardmove && !pCmd->sidemove && CSIMDMath::FastLength2D(pLocal->m_vecVelocity()) < 2.f)
 	{
 		static bool bVar = true;
 		float flMove = (pLocal->IsDucking() ? 3 : 1) * ((bVar = !bVar) ? 1 : -1);

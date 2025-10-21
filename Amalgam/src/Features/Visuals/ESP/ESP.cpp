@@ -4,6 +4,7 @@
 #include "../../Spectate/Spectate.h"
 #include "../../Simulation/MovementSimulation/MovementSimulation.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
+#include "../../../Utils/Math/SIMDMath.h"
 
 MAKE_SIGNATURE(CTFPlayerSharedUtils_GetEconItemViewByLoadoutSlot, "client.dll", "48 89 6C 24 ? 56 41 54 41 55 41 56 41 57 48 83 EC", 0x0);
 MAKE_SIGNATURE(CEconItemView_GetItemName, "client.dll", "40 53 48 83 EC ? 48 8B D9 C6 81 ? ? ? ? ? E8 ? ? ? ? 48 8B 8B", 0x0);
@@ -83,7 +84,7 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 		if (Vars::ESP::Player.Value & Vars::ESP::PlayerEnum::Distance && !bLocal)
 		{
 			Vec3 vDelta = pPlayer->m_vecOrigin() - pLocal->m_vecOrigin();
-			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", vDelta.Length2D() / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", CSIMDMath::FastLength2D(vDelta) / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		}
 
 		PlayerInfo_t pi{};
@@ -498,7 +499,7 @@ void CESP::StoreBuildings(CTFPlayer* pLocal)
 		if (Vars::ESP::Building.Value & Vars::ESP::BuildingEnum::Distance)
 		{
 			Vec3 vDelta = pEntity->m_vecOrigin() - pLocal->m_vecOrigin();
-			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", vDelta.Length2D() / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", CSIMDMath::FastLength2D(vDelta) / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		}
 
 		if (Vars::ESP::Building.Value & Vars::ESP::BuildingEnum::Name)
@@ -631,7 +632,7 @@ void CESP::StoreProjectiles(CTFPlayer* pLocal)
 		if (Vars::ESP::Projectile.Value & Vars::ESP::ProjectileEnum::Distance)
 		{
 			Vec3 vDelta = pEntity->m_vecOrigin() - pLocal->m_vecOrigin();
-			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", vDelta.Length2D() / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", CSIMDMath::FastLength2D(vDelta) / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		}
 
 		if (Vars::ESP::Projectile.Value & Vars::ESP::ProjectileEnum::Name)
@@ -732,7 +733,7 @@ void CESP::StoreObjective(CTFPlayer* pLocal)
 		if (Vars::ESP::Objective.Value & Vars::ESP::ObjectiveEnum::Distance)
 		{
 			Vec3 vDelta = pEntity->m_vecOrigin() - pLocal->m_vecOrigin();
-			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", vDelta.Length2D() / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ESPTextEnum::Bottom, std::format("[{:.0f}M]", CSIMDMath::FastLength2D(vDelta) / 41), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		}
 
 		switch (pEntity->GetClassID())

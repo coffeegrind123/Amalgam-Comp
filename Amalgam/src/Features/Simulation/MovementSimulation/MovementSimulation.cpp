@@ -2,6 +2,7 @@
 
 #include "../../EnginePrediction/EnginePrediction.h"
 #include <numeric>
+#include "../../../Utils/Math/SIMDMath.h"
 
 // we'll use this to set current player's command, without it CGameMovement::CheckInterval will try to access a nullptr
 static CUserCmd DummyCmd = {};
@@ -330,7 +331,7 @@ static inline void VisualizeRecords(MoveData& tRecord1, MoveData& tRecord2, Colo
 	const float flTime1 = tRecord1.m_flSimTime, flTime2 = tRecord2.m_flSimTime;
 	const int iTicks = std::max(TIME_TO_TICKS(flTime1 - flTime2), 1);
 	const float flYaw = Math::NormalizeAngle(flYaw1 - flYaw2);
-	const bool bStraight = fabsf(flYaw) * tRecord1.m_vVelocity.Length2D() * iTicks < flStraightFuzzyValue; // dumb way to get straight bool
+	const bool bStraight = fabsf(flYaw) * CSIMDMath::FastLength2D(tRecord1.m_vVelocity) * iTicks < flStraightFuzzyValue; // dumb way to get straight bool
 
 	G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(tRecord1.m_vOrigin, tRecord2.m_vOrigin), I::GlobalVars->curtime + 5.f, tColor);
 	G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(tRecord1.m_vOrigin, tRecord1.m_vOrigin + Vec3(0, 0, 5)), I::GlobalVars->curtime + 5.f, tColor);
@@ -339,7 +340,7 @@ static inline void VisualizeRecords(MoveData& tRecord1, MoveData& tRecord2, Colo
 		Vec3 vVelocity = tRecord1.m_vVelocity.Normalized2D() * 5;
 		vVelocity = Math::RotatePoint(vVelocity, {}, { 0, flYaw > 0 ? 90.f : -90.f, 0 });
 		if (Vars::Aimbot::Projectile::MovesimFrictionFlags.Value & Vars::Aimbot::Projectile::MovesimFrictionFlagsEnum::CalculateIncrease && tRecord1.m_iMode == 1)
-			vVelocity /= GetFrictionScale(tRecord1.m_vVelocity.Length2D(), flYaw, tRecord1.m_vVelocity.z + GetGravity() * TICK_INTERVAL, 0.f, 56.f);
+			vVelocity /= GetFrictionScale(CSIMDMath::FastLength2D(tRecord1.m_vVelocity), flYaw, tRecord1.m_vVelocity.z + GetGravity() * TICK_INTERVAL, 0.f, 56.f);
 		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(tRecord1.m_vOrigin, tRecord1.m_vOrigin + vVelocity), I::GlobalVars->curtime + 5.f, tColor);
 	}
 }
@@ -353,9 +354,9 @@ static bool GetYawDifference(MoveData& tRecord1, MoveData& tRecord2, bool bStart
 
 	*pYaw = Math::NormalizeAngle(flYaw1 - flYaw2);
 	if (flMaxSpeed && tRecord1.m_iMode != 1)
-		*pYaw *= std::clamp(tRecord1.m_vVelocity.Length2D() / flMaxSpeed, 0.f, 1.f);
+		*pYaw *= std::clamp(CSIMDMath::FastLength2D(tRecord1.m_vVelocity) / flMaxSpeed, 0.f, 1.f);
 	if (Vars::Aimbot::Projectile::MovesimFrictionFlags.Value & Vars::Aimbot::Projectile::MovesimFrictionFlagsEnum::CalculateIncrease && tRecord1.m_iMode == 1)
-		*pYaw /= GetFrictionScale(tRecord1.m_vVelocity.Length2D(), *pYaw, tRecord1.m_vVelocity.z + GetGravity() * TICK_INTERVAL, 0.f, 56.f);
+		*pYaw /= GetFrictionScale(CSIMDMath::FastLength2D(tRecord1.m_vVelocity), *pYaw, tRecord1.m_vVelocity.z + GetGravity() * TICK_INTERVAL, 0.f, 56.f);
 	if (fabsf(*pYaw) > 45.f)
 		return false;
 
@@ -370,7 +371,7 @@ static bool GetYawDifference(MoveData& tRecord1, MoveData& tRecord2, bool bStart
 	const bool iCurrZero = bStaticZero = !*pYaw;
 
 	const bool bChanged = iCurrSign != iLastSign || iCurrZero && iLastZero;
-	const bool bStraight = fabsf(*pYaw) * tRecord1.m_vVelocity.Length2D() * iTicks < flStraightFuzzyValue; // dumb way to get straight bool
+	const bool bStraight = fabsf(*pYaw) * CSIMDMath::FastLength2D(tRecord1.m_vVelocity) * iTicks < flStraightFuzzyValue; // dumb way to get straight bool
 
 	if (bStart)
 	{
@@ -459,7 +460,7 @@ void CMovementSimulation::GetAverageYaw(MoveStorage& tStorage, int iSamples)
 	{
 		float flDistance = 0.f;
 		if (auto pLocal = H::Entities.GetLocal())
-			flDistance = pLocal->m_vecOrigin().DistTo(tStorage.m_pPlayer->m_vecOrigin());
+			flDistance = CSIMDMath::FastDistance(pLocal->m_vecOrigin(), tStorage.m_pPlayer->m_vecOrigin());
 		iMinimum = flDistance < flLowMinimumDistance ? flLowMinimumSamples : Math::RemapVal(flDistance, flLowMinimumDistance, flHighMinimumDistance, flLowMinimumSamples + 1, flHighMinimumSamples);
 	}
 
@@ -575,7 +576,7 @@ void CMovementSimulation::RunTick(MoveStorage& tStorage, bool bPath, std::functi
 		{
 			flCorrection = 90.f * sign(tStorage.m_flAverageYaw);
 			if (Vars::Aimbot::Projectile::MovesimFrictionFlags.Value & Vars::Aimbot::Projectile::MovesimFrictionFlagsEnum::RunReduce)
-				flMult = GetFrictionScale(tStorage.m_MoveData.m_vecVelocity.Length2D(), tStorage.m_flAverageYaw, tStorage.m_MoveData.m_vecVelocity.z + GetGravity() * TICK_INTERVAL);
+				flMult = GetFrictionScale(CSIMDMath::FastLength2D(tStorage.m_MoveData.m_vecVelocity), tStorage.m_flAverageYaw, tStorage.m_MoveData.m_vecVelocity.z + GetGravity() * TICK_INTERVAL);
 		}
 		tStorage.m_MoveData.m_vecViewAngles.y += tStorage.m_flAverageYaw * flMult + flCorrection;
 	}
@@ -612,7 +613,7 @@ void CMovementSimulation::RunTick(MoveStorage& tStorage, bool bPath, std::functi
 		tStorage.m_MoveData.m_vecViewAngles.y -= flCorrection;
 	else if (tStorage.m_bDirectMove && !bLastbDirectMove
 		&& !tStorage.m_MoveData.m_flForwardMove && !tStorage.m_MoveData.m_flSideMove
-		&& tStorage.m_MoveData.m_vecVelocity.Length2D() > tStorage.m_MoveData.m_flMaxSpeed * 0.015f)
+		&& CSIMDMath::FastLength2D(tStorage.m_MoveData.m_vecVelocity) > tStorage.m_MoveData.m_flMaxSpeed * 0.015f)
 	{
 		Vec3 vDirection = tStorage.m_MoveData.m_vecVelocity.Normalized2D() * 450.f;
 		DummyCmd.forwardmove = vDirection.x, DummyCmd.sidemove = -vDirection.y;
