@@ -16,6 +16,10 @@
 
 #define floatCompare(x, y) (fabsf(x - y) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(x), fabsf(y))))
 
+// Mathematical constants for fast calculations
+constexpr float RADPI = 57.295779513082f;  // 180/pi
+constexpr float PIDEG = 0.017453293f;     // pi/180
+
 namespace Math
 {
 	inline float Lerp(float a, float b, float t)
@@ -458,6 +462,100 @@ namespace Math
 			}
 		}
 		return vRoots;
+	}
+
+	// Optimized mathematical functions from TF2 Linux Internal analysis
+
+	// Fast angle normalization with remainderf (more efficient than fmod for angles)
+	inline float AzimuthToSigned(float flYaw)
+	{
+		flYaw = remainderf(flYaw, 360.0f);
+		if (flYaw > 180.0f) flYaw -= 360.0f;
+		if (flYaw <= -180.0f) flYaw += 360.0f;
+		return flYaw;
+	}
+
+	// Fast distance calculation (optimized for 2D distance where possible)
+	inline float FastDistance2D(const Vec3& vPoint1, const Vec3& vPoint2)
+	{
+		float flDX = vPoint1.x - vPoint2.x;
+		float flDY = vPoint1.y - vPoint2.y;
+		return sqrtf(flDX * flDX + flDY * flDY);
+	}
+
+	// Fast distance squared (avoids sqrt when only comparison needed)
+	inline float FastDistance2DSqr(const Vec3& vPoint1, const Vec3& vPoint2)
+	{
+		float flDX = vPoint1.x - vPoint2.x;
+		float flDY = vPoint1.y - vPoint2.y;
+		return flDX * flDX + flDY * flDY;
+	}
+
+	// Fast angle to radians conversion using precomputed constant
+	inline float FastDegToRad(float flDegrees)
+	{
+		return flDegrees * PIDEG;
+	}
+
+	// Fast radians to degrees conversion using precomputed constant
+	inline float FastRadToDeg(float flRadians)
+	{
+		return flRadians * RADPI;
+	}
+
+	// Optimized AngleVectors using precomputed constants
+	inline void FastAngleVectors(const Vec3& vAngles, Vec3* vForward, Vec3* vRight = nullptr, Vec3* vUp = nullptr)
+	{
+		const float flPitch = FastDegToRad(vAngles.x);
+		const float flYaw = FastDegToRad(vAngles.y);
+
+		float flSinPitch, flCosPitch;
+		float flSinYaw, flCosYaw;
+
+		// Use sincos for simultaneous sin/cos calculation (Windows compatible)
+		#ifdef _WIN32
+		flSinPitch = sinf(flPitch);
+		flCosPitch = cosf(flPitch);
+		flSinYaw = sinf(flYaw);
+		flCosYaw = cosf(flYaw);
+		#else
+		sincosf(flPitch, &flSinPitch, &flCosPitch);
+		sincosf(flYaw, &flSinYaw, &flCosYaw);
+		#endif
+
+		if (vForward)
+		{
+			vForward->x = flCosPitch * flCosYaw;
+			vForward->y = flCosPitch * flSinYaw;
+			vForward->z = -flSinPitch;
+		}
+
+		if (vRight || vUp)
+		{
+			const float flRoll = FastDegToRad(vAngles.z);
+			float flSinRoll, flCosRoll;
+
+			#ifdef _WIN32
+			flSinRoll = sinf(flRoll);
+			flCosRoll = cosf(flRoll);
+			#else
+			sincosf(flRoll, &flSinRoll, &flCosRoll);
+			#endif
+
+			if (vRight)
+			{
+				vRight->x = (-flSinRoll * flSinPitch * flCosYaw + -flCosRoll * -flSinYaw);
+				vRight->y = (-flSinRoll * flSinPitch * flSinYaw + -flCosRoll * flCosYaw);
+				vRight->z = -flSinRoll * flCosPitch;
+			}
+
+			if (vUp)
+			{
+				vUp->x = (flCosRoll * flSinPitch * flCosYaw + -flSinRoll * -flSinYaw);
+				vUp->y = (flCosRoll * flSinPitch * flSinYaw + -flSinRoll * flCosYaw);
+				vUp->z = flCosRoll * flCosPitch;
+			}
+		}
 	}
 }
 
