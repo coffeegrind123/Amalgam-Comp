@@ -2,6 +2,7 @@
 
 #include "../../Ticks/Ticks.h"
 #include "../../Aimbot/AutoRocketJump/AutoRocketJump.h"
+#include "../../../Utils/Math/SIMDMath.h"
 
 bool CFakeLag::IsAllowed(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
@@ -25,7 +26,7 @@ bool CFakeLag::IsAllowed(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 	if (m_bUnducking)
 		return true;
 	
-	const bool bMoving = !(Vars::Fakelag::Options.Value & Vars::Fakelag::OptionsEnum::OnlyMoving) || pLocal->m_vecVelocity().Length2D() > 10.f;
+	const bool bMoving = !(Vars::Fakelag::Options.Value & Vars::Fakelag::OptionsEnum::OnlyMoving) || CSIMDMath::FastLength2D(pLocal->m_vecVelocity()) > 10.f;
 	if (!bMoving)
 		return false;
 
