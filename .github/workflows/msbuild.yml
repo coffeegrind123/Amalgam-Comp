@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        configuration: [Release, ReleaseAVX2, ReleaseFreetype, ReleaseFreetypeAVX2]
+        configuration: [ReleaseFreetypeAVX2]
         platform: [x64]
 
     steps:
@@ -88,12 +88,13 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: Amalgam${{ matrix.platform }}${{ matrix.configuration }}
+        name: Amalgam${{ matrix.platform }}Release
         path: |
-          output/${{ matrix.platform }}/${{ matrix.configuration }}/*.dll
-          output/${{ matrix.platform }}/${{ matrix.configuration }}/*.exe
+          output/${{ matrix.platform }}/Release/*.dll
+          output/${{ matrix.platform }}/Release/*.exe
 
     - uses: actions/upload-artifact@v4
       with:
-        name: Amalgam${{ matrix.platform }}${{ matrix.configuration }}PDB
-        path: output/${{ matrix.platform }}/${{ matrix.configuration }}/*.pdb
+        name: Amalgam${{ matrix.platform }}ReleasePDB
+        path: |
+          output/${{ matrix.platform }}/Release/*.pdb
