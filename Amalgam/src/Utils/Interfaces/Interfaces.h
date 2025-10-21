@@ -40,12 +40,154 @@ private:
 	std::vector<InterfaceInit_t*> m_vInterfaces = {};
 	bool m_bFailed = false;
 
+	// Enhanced interface caching with validation (TF2 Linux Internal inspired)
+	static constexpr size_t MAX_CACHED_INTERFACES = 64;
+	static void* s_pCachedInterfaces[MAX_CACHED_INTERFACES];
+	static const char* s_pCachedNames[MAX_CACHED_INTERFACES];
+	static bool s_bCachedValid[MAX_CACHED_INTERFACES];
+	static uint32_t s_nCacheHits;
+	static uint32_t s_nCacheMisses;
+	static uint32_t s_nValidationCalls;
+
+	// Validate interface integrity (Windows-compatible)
+	static bool ValidateInterface(void* pInterface, const char* szName)
+	{
+		s_nValidationCalls++;
+		if (!pInterface) return false;
+
+		// Basic Windows memory validation
+		if (IsBadReadPtr(pInterface, sizeof(void*))) return false;
+
+		// Check vtable validity
+		void** pVTable = *(void***)pInterface;
+		if (!pVTable || IsBadReadPtr(pVTable, sizeof(void*))) return false;
+
+		// Validate first vtable entry (most interfaces have valid first entry)
+		if (IsBadCodePtr(reinterpret_cast<FARPROC>(pVTable[0]))) return false;
+
+		return true;
+	}
+
+	// Fast hash for interface name caching
+	static uint32_t HashInterfaceName(const char* szName)
+	{
+		uint32_t hash = 5381;
+		while (*szName)
+		{
+			hash = ((hash << 5) + hash) + static_cast<unsigned char>(*szName));
+			szName++;
+		}
+		return hash;
+	}
+
+	// Find cached interface slot by name hash
+	static int FindCachedInterface(const char* szName, uint32_t hash)
+	{
+		uint32_t nameHash = hash ? hash : HashInterfaceName(szName);
+
+		for (int i = 0; i < MAX_CACHED_INTERFACES; ++i)
+		{
+			if (s_bCachedValid[i] &&
+				(!s_pCachedNames[i] || strcmp(s_pCachedNames[i], szName) == 0))
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
 public:
 	bool Initialize();
 
 	inline void AddInterface(InterfaceInit_t* pInterface)
 	{
 		m_vInterfaces.push_back(pInterface);
+	}
+
+	// Enhanced interface access with caching and validation
+	template<typename T>
+	static T* GetInterface(const char* szName, void* (*initializer)(const char*))
+	{
+		// Check cache first (fast path)
+		uint32_t nameHash = HashInterfaceName(szName);
+		int cacheIndex = FindCachedInterface(szName, nameHash);
+
+		if (cacheIndex >= 0 && s_bCachedValid[cacheIndex])
+		{
+			s_nCacheHits++;
+
+			// Validate cached interface periodically (every 1000 accesses)
+			if (s_nCacheHits % 1000 == 0)
+			{
+				if (!ValidateInterface(s_pCachedInterfaces[cacheIndex], szName))
+				{
+					// Cache invalid, clear and fallback
+					s_bCachedValid[cacheIndex] = false;
+					s_pCachedInterfaces[cacheIndex] = nullptr;
+					s_pCachedNames[cacheIndex] = nullptr;
+				}
+			}
+
+			return static_cast<T*>(s_pCachedInterfaces[cacheIndex]);
+		}
+
+		// Cache miss, initialize interface
+		s_nCacheMisses++;
+		T* pInterface = static_cast<T*>(initializer(szName));
+
+		if (!pInterface)
+		{
+			return nullptr;
+		}
+
+		// Validate before caching
+		if (!ValidateInterface(pInterface, szName))
+		{
+			return nullptr;
+		}
+
+		// Find empty cache slot
+		for (int i = 0; i < MAX_CACHED_INTERFACES; ++i)
+		{
+			if (!s_bCachedValid[i])
+			{
+				// Cache the interface
+				s_pCachedInterfaces[i] = pInterface;
+				s_pCachedNames[i] = szName;
+				s_bCachedValid[i] = true;
+				return pInterface;
+			}
+		}
+
+		// Cache full, return without caching
+		return pInterface;
+	}
+
+	// Performance statistics
+	static void GetCacheStats(uint32_t& hits, uint32_t& misses, uint32_t& validations)
+	{
+		hits = s_nCacheHits;
+		misses = s_nCacheMisses;
+		validations = s_nValidationCalls;
+	}
+
+	static void ResetStats()
+	{
+		s_nCacheHits = 0;
+		s_nCacheMisses = 0;
+		s_nValidationCalls = 0;
+	}
+
+	// Clear cache (for debugging)
+	static void ClearCache()
+	{
+		for (int i = 0; i < MAX_CACHED_INTERFACES; ++i)
+		{
+			s_pCachedInterfaces[i] = nullptr;
+			s_pCachedNames[i] = nullptr;
+			s_bCachedValid[i] = false;
+		}
+		ResetStats();
 	}
 };
 
