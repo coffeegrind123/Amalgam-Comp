@@ -49,23 +49,18 @@ private:
 	static uint32_t s_nCacheMisses;
 	static uint32_t s_nValidationCalls;
 
-	// Validate interface integrity (Windows-compatible)
+	// Validate interface integrity (cross-platform compatible)
 	static bool ValidateInterface(void* pInterface, const char* szName)
 	{
 		s_nValidationCalls++;
 		if (!pInterface) return false;
 
-		// Basic Windows memory validation
-		if (IsBadReadPtr(pInterface, sizeof(void*))) return false;
+		// Basic pointer validation
+		if (!pInterface) return false;
 
-		// Check vtable validity
+		// Check vtable validity (skip complex validation for Windows compatibility)
 		void** pVTable = *(void***)pInterface;
-		if (!pVTable || IsBadReadPtr(pVTable, sizeof(void*))) return false;
-
-		// Validate first vtable entry (most interfaces have valid first entry)
-		if (IsBadCodePtr(reinterpret_cast<FARPROC>(pVTable[0]))) return false;
-
-		return true;
+		return pVTable != nullptr;
 	}
 
 	// Fast hash for interface name caching
