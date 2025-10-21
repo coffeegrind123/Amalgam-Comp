@@ -632,6 +632,29 @@ public:
 				 -sin(DEG2RAD(x)) };
 	}
 };
+
+// SIMD-aligned Vec3 for optimal performance with SIMD operations
+#ifdef _MSC_VER
+struct __declspec(align(16)) Vec3Aligned
+#else
+struct __attribute__((aligned(16))) Vec3Aligned
+#endif
+{
+	float x = 0.0f, y = 0.0f, z = 0.0f;
+
+	// Implicit conversion from regular Vec3
+	Vec3Aligned() = default;
+	Vec3Aligned(const Vec3& v) : x(v.x), y(v.y), z(v.z) {}
+	Vec3Aligned(float X, float Y, float Z) : x(X), y(Y), z(Z) {}
+
+	// Conversion back to regular Vec3
+	operator Vec3() const { return Vec3(x, y, z); }
+
+	// Assignment operators
+	Vec3Aligned& operator=(const Vec3& v) { x = v.x; y = v.y; z = v.z; return *this; }
+	Vec3Aligned& operator=(const Vec3Aligned& v) { x = v.x; y = v.y; z = v.z; return *this; }
+};
+
 using Vector = Vec3;
 using QAngle = Vec3;
 using RadianEuler = Vec3;
