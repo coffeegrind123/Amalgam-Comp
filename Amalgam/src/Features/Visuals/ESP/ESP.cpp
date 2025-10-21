@@ -393,8 +393,8 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 				else if (pPlayer->InCond(TF_COND_FEIGN_DEATH))
 					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Feign", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 				
-				if (pPlayer->m_flInvisibility())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("Invis {:.0f}%", pPlayer->m_flInvisibility() * 100), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				if (float flInvis = pPlayer->GetEffectiveInvisibilityLevel())
+					tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("Invis {:.0f}%", flInvis * 100), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 				if (pPlayer->InCond(TF_COND_DISGUISING) || pPlayer->InCond(TF_COND_DISGUISED))
 					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Disguise", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
@@ -1130,7 +1130,7 @@ bool CESP::GetDrawBounds(CBaseEntity* pEntity, float& x, float& y, float& w, flo
 		Math::AngleMatrix({ 0.f, I::EngineClient->GetViewAngles().y, 0.f }, mTransform, false);
 
 	float flLeft, flRight, flTop, flBottom;
-	if (!SDK::IsOnScreen(pEntity, mTransform, &flLeft, &flRight, &flTop, &flBottom))
+	if (!SDK::IsOnScreen(pEntity, mTransform, &flLeft, &flRight, &flTop, &flBottom, true))
 		return false;
 
 	x = flLeft;
@@ -1158,8 +1158,8 @@ void CESP::DrawBones(CTFPlayer* pPlayer, matrix3x4* aBones, std::vector<int> vec
 		auto vBone1 = pPlayer->GetHitboxCenter(aBones, vecBones[n]);
 		auto vBone2 = pPlayer->GetHitboxCenter(aBones, vecBones[n - 1]);
 
-		Vec3 vScreenBone, vScreenParent;
-		if (SDK::W2S(vBone1, vScreenBone) && SDK::W2S(vBone2, vScreenParent))
-			H::Draw.Line(vScreenBone.x, vScreenBone.y, vScreenParent.x, vScreenParent.y, clr);
+		Vec3 vScreen1, vScreen2;
+		if (SDK::W2S(vBone1, vScreen1) && SDK::W2S(vBone2, vScreen2))
+			H::Draw.Line(vScreen1.x, vScreen1.y, vScreen2.x, vScreen2.y, clr);
 	}
 }

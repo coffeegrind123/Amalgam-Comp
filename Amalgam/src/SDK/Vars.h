@@ -280,11 +280,12 @@ namespace Vars
 				VA_LIST("Players", "Sentries", "Dispensers", "Teleporters", "Stickies", "NPCs", "Bombs"),
 				Players = 1 << 0, Sentry = 1 << 1, Dispenser = 1 << 2, Teleporter = 1 << 3, Stickies = 1 << 4, NPCs = 1 << 5, Bombs = 1 << 6);
 			CVarEnum(Ignore, "Ignore", 0b000000000, DROPDOWN_MULTI, nullptr,
-				VA_LIST("Friends", "Party", "Invulnerable", "Cloaked", "Unsimulated players", "Dead Ringer", "Vaccinator", "Disguised", "Taunting"),
-				Friends = 1 << 0, Party = 1 << 1, Invulnerable = 1 << 2, Cloaked = 1 << 3, Unsimulated = 1 << 4, DeadRinger = 1 << 5, Vaccinator = 1 << 6, Disguised = 1 << 7, Taunting = 1 << 8);
+				VA_LIST("Friends", "Party", "Invulnerable", "Cloaked", "Invisible", "Unsimulated players", "Dead Ringer", "Vaccinator", "Disguised", "Taunting"),
+				Friends = 1 << 0, Party = 1 << 1, Invulnerable = 1 << 2, Cloaked = 1 << 3, Invisible = 1 << 4, Unsimulated = 1 << 5, DeadRinger = 1 << 6, Vaccinator = 1 << 7, Disguised = 1 << 8, Taunting = 1 << 9);
 			CVar(AimFOV, "Aim FOV", 30.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 180.f);
 			CVar(MaxTargets, "Max targets", 2, SLIDER_MIN, 1, 6);
 			CVar(IgnoreCloak, "Ignore cloak", 100.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
+			CVar(IgnoreInvisible, "Ignore invisible", 100.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AssistStrength, "Assist strength", 25.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 1.f, "%g%%");
 			CVar(TickTolerance, "Tick tolerance", 7, SLIDER_CLAMP, 0, 21);
 			CVar(AutoShoot, "Auto shoot", true);
@@ -311,7 +312,13 @@ namespace Vars
 				Tapfire = 1 << 0, WaitForHeadshot = 1 << 1, WaitForCharge = 1 << 2, ScopedOnly = 1 << 3, AutoScope = 1 << 4, AutoRev = 1 << 5, ExtinguishTeam = 1 << 6);
 			CVar(PointScale, "Point scale", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 5.f, "%g%%");
 			CVar(TapFireDist, "Tapfire distance", 1000.f, SLIDER_MIN | SLIDER_PRECISION, 250.f, 1000.f, 50.f);
+			CVar(MultipointScale, "Multipoint scale", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 5.f, "%g%%");
+			CVar(TapfireDistance, "Tapfire distance", 1000.f, SLIDER_MIN | SLIDER_PRECISION, 250.f, 1000.f, 50.f);
 
+			CVarEnum(PeekCheck, "Peek check", 1, NOSAVE | DEBUGVAR, nullptr,
+				VA_LIST("Off", "Doubletap only", "Always"),
+				Off, DoubletapOnly, Always);
+			CVar(PeekAmount, "Peek amount", 1, NOSAVE | DEBUGVAR, 0, 5);
 			CVar(BoneSizeSubtract, "Bone size subtract", 1.f, NOSAVE | DEBUGVAR | SLIDER_MIN, 0.f, 4.f, 0.25f);
 			CVar(BoneSizeMinimumScale, "Bone size minimum scale", 1.f, NOSAVE | DEBUGVAR | SLIDER_CLAMP, 0.f, 1.f, 0.1f);
 		SUBNAMESPACE_END(HITSCAN);
@@ -324,8 +331,8 @@ namespace Vars
 				VA_LIST("Off", "Include", "Prefer", "Only"),
 				Off, Include, Prefer, Only);
 			CVarEnum(AutoDetonate, "Auto detonate", 0b00, DROPDOWN_MULTI, "Off",
-				VA_LIST("Stickies", "Flares", "##Divider", "Prevent self damage", "Ignore cloak"),
-				Stickies = 1 << 0, Flares = 1 << 1, PreventSelfDamage = 1 << 2, IgnoreCloak = 1 << 3);
+				VA_LIST("Stickies", "Flares", "##Divider", "Prevent self damage", "Ignore cloak", "Ignore invisible"),
+				Stickies = 1 << 0, Flares = 1 << 1, PreventSelfDamage = 1 << 2, IgnoreCloak = 1 << 3, IgnoreInvisible = 1 << 4);
 			CVarEnum(AutoAirblast, "Auto airblast", 0b000, DROPDOWN_MULTI, "Off", // todo: implement advanced redirect!!
 				VA_LIST("Enabled", "##Divider", "Redirect", "Ignore FOV"),
 				Enabled = 1 << 0, Redirect = 1 << 1, IgnoreFOV = 1 << 2);
@@ -369,7 +376,8 @@ namespace Vars
 			CVar(HuntsmanAddLow, "Huntsman add low", 0.f, NOSAVE | DEBUGVAR | SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 20.f);
 			CVar(HuntsmanClamp, "Huntsman clamp", 5.f, NOSAVE | DEBUGVAR | SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 10.f, 0.5f);
 			CVar(HuntsmanPullPoint, "Huntsman pull point", false, NOSAVE | DEBUGVAR);
-			CVar(SplashPoints, "Splash points", 100, NOSAVE | DEBUGVAR | SLIDER_MIN, 1, 400, 5);
+			CVar(SplashPointsDirect, "Direct splash points", 100, NOSAVE | DEBUGVAR | SLIDER_MIN, 1, 400, 5);
+			CVar(SplashPointsArc, "Arc splash points", 100, NOSAVE | DEBUGVAR | SLIDER_MIN, 1, 400, 5);
 			CVar(SplashGrates, "Splash grates", true, NOSAVE | DEBUGVAR);
 			CVar(SplashRotateX, "Splash Rx", 0.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, -1.f, 360.f);
 			CVar(SplashRotateY, "Splash Ry", -1.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, -1.f, 360.f);

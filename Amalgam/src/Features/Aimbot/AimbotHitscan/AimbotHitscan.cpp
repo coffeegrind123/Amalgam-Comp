@@ -261,9 +261,17 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 		vRecords = { &F::Backtrack.m_tRecord };
 	}
 
-	float flSpread = pWeapon->GetWeaponSpread();
-	if (flSpread && Vars::Aimbot::General::HitscanPeek.Value)
-		vPeekPos = vEyePos + pLocal->m_vecVelocity() * TICKS_TO_TIME(-Vars::Aimbot::General::HitscanPeek.Value);
+	bool bPeekCheck = false;
+	if (Vars::Aimbot::Hitscan::PeekAmount.Value && pWeapon->GetWeaponSpread())
+	{
+		switch (Vars::Aimbot::Hitscan::PeekCheck.Value)
+		{
+		case Vars::Aimbot::Hitscan::PeekCheckEnum::Off: break;
+		case Vars::Aimbot::Hitscan::PeekCheckEnum::DoubletapOnly: bPeekCheck = F::Ticks.GetTicks(pWeapon); break;
+		case Vars::Aimbot::Hitscan::PeekCheckEnum::Always: bPeekCheck = true; break;
+		}
+	}
+	Vec3 vPeekPos = bPeekCheck ? vEyePos + pLocal->m_vecVelocity() * TICKS_TO_TIME(-Vars::Aimbot::Hitscan::PeekAmount.Value) : Vec3();
 
 	// if we're doubletapping, we can't change viewangles so work around that
 	static int iTargetBone = 0;
@@ -283,7 +291,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 	int iReturn = false;
 	for (auto pRecord : vRecords)
 	{
-		bool bRunPeekCheck = flSpread && (Vars::Aimbot::General::PeekDTOnly.Value ? F::Ticks.GetTicks(pWeapon) : true) && Vars::Aimbot::General::HitscanPeek.Value;
+		bool bRunPeekCheck = bPeekCheck;
 
 		if (pWeapon->GetWeaponID() == TF_WEAPON_LASER_POINTER)
 		{
