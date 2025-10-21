@@ -74,7 +74,7 @@ private:
 		uint32_t hash = 5381;
 		while (*szName)
 		{
-			hash = ((hash << 5) + hash) + static_cast<unsigned char>(*szName));
+			hash = ((hash << 5) + hash) + (unsigned char)(*szName);
 			szName++;
 		}
 		return hash;
