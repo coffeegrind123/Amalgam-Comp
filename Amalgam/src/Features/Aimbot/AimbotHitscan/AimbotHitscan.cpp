@@ -24,14 +24,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 		if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
 			eGroupType = Vars::Aimbot::Healing::AutoHeal.Value ? EGroupType::PLAYERS_TEAMMATES : EGroupType::GROUP_INVALID;
 
-			// Optimized: Use direct vector access for hot paths instead of unordered_map lookup
-		const std::vector<CBaseEntity*>& entities =
-			(eGroupType == EGroupType::PLAYERS_ENEMIES) ? H::Entities.GetPlayersEnemies() :
-			(eGroupType == EGroupType::PLAYERS_ALL) ? H::Entities.GetPlayersAll() :
-			(eGroupType == EGroupType::PLAYERS_TEAMMATES) ? H::Entities.GetPlayersTeammates() :
-			H::Entities.GetGroup(eGroupType);  // Fallback for less common groups
-
-		for (auto pEntity : entities)
+			for (auto pEntity : H::Entities.GetGroup(eGroupType))
 		{
 			bool bTeammate = pEntity->m_iTeamNum() == pLocal->m_iTeamNum();
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
@@ -66,7 +59,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 	if (Vars::Aimbot::General::Target.Value)
 	{
-		for (auto pEntity : H::Entities.GetBuildingsEnemies())  // Optimized: Direct access
+		for (auto pEntity : H::Entities.GetGroup(EGroupType::BUILDINGS_ENEMIES))
 		{
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -84,7 +77,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Stickies)
 	{
-		for (auto pEntity : H::Entities.GetWorldProjectiles())  // Optimized: Direct access
+		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
 		{
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
