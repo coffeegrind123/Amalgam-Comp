@@ -191,4 +191,12 @@ public:
 	}
 };
 
+// Static member definitions for enhanced caching system
+void* CInterfaces::s_pCachedInterfaces[MAX_CACHED_INTERFACES] = {nullptr};
+const char* CInterfaces::s_pCachedNames[MAX_CACHED_INTERFACES] = {nullptr};
+bool CInterfaces::s_bCachedValid[MAX_CACHED_INTERFACES] = {false};
+uint32_t CInterfaces::s_nCacheHits = 0;
+uint32_t CInterfaces::s_nCacheMisses = 0;
+uint32_t CInterfaces::s_nValidationCalls = 0;
+
 ADD_FEATURE_CUSTOM(CInterfaces, Interfaces, U);
