@@ -23,8 +23,8 @@ ProjectilePrediction_t PredictProjectilePosition(CTFPlayer* pLocal, CTFPlayer* p
 	Vec3 vTargetPos = pTarget->GetAbsOrigin();
 	Vec3 vTargetVel = pTarget->m_vecVelocity();
 
-	// Get projectile speed from weapon
-	float flProjSpeed = pWeapon->GetProjectileSpeed();
+	// Get projectile speed from weapon - use range as approximation for projectile weapons
+	float flProjSpeed = pWeapon->GetRange();
 	if (flProjSpeed <= 0.0f)
 		return tPrediction;
 
@@ -77,7 +77,7 @@ bool IsProjectilePathClear(CTFPlayer* pLocal, Vec3 vTargetPos)
 	filter.pSkip = pLocal;
 
 	// Simple line trace for projectile path
-	SDK::TraceLine(vLocalPos, vTargetPos, MASK_SOLID, &filter, &trace);
+	SDK::TraceHull(vLocalPos, vTargetPos, Vec3(-1, -1, -1), Vec3(1, 1, 1), MASK_SOLID, &filter, &trace);
 
 	return trace.fraction > 0.95f;
 }
@@ -131,7 +131,7 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 			{
 				// If direct path is blocked, allow splash damage weapons to continue
 				if (pWeapon->GetWeaponID() != TF_WEAPON_ROCKETLAUNCHER &&
-					pWeapon->GetWeaponID() != TF_WEAPON_DIRECTHIT &&
+					pWeapon->GetWeaponID() != TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT &&
 					pWeapon->GetWeaponID() != TF_WEAPON_GRENADELAUNCHER &&
 					pWeapon->GetWeaponID() != TF_WEAPON_PIPEBOMBLAUNCHER)
 					continue;
@@ -186,7 +186,7 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 			break;
 		case TF_WEAPON_DIRECTHIT:
 		case TF_WEAPON_ROCKETLAUNCHER:
-			bShouldAim = Vars::Aimbot::Projectile::AimStickies.Value;
+			bShouldAim = true;
 			break;
 		}
 
@@ -246,8 +246,8 @@ std::vector<Target_t> CAimbotProjectile::SortTargets(CTFPlayer* pLocal, CTFWeapo
 		return vTargets;
 
 	// Use Linux-internals style simple target selection
-	float flSmallestFOV = __FLT_MAX__;
-	float flSmallestDistance = __FLT_MAX__;
+	float flSmallestFOV = FLT_MAX;
+	float flSmallestDistance = FLT_MAX;
 	int nSmallestHealth = INT_MAX;
 	int nLargestHealth = INT_MIN;
 
@@ -427,7 +427,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 		pWeapon->GetWeaponID() != TF_WEAPON_GRENADELAUNCHER &&
 		pWeapon->GetWeaponID() != TF_WEAPON_FLAREGUN &&
 		pWeapon->GetWeaponID() != TF_WEAPON_COMPOUND_BOW &&
-		pWeapon->GetWeaponID() != TF_WEAPON_DIRECTHIT &&
+		pWeapon->GetWeaponID() != TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT &&
 		pWeapon->GetWeaponID() != TF_WEAPON_ROCKETLAUNCHER &&
 		pWeapon->GetWeaponID() != TF_WEAPON_CROSSBOW &&
 		pWeapon->GetWeaponID() != TF_WEAPON_SYRINGEGUN_MEDIC)

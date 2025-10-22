@@ -10,7 +10,12 @@
 // Linux-internals inspired reliable visibility check
 bool IsPlayerVisibleReliable(CTFPlayer* pLocal, CTFPlayer* pTarget, int nBone)
 {
-	Vec3 vTargetPos = pTarget->GetBonePosition(nBone);
+	// Use GetHitboxCenter instead of GetBonePosition
+	matrix3x4 aBones[MAXSTUDIOBONES];
+	if (!pTarget->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+		return false;
+
+	Vec3 vTargetPos = pTarget->GetHitboxCenter(aBones, nBone);
 	Vec3 vLocalPos = pLocal->GetShootPos();
 
 	CGameTrace trace = {};
@@ -19,7 +24,7 @@ bool IsPlayerVisibleReliable(CTFPlayer* pLocal, CTFPlayer* pTarget, int nBone)
 
 	SDK::TraceHull(vLocalPos, vTargetPos, Vec3(-3, -3, -3), Vec3(3, 3, 3), MASK_SHOT, &filter, &trace);
 
-	return (trace.entity == pTarget || trace.fraction > 0.97f);
+	return (trace.m_pEnt == pTarget || trace.fraction > 0.97f);
 }
 
 // Simplified hitbox selection based on Linux-internals approach
@@ -27,17 +32,19 @@ int GetOptimalBone(CTFPlayer* pLocal, CTFPlayer* pTarget, CTFWeaponBase* pWeapon
 {
 	// Use Linux-internals logic but expanded for more weapons
 	const int iBodyBone = 5;  // Body bone index
-	const int iHeadBone = pTarget->GetHeadBone();
+	const int iHeadBone = 0; // Head bone index (standard hitbox)
 
 	// Head targeting logic similar to Linux-internals
 	if (pLocal->m_iClass() == TF_CLASS_SNIPER)
 	{
-		if (pLocal->IsScoped() && pTarget->m_iHealth() > 50)
+		if (pLocal->IsZoomed() && pTarget->m_iHealth() > 50)
 			return iHeadBone;
 	}
 	else if (pLocal->m_iClass() == TF_CLASS_SPY)
 	{
-		if (pWeapon->IsHeadshotWeapon())
+		// Check if weapon can headshot (revolver, ambassador, etc.)
+		if (pWeapon->GetWeaponID() == TF_WEAPON_REVOLVER ||
+			pWeapon->GetWeaponID() == TF_WEAPON_KNIFE)
 			return iHeadBone;
 	}
 
@@ -93,7 +100,13 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			// Use Linux-internals inspired simplified targeting
 			int nOptimalBone = GetOptimalBone(pLocal, pEntity->As<CTFPlayer>(), pWeapon);
-			Vec3 vTargetPos = pEntity->As<CTFPlayer>()->GetBonePosition(nOptimalBone);
+
+			// Use SetupBones and GetHitboxCenter for reliable bone position
+			matrix3x4 aBones[MAXSTUDIOBONES];
+			if (!pEntity->As<CTFPlayer>()->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+				continue;
+
+			Vec3 vTargetPos = pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nOptimalBone);
 
 			float flFOVTo = CalculateFOVToTarget(vLocalAngles, vLocalPos, vTargetPos);
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
@@ -177,8 +190,8 @@ std::vector<Target_t> CAimbotHitscan::SortTargets(CTFPlayer* pLocal, CTFWeaponBa
 		return vTargets;
 
 	// Apply Linux-internals style target selection logic
-	float flSmallestFOV = __FLT_MAX__;
-	float flSmallestDistance = __FLT_MAX__;
+	float flSmallestFOV = FLT_MAX;
+	float flSmallestDistance = FLT_MAX;
 	int nSmallestHealth = INT_MAX;
 	int nLargestHealth = INT_MIN;
 
@@ -209,10 +222,11 @@ std::vector<Target_t> CAimbotHitscan::SortTargets(CTFPlayer* pLocal, CTFWeaponBa
 				}
 				break;
 
-			case Vars::Aimbot::General::TargetSelectionEnum::LEAST_HEALTH:
-				if (nHealth < nSmallestHealth)
+			default:
+				// Health-based targeting not available, fallback to FOV
+			if (tTarget.m_flFOVTo < flSmallestFOV)
 				{
-					nSmallestHealth = nHealth;
+					flSmallestFOV = tTarget.m_flFOVTo;
 					pBestTarget = &tTarget;
 				}
 				break;
@@ -310,7 +324,13 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 	if (tTarget.m_pEntity->IsPlayer())
 	{
 		int nOptimalBone = GetOptimalBone(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), pWeapon);
-		Vec3 vTargetPos = tTarget.m_pEntity->As<CTFPlayer>()->GetBonePosition(nOptimalBone);
+
+		// Use SetupBones and GetHitboxCenter for reliable bone position
+		matrix3x4 aBones[MAXSTUDIOBONES];
+		if (!tTarget.m_pEntity->As<CTFPlayer>()->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+			return false;
+
+		Vec3 vTargetPos = tTarget.m_pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nOptimalBone);
 
 		if (vEyePos.DistToSqr(vTargetPos) > flMaxRange)
 			return false;
