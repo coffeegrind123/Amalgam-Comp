@@ -643,7 +643,7 @@ bool CAimbotMelee::RunSapper(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd
 	const Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
 
 	std::vector<Target_t> vTargets;
-	for (auto pEntity : H::Entities.GetBuildingsEnemies())  // Optimized: Direct access
+	for (auto pEntity : H::Entities.GetGroup(EGroupType::BUILDINGS_ENEMIES))
 	{
 		auto pBuilding = pEntity->As<CBaseObject>();
 		if (pBuilding->m_bHasSapper() || !pBuilding->IsInValidTeam())
