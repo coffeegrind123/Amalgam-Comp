@@ -229,7 +229,6 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 
 	Vec3 vEyePos = pLocal->GetShootPos();
 	const float flMaxRange = powf(pWeapon->GetRange(), 2.f);
-	Vec3 vPeekPos = {};
 
 	auto pModel = tTarget.m_pEntity->GetModel();
 	if (!pModel) return false;
