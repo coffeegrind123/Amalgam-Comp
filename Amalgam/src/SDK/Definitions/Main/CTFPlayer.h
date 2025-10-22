@@ -217,6 +217,10 @@ public:
 	bool IsMarked();
 	bool CanAttack(bool bCloak = true, bool bLocal = true);
 	float GetCritMult();
+
+	// Custom methods for scoped/zoomed state
+	bool IsScoped();
+	bool IsZoomed();
 };
 
 class CTFRagdoll : public CBaseFlex

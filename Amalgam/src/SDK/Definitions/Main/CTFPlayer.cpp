@@ -205,3 +205,25 @@ float CTFPlayer::GetCritMult()
 {
 	return Math::RemapVal(m_iCritMult(), 0.f, 255.f, 1.f, 4.f);
 }
+
+bool CTFPlayer::IsScoped()
+{
+	// Check if player is scoped using various conditions
+	// This works for sniper rifles and other scoped weapons
+	if (m_iClass() == TF_CLASS_SNIPER)
+	{
+		// Sniper is scoped when they're in the zoomed view
+		return InCond(TF_COND_ZOOMED);
+	}
+
+	// Check for scoped state using view FOV or other indicators
+	// Could also use m_bViewingCYOAPDA() or other netvars if available
+	return false;
+}
+
+bool CTFPlayer::IsZoomed()
+{
+	// More general zoomed state check
+	// Returns true if player is in any kind of zoomed state
+	return InCond(TF_COND_ZOOMED);
+}

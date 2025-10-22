@@ -12,6 +12,18 @@ void CAimbotGlobal::SortTargets(std::vector<Target_t>& vTargets, int iMethod)
 			{
 			case Vars::Aimbot::General::TargetSelectionEnum::FOV: return a.m_flFOVTo < b.m_flFOVTo;
 			case Vars::Aimbot::General::TargetSelectionEnum::Distance: return a.m_flDistTo < b.m_flDistTo;
+			case Vars::Aimbot::General::TargetSelectionEnum::LEAST_HEALTH:
+			{
+				if (a.m_pEntity->IsPlayer() && b.m_pEntity->IsPlayer())
+					return a.m_pEntity->As<CTFPlayer>()->m_iHealth() < b.m_pEntity->As<CTFPlayer>()->m_iHealth();
+				return false;
+			}
+			case Vars::Aimbot::General::TargetSelectionEnum::MOST_HEALTH:
+			{
+				if (a.m_pEntity->IsPlayer() && b.m_pEntity->IsPlayer())
+					return a.m_pEntity->As<CTFPlayer>()->m_iHealth() > b.m_pEntity->As<CTFPlayer>()->m_iHealth();
+				return false;
+			}
 			default: return false;
 			}
 		});

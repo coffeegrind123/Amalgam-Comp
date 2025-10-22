@@ -34,11 +34,11 @@ int GetOptimalBone(CTFPlayer* pLocal, CTFPlayer* pTarget, CTFWeaponBase* pWeapon
 	const int iBodyBone = 5;  // Body bone index
 	const int iHeadBone = 0; // Head bone index (standard hitbox)
 
-	// Head targeting logic similar to Linux-internals - simplified for reliability
+	// Head targeting logic similar to Linux-internals
 	if (pLocal->m_iClass() == TF_CLASS_SNIPER)
 	{
-		// Always aim for head with sniper rifle
-		return iHeadBone;
+		if (pLocal->IsScoped() && pTarget->m_iHealth() > 50)
+			return iHeadBone;
 	}
 	else if (pLocal->m_iClass() == TF_CLASS_SPY)
 	{
@@ -222,8 +222,24 @@ std::vector<Target_t> CAimbotHitscan::SortTargets(CTFPlayer* pLocal, CTFWeaponBa
 				}
 				break;
 
+			case Vars::Aimbot::General::TargetSelectionEnum::LEAST_HEALTH:
+				if (nHealth < nSmallestHealth)
+				{
+					nSmallestHealth = nHealth;
+					pBestTarget = &tTarget;
+				}
+				break;
+
+			case Vars::Aimbot::General::TargetSelectionEnum::MOST_HEALTH:
+				if (nHealth > nLargestHealth)
+				{
+					nLargestHealth = nHealth;
+					pBestTarget = &tTarget;
+				}
+				break;
+
 			default:
-				// Health-based targeting not available, fallback to FOV
+				// Fallback to FOV-based selection
 			if (tTarget.m_flFOVTo < flSmallestFOV)
 				{
 					flSmallestFOV = tTarget.m_flFOVTo;
@@ -260,13 +276,13 @@ int CAimbotHitscan::GetHitboxPriority(int nHitbox, CTFPlayer* pLocal, CTFWeaponB
 	bool bHeadshot = false;
 	if (pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE || pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE_DECAP)
 	{
-		if (Vars::Aimbot::Hitscan::WaitForHeadshot.Value)
+		if (Vars::Aimbot::Hitscan::WaitForHeadshot.Value && !pLocal->IsScoped())
 			return 3;
 
 		bHeadshot = true;
-		if (Vars::Aimbot::Hitscan::WaitForHeadshot.Value)
+		if (Vars::Aimbot::Hitscan::WaitForHeadshot.Value && pLocal->IsScoped())
 		{
-			if (pWeapon->GetWeaponID() != TF_WEAPON_SNIPIFIER)
+			if (pWeapon->GetWeaponID() != TF_WEAPON_SNIPERRIFLE_DECAP)
 			{
 				float flChargeTime = I::GlobalVars->curtime - pLocal->m_flSniperChargeTime();
 				if (flChargeTime < 1.0f)
@@ -277,7 +293,7 @@ int CAimbotHitscan::GetHitboxPriority(int nHitbox, CTFPlayer* pLocal, CTFWeaponB
 		if (bHeadshot)
 		{
 			int iDamage = static_cast<int>(pWeapon->GetDamage() * pWeapon->GetDamageBonus());
-			if (pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE || pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE_DECAP)
+			if (pLocal->IsScoped())
 				iDamage *= 3.0f;
 
 			iDamage = static_cast<int>(static_cast<float>(iDamage) * pPlayer->GetDamageMultiplier());
@@ -589,7 +605,7 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		if (G::CurrentUserCmd)
 		{
 			bool bShouldAttack = true;
-			if (Vars::Aimbot::General::AutoScope.Value && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE)
+			if (Vars::Aimbot::General::AutoScope.Value && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped())
 			{
 				G::CurrentUserCmd->buttons |= IN_ATTACK2;
 				bShouldAttack = false;
