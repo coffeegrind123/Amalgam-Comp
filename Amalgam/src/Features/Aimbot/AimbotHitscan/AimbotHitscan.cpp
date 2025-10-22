@@ -227,8 +227,9 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 	if (Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Unsimulated && H::Entities.GetChoke(tTarget.m_pEntity->entindex()) > Vars::Aimbot::General::TickTolerance.Value)
 		return false;
 
-	Vec3 vEyePos = pLocal->GetShootPos(), vPeekPos = {};
+	Vec3 vEyePos = pLocal->GetShootPos();
 	const float flMaxRange = powf(pWeapon->GetRange(), 2.f);
+	Vec3 vPeekPos = {};
 
 	auto pModel = tTarget.m_pEntity->GetModel();
 	if (!pModel) return false;
