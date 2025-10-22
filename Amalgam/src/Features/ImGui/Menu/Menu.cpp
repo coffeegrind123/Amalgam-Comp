@@ -678,6 +678,7 @@ void CMenu::MenuVisuals(int iTab)
 				} EndSection();
 			}
 			EndTable();
+			break;
 
 			/*
 			// esp groups system i may or may not go through with. not sure what would be best though with ui/user experience
