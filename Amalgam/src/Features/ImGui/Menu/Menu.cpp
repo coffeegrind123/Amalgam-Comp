@@ -302,7 +302,8 @@ void CMenu::MenuAimbot(int iTab)
 						FToggle(Vars::Aimbot::Projectile::HuntsmanPullPoint, FToggleEnum::Right);
 						SetCursorPosY(GetCursorPosY() + 8);
 
-						FSlider(Vars::Aimbot::Projectile::SplashPoints, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::SplashPointsDirect, FSliderEnum::Left);
+		FSlider(Vars::Aimbot::Projectile::SplashPointsArc, FSliderEnum::Right);
 						FToggle(Vars::Aimbot::Projectile::SplashGrates, FToggleEnum::Right);
 						FSlider(Vars::Aimbot::Projectile::SplashRotateX, FSliderEnum::Left, Vars::Aimbot::Projectile::SplashRotateX[DEFAULT_BIND] < 0.f ? "random" : "%g");
 						FSlider(Vars::Aimbot::Projectile::SplashRotateY, FSliderEnum::Right, Vars::Aimbot::Projectile::SplashRotateY[DEFAULT_BIND] < 0.f ? "random" : "%g");
