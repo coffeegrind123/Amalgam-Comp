@@ -94,7 +94,7 @@ bool CTFPlayer::IsTaunting()
 	return InCond(TF_COND_TAUNTING);
 };
 
-bool CTFPlayer::IsInvisible()
+bool CTFPlayer::IsInvisible(float flValue)
 {
 	if (InCond(TF_COND_BURNING)
 		|| InCond(TF_COND_BURNING_PYRO)
@@ -102,7 +102,8 @@ bool CTFPlayer::IsInvisible()
 		|| InCond(TF_COND_URINE))
 		return false;
 
-	return m_flInvisibility() >= 1.f;
+	float flInvis = GetEffectiveInvisibilityLevel();
+	return flInvis && flInvis >= 1.f;
 }
 
 bool CTFPlayer::IsInvulnerable()

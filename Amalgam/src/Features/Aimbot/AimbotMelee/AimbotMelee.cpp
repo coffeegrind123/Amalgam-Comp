@@ -16,9 +16,7 @@ std::vector<Target_t> CAimbotMelee::GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Players)
 	{
 		bool bDisciplinary = Vars::Aimbot::Melee::WhipTeam.Value && SDK::AttribHookValue(0, "speed_buff_ally", pWeapon) > 0;
-		// Optimized: Use direct vector access for hot paths
-		const std::vector<CBaseEntity*>& players = bDisciplinary ? H::Entities.GetPlayersAll() : H::Entities.GetPlayersEnemies();
-		for (auto pEntity : players)
+		for (auto pEntity : H::Entities.GetGroup(bDisciplinary ? EGroupType::PLAYERS_ALL : EGroupType::PLAYERS_ENEMIES))
 		{
 			bool bTeammate = pEntity->m_iTeamNum() == pLocal->m_iTeamNum();
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
@@ -38,11 +36,7 @@ std::vector<Target_t> CAimbotMelee::GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 		bool bWrench = pWeapon->GetWeaponID() == TF_WEAPON_WRENCH;
 		bool bDestroySapper = pWeapon->GetWeaponID() == TF_WEAPON_FIREAXE && SDK::AttribHookValue(0, "set_dmg_apply_to_sapper", pWeapon);
 
-		// Optimized: Use direct vector access for hot paths
-		const std::vector<CBaseEntity*>& buildings = bWrench || bDestroySapper ?
-			H::Entities.GetBuildingsEnemies() :  // BUILDINGS_ALL case - use direct enemy buildings
-			(H::Entities.GetBuildingsEnemies().size() > 0 ? H::Entities.GetBuildingsEnemies() : H::Entities.GetGroup(EGroupType::BUILDINGS_ALL));  // Fallback
-		for (auto pEntity : buildings)
+		for (auto pEntity : H::Entities.GetGroup(bWrench || bDestroySapper ? EGroupType::BUILDINGS_ALL : EGroupType::BUILDINGS_ENEMIES))
 		{
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -649,7 +643,7 @@ bool CAimbotMelee::RunSapper(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd
 	const Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
 
 	std::vector<Target_t> vTargets;
-	for (auto pEntity : H::Entities.GetBuildingsEnemies())  // Optimized: Direct access
+	for (auto pEntity : H::Entities.GetGroup(EGroupType::BUILDINGS_ENEMIES))
 	{
 		auto pBuilding = pEntity->As<CBaseObject>();
 		if (pBuilding->m_bHasSapper() || !pBuilding->IsInValidTeam())
