@@ -484,7 +484,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 			G::CurrentUserCmd->buttons |= IN_ATTACK;
 		}
 
-			F::Ticks.GetTickShift(pWeapon, I::GlobalVars->curtime, pLocal->GetTickBase());
+			I::GlobalVars->curtime;
 		}
 
 		// Apply aim
