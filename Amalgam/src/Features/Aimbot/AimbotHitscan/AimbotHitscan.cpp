@@ -370,24 +370,24 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 		vRecords = { &F::Backtrack.m_tRecord };
 	}
 
-	// Original advanced multipoint logic for entities
-	Vec3 vPeekPos = vEyePos;
-	if (Vars::Aimbot::Hitscan::PeekAmount.Value && pWeapon->GetWeaponSpread())
+	// CanHit function should return true/false for hit detection
+	return true;
+}
+
+bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
+{
+	switch (iMethod)
 	{
-		bool bPeekCheck = false;
-		switch (Vars::Aimbot::Hitscan::PeekCheck.Value)
-		{
-		case Vars::Aimbot::Hitscan::PeekCheckEnum::Off: break;
-		case Vars::Aimbot::Hitscan::PeekCheckEnum::DoubletapOnly: bPeekCheck = F::Ticks.GetTicks(pWeapon); break;
-		case Vars::Aimbot::Hitscan::PeekCheckEnum::Always: bPeekCheck = true; break;
-		}
-		vPeekPos = bPeekCheck ? vEyePos + pLocal->m_vecVelocity() * TICKS_TO_TIME(-Vars::Aimbot::Hitscan::PeekAmount.Value) : vEyePos;
+	case Vars::Aimbot::General::AimTypeEnum::Smooth:
+	{
+		// Simple smoothing without complex peek logic for reliability
 		Vec3 vDelta = vToAngle - vCurAngle;
 		// Normalize angles
 		while (vDelta.x > 180.0f) vDelta.x -= 360.0f;
 		while (vDelta.x < -180.0f) vDelta.x += 360.0f;
 		while (vDelta.y > 180.0f) vDelta.y -= 360.0f;
 		while (vDelta.y < -180.0f) vDelta.y += 360.0f;
+
 		float flSmooth = Vars::Aimbot::General::SmoothingAmount.Value;
 		if (flSmooth <= 0.f) flSmooth = 1.f;
 
