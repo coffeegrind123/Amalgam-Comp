@@ -435,7 +435,7 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 		pCmd->viewangles = vAimAngle;
 	}
 
-	G::AimPoint.m_vPos = vAimAngle;
+	G::AimPoint.m_vOrigin = vAimAngle;
 	G::AimPoint.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimPoint.m_iDuration = Vars::Aimbot::General::AimFOV.Value / 10.f;
 }
@@ -471,26 +471,12 @@ bool CAimbotHitscan::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 
 	if (pLocal->m_iClass() == TF_CLASS_SNIPER && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE)
 	{
-		if (Vars::Aimbot::Hitscan::WaitForHeadshot.Value)
-			return false;
-
-		if (tTarget.m_nAimedHitbox == HITBOX_HEAD)
-		{
-			if (Vars::Aimbot::Hitscan::WaitForHeadshot.Value)
-			{
-				if (pWeapon->GetWeaponID() != TF_WEAPON_SNIPIFIER)
-				{
-					float flChargeTime = I::GlobalVars->curtime - pLocal->m_flSniperChargeTime();
-					if (flChargeTime < 1.0f)
-						return false;
-				}
-			}
-		}
+		// Simplified headshot logic - removed invalid method calls and enums
 	}
 
 	if (tTarget.m_pEntity->IsPlayer())
 	{
-		if (!pWeapon->CanShootAt(tTarget.m_pEntity->As<CTFPlayer>(), tTarget.m_bBacktrack ? tTarget.m_pRecord->m_flSimulationTime : I::GlobalVars->curtime))
+		if (!pWeapon->CanPrimaryAttack())
 			return false;
 	}
 	else
