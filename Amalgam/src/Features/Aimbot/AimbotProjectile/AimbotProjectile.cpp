@@ -368,7 +368,7 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
 	{
 		Vec3 vDelta = Math::AngleDiff(vToAngle, vCurAngle);
-		float flSmooth = Vars::Aimbot::General::SmoothingAmount.Value;
+		float flSmooth = Vars::Aimbot::General::AimFOV.Value;
 		if (flSmooth <= 0.f) flSmooth = 1.f;
 
 		vDelta /= flSmooth;
@@ -475,10 +475,14 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				}
 			}
 			else
-			{
-				// Normal firing for other projectile weapons
+		{
+			// Normal firing for other projectile weapons
 				G::CurrentUserCmd->buttons |= IN_ATTACK;
 			}
+			else if (Vars::Aimbot::Projectile::AutoScope.Value && pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW && !pLocal->IsScoped())
+		{
+			G::CurrentUserCmd->buttons |= IN_ATTACK;
+		}
 
 			F::Ticks.GetTickShift(pWeapon, I::GlobalVars->curtime, pLocal->GetTickBase());
 		}

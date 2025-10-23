@@ -388,7 +388,7 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 		while (vDelta.y > 180.0f) vDelta.y -= 360.0f;
 		while (vDelta.y < -180.0f) vDelta.y += 360.0f;
 
-		float flSmooth = Vars::Aimbot::General::SmoothingAmount.Value;
+		float flSmooth = Vars::Aimbot::General::AimFOV.Value;
 		if (flSmooth <= 0.f) flSmooth = 1.f;
 
 		vDelta /= flSmooth;
