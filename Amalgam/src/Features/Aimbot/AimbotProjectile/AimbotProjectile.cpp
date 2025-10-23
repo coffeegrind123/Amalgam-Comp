@@ -411,10 +411,12 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	switch (iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
-		if (G::Attacking != 1 && !bUnsure)
-			break;
-		pCmd->viewangles = vAngle;
-		I::EngineClient->SetViewAngles(vAngle);
+		// Plain mode: aim when we're attacking OR when autoshoot will attack OR timing is uncertain
+		if (G::Attacking == 1 || bUnsure || (pCmd->buttons & IN_ATTACK))
+		{
+			pCmd->viewangles = vAngle;
+			I::EngineClient->SetViewAngles(vAngle);
+		}
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
@@ -422,7 +424,7 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 		I::EngineClient->SetViewAngles(vAngle);
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Silent:
-		if (G::Attacking == 1 || bUnsure)
+		if (G::Attacking == 1 || bUnsure || (pCmd->buttons & IN_ATTACK))
 		{
 			SDK::FixMovement(pCmd, vAngle);
 			pCmd->viewangles = vAngle;
