@@ -302,9 +302,15 @@ bool CProjectileSimulation::Initialize(ProjectileSimulationInfo& tProjInfo, bool
 	if (!m_pEnv)
 		m_pEnv = I::Physics->CreateEnvironment();
 
+	if (!m_pEnv)
+		return false;
+
 	if (!m_pObj)
 	{
 		CPhysCollide* pCollide = I::PhysicsCollision->BBoxToCollide({ -2.f, -2.f, -2.f }, { 2.f, 2.f, 2.f });
+		if (!pCollide)
+			return false;
+
 		objectparams_t tParams = m_tPhysDefaultObjectParams;
 		tParams.damping = 0.f;
 		tParams.rotdamping = 0.f;
@@ -313,7 +319,8 @@ bool CProjectileSimulation::Initialize(ProjectileSimulationInfo& tProjInfo, bool
 		tParams.enableCollisions = false;
 
 		m_pObj = m_pEnv->CreatePolyObject(pCollide, 0, tProjInfo.m_vPos, tProjInfo.m_vAng, &tParams);
-		m_pObj->Wake();
+		if (m_pObj)
+			m_pObj->Wake();
 	}
 
 	if (!m_pEnv || !m_pObj)
@@ -501,11 +508,14 @@ bool CProjectileSimulation::Initialize(ProjectileSimulationInfo& tProjInfo, bool
 			}
 		}
 
-		if (bSimulate && !F::ProjSim.m_pObj->IsDragEnabled() && m_pObj->m_dragBasis.IsZero()) // don't include vphysics projectiles
+		if (bSimulate && m_pObj && !m_pObj->IsDragEnabled() && m_pObj->m_dragBasis.IsZero()) // don't include vphysics projectiles
 			vVelocity.z += 400.f * tProjInfo.m_flGravity * TICK_INTERVAL; // i don't know why this makes it more accurate but it does
 
-		m_pObj->SetPosition(tProjInfo.m_vPos, tProjInfo.m_vAng, true);
-		m_pObj->SetVelocity(&vVelocity, &vAngularVelocity);
+		if (m_pObj)
+		{
+			m_pObj->SetPosition(tProjInfo.m_vPos, tProjInfo.m_vAng, true);
+			m_pObj->SetVelocity(&vVelocity, &vAngularVelocity);
+		}
 	}
 
 	//set m_pEnv params
