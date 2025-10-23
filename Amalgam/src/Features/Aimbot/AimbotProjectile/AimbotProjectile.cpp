@@ -963,11 +963,8 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 					G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 					G::AimTarget.m_iDuration = 1;
 
-					// Apply aim
-					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
-
 					// Phase 4: Auto shoot with charge weapon support
-					if (Vars::Aimbot::Projectile::AutoShoot.Value && G::CurrentUserCmd)
+					if (Vars::Aimbot::General::AutoShoot.Value && G::CurrentUserCmd)
 					{
 						if (pWeaponInfo->m_bCharges)
 						{
@@ -976,6 +973,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 							{
 								// Just started charging, hold attack
 								G::CurrentUserCmd->buttons |= IN_ATTACK;
+								G::Attacking = 1;
 							}
 							else
 							{
@@ -993,13 +991,18 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 							else
 							{
 								G::CurrentUserCmd->buttons |= IN_ATTACK;
+								G::Attacking = 1;
 							}
 						}
 						else
 						{
 							G::CurrentUserCmd->buttons |= IN_ATTACK;
+							G::Attacking = 1;
 						}
 					}
+
+					// Apply aim AFTER setting attack button so G::Attacking check works
+					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
 					return;
 				}
 			}
