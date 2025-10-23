@@ -1,6 +1,11 @@
 #pragma once
 #include "../../../SDK/SDK.h"
 
+#ifdef NO_COLLISION
+#pragma push_macro("NO_COLLISION")
+#undef NO_COLLISION
+#endif
+
 enum class ProjectileType
 {
 	BASIC,
@@ -16,6 +21,10 @@ enum class CollisionType
 	HEAL_HURT,
 	NO_COLLISION
 };
+
+#ifdef NO_COLLISION
+#pragma pop_macro("NO_COLLISION")
+#endif
 
 struct ProjectileInfo
 {
