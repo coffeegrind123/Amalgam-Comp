@@ -552,3 +552,97 @@ bool CAimbotProjectile::ShouldRun(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUs
 
 	return true;
 }
+float CAimbotProjectile::GetSplashRadius(CTFWeaponBase* pWeapon, CTFPlayer* pPlayer)
+{
+	if (!pWeapon || !pPlayer)
+		return 0.f;
+
+	float flRadius = 0.f;
+	switch (pWeapon->GetWeaponID())
+	{
+	case TF_WEAPON_ROCKETLAUNCHER:
+	case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
+	case TF_WEAPON_PARTICLE_CANNON:
+	case TF_WEAPON_PIPEBOMBLAUNCHER:
+		flRadius = 146.f;
+		break;
+	case TF_WEAPON_FLAREGUN:
+	case TF_WEAPON_FLAREGUN_REVENGE:
+		if (pWeapon->As<CTFFlareGun>()->GetFlareGunType() == FLAREGUN_SCORCHSHOT)
+			flRadius = 110.f;
+		break;
+	}
+	
+	if (!flRadius)
+		return 0.f;
+
+	flRadius = SDK::AttribHookValue(flRadius, "mult_explosion_radius", pWeapon);
+	switch (pWeapon->GetWeaponID())
+	{
+	case TF_WEAPON_ROCKETLAUNCHER:
+	case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
+	case TF_WEAPON_PARTICLE_CANNON:
+		if (pPlayer->InCond(TF_COND_BLASTJUMPING) && SDK::AttribHookValue(1.f, "rocketjump_attackrate_bonus", pWeapon) != 1.f)
+			flRadius *= 0.8f;
+		break;
+	}
+	
+	return flRadius * Vars::Aimbot::Projectile::SplashRadius.Value / 100;
+}
+
+float CAimbotProjectile::GetSplashRadius(CBaseEntity* pProjectile, CTFWeaponBase* pWeapon, CTFPlayer* pPlayer, float flScale, CTFWeaponBase* pAirblast)
+{
+	if (!pProjectile)
+		return 0.f;
+
+	float flRadius = 0.f;
+	if (pAirblast)
+	{
+		pWeapon = pAirblast;
+		pPlayer = pWeapon->m_hOwner()->As<CTFPlayer>();
+	}
+	
+	switch (pProjectile->GetClassID())
+	{
+	case ETFClassID::CTFWeaponBaseGrenadeProj:
+	case ETFClassID::CTFWeaponBaseMerasmusGrenade:
+	case ETFClassID::CTFProjectile_Rocket:
+	case ETFClassID::CTFProjectile_SentryRocket:
+	case ETFClassID::CTFProjectile_EnergyBall:
+		flRadius = 146.f;
+		break;
+	case ETFClassID::CTFGrenadePipebombProjectile:
+		if (pProjectile->As<CTFGrenadePipebombProjectile>()->HasStickyEffects())
+			flRadius = 146.f;
+		break;
+	case ETFClassID::CTFProjectile_Flare:
+		if (pWeapon && pWeapon->As<CTFFlareGun>()->GetFlareGunType() == FLAREGUN_SCORCHSHOT)
+			flRadius = 110.f;
+		break;
+	}
+	
+	if (pPlayer && pWeapon)
+	{
+		flRadius = SDK::AttribHookValue(flRadius, "mult_explosion_radius", pWeapon);
+		switch (pProjectile->GetClassID())
+		{
+		case ETFClassID::CTFProjectile_Rocket:
+		case ETFClassID::CTFProjectile_SentryRocket:
+			if (pPlayer->InCond(TF_COND_BLASTJUMPING) && SDK::AttribHookValue(1.f, "rocketjump_attackrate_bonus", pWeapon) != 1.f)
+				flRadius *= 0.8f;
+			break;
+		}
+	}
+	
+	return flRadius * flScale;
+}
+
+bool CAimbotProjectile::AutoAirblast(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, CBaseEntity* pProjectile)
+{
+	if (!pLocal || !pWeapon || !pCmd || !pProjectile)
+		return false;
+
+	// Simplified autoairblast - just returns false for now
+	// Full implementation would require complete projectile prediction system
+	return false;
+}
