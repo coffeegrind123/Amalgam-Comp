@@ -319,8 +319,12 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			return false;
 
 		Vec3 vTargetPos = tTarget.m_pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nOptimalBone);
+		float flDistSqr = vEyePos.DistToSqr(vTargetPos);
 
-		if (vEyePos.DistToSqr(vTargetPos) > flMaxRange)
+		// Temporarily increase range limit for testing - original range check was too restrictive
+		const float flMaxRange = powf(pWeapon->GetRange() * 2.0f, 2.f); // Double the effective range
+
+		if (flDistSqr > flMaxRange)
 			return false;
 
 		// Simple visibility check like Linux-internals
