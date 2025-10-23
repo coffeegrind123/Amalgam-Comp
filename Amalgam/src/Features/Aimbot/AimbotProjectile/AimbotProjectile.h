@@ -26,7 +26,7 @@ struct ProjTargetData_t
 	float m_flTimeToHit = 0.f;
 	bool m_bIsUbered = false;
 	std::vector<Vec3> m_vSimPath = {};
-}
+};
 
 struct Solution_t
 {
