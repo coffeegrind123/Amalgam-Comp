@@ -395,12 +395,27 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 {
 	bool bUnsure = F::Ticks.IsTimingUnsure() || F::Ticks.GetTicks(H::Entities.GetWeapon());
 
+	// For smooth and assistive modes, calculate smoothed angle
+	if (iMethod == Vars::Aimbot::General::AimTypeEnum::Smooth ||
+		iMethod == Vars::Aimbot::General::AimTypeEnum::Assistive)
+	{
+		Vec3 vSmoothedAngle;
+		if (Aim(I::EngineClient->GetViewAngles(), vAngle, vSmoothedAngle, iMethod))
+		{
+			pCmd->viewangles = vSmoothedAngle;
+			I::EngineClient->SetViewAngles(vSmoothedAngle);
+			return;
+		}
+	}
+
 	switch (iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
 		if (G::Attacking != 1 && !bUnsure)
 			break;
-		[[fallthrough]];
+		pCmd->viewangles = vAngle;
+		I::EngineClient->SetViewAngles(vAngle);
+		break;
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 		pCmd->viewangles = vAngle;
@@ -991,12 +1006,14 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 			{
 				// Handle bow charging
 				G::CurrentUserCmd->buttons |= IN_ATTACK;
+				G::Attacking = 1;
 			}
 		}
 		else
 		{
 			// Normal firing for other projectile weapons
 			G::CurrentUserCmd->buttons |= IN_ATTACK;
+			G::Attacking = 1;
 		}
 	}
 
