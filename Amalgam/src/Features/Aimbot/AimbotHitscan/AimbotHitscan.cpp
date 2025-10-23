@@ -98,27 +98,12 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 				}
 			}
 
-			// Use Linux-internals inspired simplified targeting
-			int nOptimalBone = GetOptimalBone(pLocal, pEntity->As<CTFPlayer>(), pWeapon);
-
-			// Use SetupBones and GetHitboxCenter for reliable bone position
-			matrix3x4 aBones[MAXSTUDIOBONES];
-			if (!pEntity->As<CTFPlayer>()->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+			float flFOVTo; Vec3 vPos, vAngleTo;
+			if (!F::AimbotGlobal.PlayerBoneInFOV(pEntity->As<CTFPlayer>(), vLocalPos, vLocalAngles, flFOVTo, vPos, vAngleTo, Vars::Aimbot::Hitscan::Hitboxes.Value))
 				continue;
 
-			Vec3 vTargetPos = pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nOptimalBone);
-
-			float flFOVTo = CalculateFOVToTarget(vLocalAngles, vLocalPos, vTargetPos);
-			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
-				continue;
-
-			// Simple reliable visibility check
-			if (!IsPlayerVisibleReliable(pLocal, pEntity->As<CTFPlayer>(), nOptimalBone))
-				continue;
-
-			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vTargetPos);
-			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? CSIMDMath::FastDistance(vLocalPos, vTargetPos) : 0.f;
-			vTargets.emplace_back(pEntity, TargetEnum::Player, vTargetPos, vAngleTo, flFOVTo, flDistTo, bTeammate ? 0 : F::AimbotGlobal.GetPriority(pEntity->entindex()));
+			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+			vTargets.emplace_back(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, bTeammate ? 0 : F::AimbotGlobal.GetPriority(pEntity->entindex()));
 		}
 
 		if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
@@ -376,90 +361,70 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 
 bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 {
+	auto pLocal = H::Entities.GetLocal();
+	Vec3 vPunch = pLocal ? pLocal->m_vecPunchAngle() : Vec3();
+
+	if (Vec3* pDoubletapAngle = F::Ticks.GetShootAngle())
+	{
+		vOut = *pDoubletapAngle - vPunch;
+		return true;
+	}
+
+	bool bReturn = false;
+	vToAngle -= vPunch;
 	switch (iMethod)
 	{
-	case Vars::Aimbot::General::AimTypeEnum::Off:
-		return false;
-
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
-		vOut = vToAngle;
-		return true;
-
 	case Vars::Aimbot::General::AimTypeEnum::Silent:
-		// Silent aim is handled specially - just return the angle
-		vOut = vToAngle;
-		return true;
-
-	case Vars::Aimbot::General::AimTypeEnum::Smooth:
-	{
-		// Smooth aim - use a fixed smooth factor (not FOV)
-		Vec3 vDelta = vToAngle - vCurAngle;
-		// Normalize angles
-		while (vDelta.x > 180.0f) vDelta.x -= 360.0f;
-		while (vDelta.x < -180.0f) vDelta.x += 360.0f;
-		while (vDelta.y > 180.0f) vDelta.y -= 360.0f;
-		while (vDelta.y < -180.0f) vDelta.y += 360.0f;
-
-		// Use a smooth factor of 3.0 for gradual transition
-		float flSmooth = 3.0f;
-		vDelta /= flSmooth;
-		vOut = vCurAngle + vDelta;
-		return true;
-	}
-
 	case Vars::Aimbot::General::AimTypeEnum::Locking:
-		// Locking mode - snap and hold
 		vOut = vToAngle;
-		return true;
-
+		break;
+	case Vars::Aimbot::General::AimTypeEnum::Smooth:
+		vOut = vCurAngle.LerpAngle(vToAngle, Vars::Aimbot::General::AssistStrength.Value / 100.f);
+		bReturn = true;
+		break;
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
-	{
-		Vec3 vDelta = vToAngle - vCurAngle;
-		// Normalize angles
-		while (vDelta.x > 180.0f) vDelta.x -= 360.0f;
-		while (vDelta.x < -180.0f) vDelta.x += 360.0f;
-		while (vDelta.y > 180.0f) vDelta.y -= 360.0f;
-		while (vDelta.y < -180.0f) vDelta.y += 360.0f;
-
-		// Use AssistStrength value (default 25%)
-		float flAssist = Vars::Aimbot::General::AssistStrength.Value;
-		if (flAssist <= 0.f) flAssist = 1.f;
-		flAssist = 100.f / flAssist; // Convert percentage to divisor
-
-		vDelta /= flAssist;
-		vOut = vCurAngle + vDelta;
-		return true;
-	}
+		Vec3 vMouseDelta = G::CurrentUserCmd->viewangles.DeltaAngle(G::LastUserCmd->viewangles);
+		Vec3 vTargetDelta = vToAngle.DeltaAngle(G::LastUserCmd->viewangles);
+		float flMouseDelta = vMouseDelta.Length2D(), flTargetDelta = vTargetDelta.Length2D();
+		vTargetDelta = vTargetDelta.Normalized() * std::min(flMouseDelta, flTargetDelta);
+		vOut = vCurAngle - vMouseDelta + vMouseDelta.LerpAngle(vTargetDelta, Vars::Aimbot::General::AssistStrength.Value / 100.f);
+		bReturn = true;
+		break;
 	}
 
-	return false;
+	Math::ClampAngles(vOut);
+	return bReturn;
 }
 
 void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 {
-	Vec3 vOldAngle = pCmd->viewangles;
-	Vec3 vAimAngle;
+	bool bUnsure = F::Ticks.IsTimingUnsure() || F::Ticks.GetTicks(H::Entities.GetWeapon());
 
-	if (!Aim(vOldAngle, vAngle, vAimAngle, iMethod))
-		return;
-
-	// Handle different aim types
-	if (iMethod == Vars::Aimbot::General::AimTypeEnum::Silent)
+	switch (iMethod)
 	{
-		// Silent aim: set angles in G::CurrentUserCmd but not in viewangles
-		if (G::CurrentUserCmd)
-			G::CurrentUserCmd->viewangles = vAimAngle;
+	case Vars::Aimbot::General::AimTypeEnum::Plain:
+		if (G::Attacking != 1 && !bUnsure)
+			break;
+		[[fallthrough]];
+	case Vars::Aimbot::General::AimTypeEnum::Smooth:
+	case Vars::Aimbot::General::AimTypeEnum::Assistive:
+		pCmd->viewangles = vAngle;
+		I::EngineClient->SetViewAngles(vAngle);
+		break;
+	case Vars::Aimbot::General::AimTypeEnum::Silent:
+		if (G::Attacking == 1 || bUnsure)
+		{
+			SDK::FixMovement(pCmd, vAngle);
+			pCmd->viewangles = vAngle;
+			G::SilentAngles = true;
+		}
+		break;
+	case Vars::Aimbot::General::AimTypeEnum::Locking:
+		SDK::FixMovement(pCmd, vAngle);
+		pCmd->viewangles = vAngle;
+		G::SilentAngles = true;
 	}
-	else
-	{
-		// All other modes: set viewangles normally
-		pCmd->viewangles = vAimAngle;
-		SDK::FixMovement(pCmd, vOldAngle, vAimAngle);
-	}
-
-	G::AimPoint.m_vOrigin = vAimAngle;
-	G::AimPoint.m_iTickCount = I::GlobalVars->tickcount;
-	G::AimPoint.m_iDuration = 1;
 }
 
 bool CAimbotHitscan::ShouldRun(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
