@@ -9,7 +9,7 @@ bool CAutoRocketJump::SetAngles(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 	if (!Vars::Misc::Movement::AutoRocketJump.Value)
 		return true;
 
-	ProjectileInfo tProjInfo = {};
+	ProjectileSimulationInfo tProjInfo = {};
 	if (!F::ProjSim.GetInfo(pLocal, pWeapon, {}, tProjInfo, ProjSimEnum::NoRandomAngles)
 		|| !F::ProjSim.Initialize(tProjInfo, false))
 		return false;
@@ -144,7 +144,7 @@ void CAutoRocketJump::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* p
 		if (Vars::Misc::Movement::AutoRocketJump.Value || Vars::Misc::Movement::AutoCTap.Value)
 		{
 			MoveStorage tStorage;
-			ProjectileInfo tProjInfo = {};
+			ProjectileSimulationInfo tProjInfo = {};
 
 			bool bProjSimSetup = F::ProjSim.GetInfo(pLocal, pWeapon, m_vAngles, tProjInfo, ProjSimEnum::Trace | ProjSimEnum::InitCheck | ProjSimEnum::NoRandomAngles) && F::ProjSim.Initialize(tProjInfo);
 			bool bMoveSimSetup = F::MoveSim.Initialize(pLocal, tStorage, false); // do move sim after to not mess with proj sim
