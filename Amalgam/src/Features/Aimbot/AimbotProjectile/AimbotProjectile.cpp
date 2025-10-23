@@ -904,11 +904,20 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 			if (!vSmartTargets.empty())
 			{
 				ProjTargetData_t& target = vSmartTargets.front();
+
+				// Validate target entity before using
+				if (!target.m_pEntity || target.m_pEntity->IsDormant())
+					return;
+
 				m_bRunning = true;
 				G::AimTarget.m_iEntIndex = target.m_pEntity->entindex();
 
 				Vec3 vEyePos = pLocal->GetShootPos();
 				Vec3 vTargetPos = target.m_vFinalPos.IsZero() ? target.m_vOrigin : target.m_vFinalPos;
+
+				// Validate positions aren't invalid
+				if (!vEyePos.IsValid() || !vTargetPos.IsValid())
+					return;
 
 				// Phase 4: Use charge time for velocity/gravity calculation
 				float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
@@ -937,10 +946,14 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 								m_vProjectilePath.clear();
 								m_vProjectilePath.push_back(projInfo.m_vPos);
 
-								// Simulate up to target time or max 100 ticks
-								int maxTicks = std::min(100, static_cast<int>(flTime / I::GlobalVars->interval_per_tick) + 10);
+								// Simulate up to target time or max 100 ticks (clamped for safety)
+								int maxTicks = std::clamp(static_cast<int>(flTime / I::GlobalVars->interval_per_tick) + 10, 1, 100);
 								for (int i = 0; i < maxTicks; i++)
 								{
+									// Safety: validate position is still valid
+									if (!projInfo.m_vPos.IsValid())
+										break;
+
 									F::ProjSim.RunTick(projInfo, true);
 									if (!projInfo.m_vPath.empty())
 										m_vProjectilePath = projInfo.m_vPath;
