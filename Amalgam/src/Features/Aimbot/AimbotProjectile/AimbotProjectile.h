@@ -114,6 +114,10 @@ private:
 	ProjTargetData_t m_CurrentTarget = {};
 	bool m_bHasVisuals = false;
 
+	// Smooth aim tracking
+	int m_iLastTargetIndex = 0;
+	Vec3 m_vLastAimAngle = {};
+
 	void DrawVisuals();
 
 public:

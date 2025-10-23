@@ -396,16 +396,48 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	bool bUnsure = F::Ticks.IsTimingUnsure() || F::Ticks.GetTicks(H::Entities.GetWeapon());
 
 	// For smooth and assistive modes, calculate smoothed angle
-	if (iMethod == Vars::Aimbot::General::AimTypeEnum::Smooth ||
-		iMethod == Vars::Aimbot::General::AimTypeEnum::Assistive)
+	if (iMethod == Vars::Aimbot::General::AimTypeEnum::Smooth)
 	{
+		Vec3 vCurrentAngle = I::EngineClient->GetViewAngles();
+
+		// Detect target change - if target changed, smooth from last aim angle to new target
+		int iCurrentTarget = G::AimTarget.m_iEntIndex;
+		bool bTargetChanged = (iCurrentTarget != m_iLastTargetIndex && m_iLastTargetIndex != 0);
+
+		// Use last aim angle as starting point if target just changed, otherwise use current view
+		Vec3 vFromAngle = bTargetChanged ? m_vLastAimAngle : vCurrentAngle;
+
 		Vec3 vSmoothedAngle;
-		if (Aim(I::EngineClient->GetViewAngles(), vAngle, vSmoothedAngle, iMethod))
+		if (Aim(vFromAngle, vAngle, vSmoothedAngle, iMethod))
 		{
 			pCmd->viewangles = vSmoothedAngle;
 			I::EngineClient->SetViewAngles(vSmoothedAngle);
+
+			// Track this target and angle for next frame
+			m_iLastTargetIndex = iCurrentTarget;
+			m_vLastAimAngle = vSmoothedAngle;
 			return;
 		}
+	}
+	else if (iMethod == Vars::Aimbot::General::AimTypeEnum::Assistive)
+	{
+		// Assistive only works when mouse is actually moving
+		Vec3 vMouseDelta = pCmd->viewangles.DeltaAngle(G::LastUserCmd->viewangles);
+		float flMouseMovement = vMouseDelta.Length2D();
+
+		// Only assist if there's actual mouse movement (threshold to ignore tiny jitter)
+		if (flMouseMovement > 0.1f)
+		{
+			Vec3 vSmoothedAngle;
+			if (Aim(I::EngineClient->GetViewAngles(), vAngle, vSmoothedAngle, iMethod))
+			{
+				pCmd->viewangles = vSmoothedAngle;
+				I::EngineClient->SetViewAngles(vSmoothedAngle);
+				return;
+			}
+		}
+		// If no mouse movement, don't aim at all (no tracking)
+		return;
 	}
 
 	switch (iMethod)
