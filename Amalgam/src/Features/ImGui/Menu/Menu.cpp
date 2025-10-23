@@ -244,6 +244,8 @@ void CMenu::MenuAimbot(int iTab)
 				}
 				if (Section("Projectile"))
 				{
+					FToggle(Vars::Aimbot::Projectile::SmartTargeting, FToggleEnum::Left);
+					FToggle(Vars::Aimbot::Projectile::PerformanceMode, FToggleEnum::Right);
 					FDropdown(Vars::Aimbot::Projectile::StrafePrediction, FDropdownEnum::Left);
 					FDropdown(Vars::Aimbot::Projectile::SplashPrediction, FDropdownEnum::Right);
 					FDropdown(Vars::Aimbot::Projectile::AutoDetonate, FDropdownEnum::Left);
@@ -263,6 +265,25 @@ void CMenu::MenuAimbot(int iTab)
 						FSlider(Vars::Aimbot::Projectile::AutoRelease);
 					}
 					PopTransparent();
+					PushTransparent(!Vars::Aimbot::Projectile::SmartTargeting.Value);
+					{
+						FSlider(Vars::Aimbot::Projectile::MaxTargets, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::MinScore, FSliderEnum::Right);
+						FDropdown(Vars::Aimbot::Projectile::TargetWeights, FDropdownEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::HealthWeight, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::DistanceWeight, FSliderEnum::Right);
+						FSlider(Vars::Aimbot::Projectile::FOVWeight, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::VisibilityWeight, FSliderEnum::Right);
+						FSlider(Vars::Aimbot::Projectile::SpeedWeight, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::MedicPriority, FSliderEnum::Right);
+						FSlider(Vars::Aimbot::Projectile::SniperPriority, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::UberPenalty, FSliderEnum::Right);
+						FDropdown(Vars::Aimbot::Projectile::IgnoreConditions, FDropdownEnum::Left);
+					}
+					PopTransparent();
+					FDropdown(Vars::Aimbot::Projectile::Visuals, FDropdownEnum::Left);
+					FSlider(Vars::Aimbot::Projectile::VisualsTime, FSliderEnum::Right);
+					FToggle(Vars::Aimbot::Projectile::ValidateTrajectory);
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
