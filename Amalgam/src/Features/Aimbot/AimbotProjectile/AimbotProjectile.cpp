@@ -421,18 +421,6 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 	if (!ShouldRun(pLocal, pWeapon, pCmd))
 		return;
 
-	// Check if this is actually a projectile weapon
-	if (pWeapon->m_flProjectileSpeed <= 0.0f &&
-		pWeapon->GetWeaponID() != TF_WEAPON_PIPEBOMBLAUNCHER &&
-		pWeapon->GetWeaponID() != TF_WEAPON_GRENADELAUNCHER &&
-		pWeapon->GetWeaponID() != TF_WEAPON_FLAREGUN &&
-		pWeapon->GetWeaponID() != TF_WEAPON_COMPOUND_BOW &&
-		pWeapon->GetWeaponID() != TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT &&
-		pWeapon->GetWeaponID() != TF_WEAPON_ROCKETLAUNCHER &&
-		pWeapon->GetWeaponID() != TF_WEAPON_CROSSBOW &&
-		pWeapon->GetWeaponID() != TF_WEAPON_SYRINGEGUN_MEDIC)
-		return;
-
 	m_bRunning = false;
 	G::AimTarget.m_iEntIndex = 0;
 	G::AimTarget = {};
@@ -527,7 +515,7 @@ bool CAimbotProjectile::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CU
 
 	case TF_WEAPON_ROCKETLAUNCHER:
 		// Check for rocket jumping prevention
-		if (Vars::Aimbot::Projectile::AvoidRockets.Value)
+		if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AvoidRockets)
 		{
 			float flDistanceToTarget = pLocal->GetShootPos().DistTo(tTarget.m_vPos);
 			float flSelfDamageRadius = 120.0f; // Rocket splash radius
