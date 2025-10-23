@@ -184,7 +184,7 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 		case TF_WEAPON_GRENADELAUNCHER:
 			bShouldAim = true;
 			break;
-		case TF_WEAPON_DIRECTHIT:
+		case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
 		case TF_WEAPON_ROCKETLAUNCHER:
 			bShouldAim = true;
 			break;
@@ -367,7 +367,7 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
 	{
-		Vec3 vDelta = Math::AngleDiff(vToAngle, vCurAngle);
+		Vec3 vDelta = vToAngle.DeltaAngle(vCurAngle);
 		float flSmooth = Vars::Aimbot::General::AimFOV.Value;
 		if (flSmooth <= 0.f) flSmooth = 1.f;
 
@@ -378,7 +378,7 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 	{
-		Vec3 vDelta = Math::AngleDiff(vToAngle, vCurAngle);
+		Vec3 vDelta = vToAngle.DeltaAngle(vCurAngle);
 		float flAssist = Vars::Aimbot::General::AssistStrength.Value;
 		if (flAssist <= 0.f) flAssist = 1.f;
 
@@ -410,7 +410,7 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 		pCmd->viewangles = vAimAngle;
 	}
 
-	G::AimPoint.m_vPos = vAimAngle;
+	G::AimPoint.m_vOrigin = vAimAngle;
 	G::AimPoint.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimPoint.m_iDuration = Vars::Aimbot::General::AimFOV.Value / 10.f;
 }
@@ -434,7 +434,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 		return;
 
 	m_bRunning = false;
-	G::CurrentTargetIdx = 0;
+	G::AimTarget.m_iEntIndex = 0;
 	G::AimTarget = {};
 
 	auto vTargets = SortTargets(pLocal, pWeapon);
@@ -443,12 +443,12 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 
 	Target_t& tTarget = vTargets.front();
 	m_bRunning = true;
-	G::CurrentTargetIdx = tTarget.m_pEntity->entindex();
+	G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
 
 	if (!CanHit(tTarget, pLocal, pWeapon))
 		return;
 
-	G::AimTarget.m_vPos = tTarget.m_vPos;
+	G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
 	G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimTarget.m_iDuration = 1;
 
@@ -524,7 +524,7 @@ bool CAimbotProjectile::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CU
 		}
 		break;
 
-	case TF_WEAPON_DIRECTHIT:
+	case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
 		// Direct hit benefits from precise timing
 		if (tTarget.m_pEntity->IsPlayer())
 		{

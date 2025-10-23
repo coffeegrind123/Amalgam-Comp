@@ -494,7 +494,7 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		return;
 
 	m_bRunning = false;
-	G::CurrentTargetIdx = 0;
+	G::AimTarget.m_iEntIndex = 0;
 	G::AimTarget = {};
 
 	auto vTargets = SortTargets(pLocal, pWeapon);
@@ -503,12 +503,12 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 
 	Target_t& tTarget = vTargets.front();
 	m_bRunning = true;
-	G::CurrentTargetIdx = tTarget.m_pEntity->entindex();
+	G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
 
 	if (!CanHit(tTarget, pLocal, pWeapon))
 		return;
 
-	G::AimTarget.m_vPos = tTarget.m_vPos;
+	G::AimPoint.m_vOrigin = tTarget.m_vPos;
 	G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimTarget.m_iDuration = 1;
 
@@ -517,7 +517,7 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		if (G::CurrentUserCmd)
 		{
 			bool bShouldAttack = true;
-			if (Vars::Aimbot::General::AutoScope.Value && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped())
+			if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::AutoScope && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped())
 			{
 				G::CurrentUserCmd->buttons |= IN_ATTACK2;
 				bShouldAttack = false;
@@ -526,7 +526,7 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 			if (bShouldAttack)
 			{
 				G::CurrentUserCmd->buttons |= IN_ATTACK;
-				F::Ticks.GetTickShift(pWeapon, tTarget.m_bBacktrack ? tTarget.m_pRecord->m_flSimulationTime : I::GlobalVars->curtime, pLocal->GetTickBase());
+				pLocal->GetTickBase();
 			}
 		}
 
