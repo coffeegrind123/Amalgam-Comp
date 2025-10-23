@@ -526,7 +526,6 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 			if (bShouldAttack)
 			{
 				G::CurrentUserCmd->buttons |= IN_ATTACK;
-				pLocal->m_nTickBase;
 			}
 		}
 

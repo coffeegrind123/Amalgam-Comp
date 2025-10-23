@@ -422,7 +422,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 		return;
 
 	// Check if this is actually a projectile weapon
-	if (pWeapon->GetProjectileSpeed() <= 0.0f &&
+	if (pWeapon->m_flProjectileSpeed <= 0.0f &&
 		pWeapon->GetWeaponID() != TF_WEAPON_PIPEBOMBLAUNCHER &&
 		pWeapon->GetWeaponID() != TF_WEAPON_GRENADELAUNCHER &&
 		pWeapon->GetWeaponID() != TF_WEAPON_FLAREGUN &&
@@ -460,31 +460,22 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 			// Handle weapon-specific firing logic
 			if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
 			{
-				// Handle bow charging
-				if (pWeapon->GetChargeBeginTime() == 0.0f)
+				// Check if we need to scope
+				if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AutoScope && !pLocal->IsScoped())
 				{
-					G::CurrentUserCmd->buttons |= IN_ATTACK;
+					G::CurrentUserCmd->buttons |= IN_ATTACK2;
 				}
-				else if (pWeapon->GetChargeBeginTime() > 0.0f)
+				else
 				{
-					float flChargeTime = I::GlobalVars->curtime - pWeapon->GetChargeBeginTime();
-					if (flChargeTime >= 1.0f)
-					{
-						G::CurrentUserCmd->buttons &= ~IN_ATTACK;
-					}
+					// Handle bow charging
+					G::CurrentUserCmd->buttons |= IN_ATTACK;
 				}
 			}
 			else
-		{
-			// Normal firing for other projectile weapons
+			{
+				// Normal firing for other projectile weapons
 				G::CurrentUserCmd->buttons |= IN_ATTACK;
 			}
-			else if (Vars::Aimbot::Projectile::AutoScope.Value && pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW && !pLocal->IsScoped())
-		{
-			G::CurrentUserCmd->buttons |= IN_ATTACK;
-		}
-
-			I::GlobalVars->curtime;
 		}
 
 		// Apply aim
@@ -515,13 +506,7 @@ bool CAimbotProjectile::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CU
 	switch (pWeapon->GetWeaponID())
 	{
 	case TF_WEAPON_COMPOUND_BOW:
-		// Only fire when bow is sufficiently charged
-		if (pWeapon->GetChargeBeginTime() > 0.0f)
-		{
-			float flChargeTime = I::GlobalVars->curtime - pWeapon->GetChargeBeginTime();
-			if (flChargeTime < 0.8f) // Don't fire undercharged arrows
-				return false;
-		}
+		// Compound bow - simplified check
 		break;
 
 	case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
