@@ -1611,4 +1611,4 @@ namespace Vars
 		CVar(ShowTimestamps, "Show timestamps", true);
 		CVar(SaveCredentials, "Save login details", false);
 	NAMESPACE_END(Chat);
-}
+}// Testing build to verify Vars definitions
