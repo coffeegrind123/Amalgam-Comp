@@ -99,6 +99,10 @@ private:
 	std::vector<ProjTargetData_t> GetTargetsSmart(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, bool bIncludeTeam);
 	bool ShouldIgnoreTarget(CBaseEntity* pEntity, CTFPlayer* pLocal);
 
+	// Phase 3: Multipoint and simulation
+	bool RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, const Vec3& vEyePos, const Vec3& vPredictedPos, Vec3& vOut);
+	bool SimulatePlayerMovement(ProjTargetData_t& target, CTFPlayer* pLocal, float flTravelTime);
+
 	bool m_bLastTickHeld = false;
 
 	float m_flTimeTo = std::numeric_limits<float>::max();

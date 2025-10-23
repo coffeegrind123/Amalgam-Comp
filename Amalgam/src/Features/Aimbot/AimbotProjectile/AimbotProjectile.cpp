@@ -598,12 +598,29 @@ std::vector<ProjTargetData_t> CAimbotProjectile::GetTargetsSmart(CTFPlayer* pLoc
 		float flProjSpeed = vVelocity.Length2D();
 		float flTravelTime = flDist / (flProjSpeed > 0.f ? flProjSpeed : 1.f);
 
-		Vec3 vPredictedPos = candidate.m_vOrigin + candidate.m_vVelocity * flTravelTime;
-		candidate.m_vFinalPos = vPredictedPos;
+		// Phase 3: Use player movement simulation
+		if (!SimulatePlayerMovement(candidate, pLocal, flTravelTime))
+		{
+			// Fallback to simple linear prediction
+			candidate.m_vFinalPos = candidate.m_vOrigin + candidate.m_vVelocity * flTravelTime;
+		}
+
 		candidate.m_flTimeToHit = flTravelTime;
 
 		if (flTravelTime > Vars::Aimbot::Projectile::MaxSimulationTime.Value)
 			continue;
+
+		// Phase 3: Run multipoint for visibility check and optimal aim position
+		Vec3 vMultipointPos;
+		if (RunMultipoint(candidate.m_pEntity, pWeapon, pWeaponInfo, vEyePos, candidate.m_vFinalPos, vMultipointPos))
+		{
+			candidate.m_vFinalPos = vMultipointPos;
+		}
+		else
+		{
+			// Not visible, skip this target
+			continue;
+		}
 
 		candidate.m_flScore = CalculateScore(candidate, vEyePos, vViewAngles, bIncludeTeam, pLocal);
 
@@ -622,6 +639,124 @@ std::vector<ProjTargetData_t> CAimbotProjectile::GetTargetsSmart(CTFPlayer* pLoc
 		vTargets.resize(maxTargets);
 
 	return vTargets;
+}
+
+// ===== Phase 3: Multipoint & Simulation =====
+
+bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, const Vec3& vEyePos, const Vec3& vPredictedPos, Vec3& vOut)
+{
+	if (!pTarget || !pWeapon || !pWeaponInfo)
+		return false;
+
+	// Determine which z-offsets to use based on weapon type
+	static const float normalOffsets[] = { 0.5f, 0.7f, 0.9f, 0.4f, 0.2f };
+	static const float huntsmanOffsets[] = { 0.9f, 0.7f, 0.5f, 0.4f, 0.2f };
+	static const float splashOffsets[] = { 0.2f, 0.4f, 0.5f, 0.7f, 0.9f };
+
+	const float* offsets = normalOffsets;
+	int offsetCount = 5;
+
+	int weaponID = pWeapon->GetWeaponID();
+	bool bHuntsman = (weaponID == TF_WEAPON_COMPOUND_BOW);
+	bool bSplash = (weaponID == TF_WEAPON_ROCKETLAUNCHER ||
+					weaponID == TF_WEAPON_PIPEBOMBLAUNCHER ||
+					weaponID == TF_WEAPON_GRENADELAUNCHER);
+
+	if (bHuntsman)
+		offsets = huntsmanOffsets;
+	else if (bSplash && pWeaponInfo->m_flDamageRadius > 0.f)
+		offsets = splashOffsets;
+
+	Vec3 vTargetMaxs = pTarget->m_vecMaxs();
+
+	// Try each multipoint offset
+	for (int i = 0; i < offsetCount; i++)
+	{
+		float zOffset = vTargetMaxs.z * offsets[i];
+		Vec3 vTestPos = vPredictedPos;
+		vTestPos.z += zOffset;
+
+		// Trace from eye to multipoint
+		CTraceFilterHitscan filter;
+		filter.pSkip = H::Entities.GetLocal();
+		trace_t trace;
+		CTraceFilterWorldAndPropsOnly filterWorld;
+		Utils::Trace(vEyePos, vTestPos, MASK_SHOT, &filterWorld, &trace);
+
+		if (trace.fraction >= 0.99f)
+		{
+			vOut = vTestPos;
+			return true;
+		}
+	}
+
+	// If no multipoint visible, use center
+	vOut = vPredictedPos;
+	vOut.z += vTargetMaxs.z * 0.5f;
+	return false;
+}
+
+bool CAimbotProjectile::SimulatePlayerMovement(ProjTargetData_t& target, CTFPlayer* pLocal, float flTravelTime)
+{
+	if (!target.m_pEntity || !pLocal)
+		return false;
+
+	auto pPlayer = target.m_pEntity->As<CTFPlayer>();
+	if (!pPlayer)
+		return false;
+
+	// Use existing MovementSimulation if velocity is significant
+	if (target.m_vVelocity.Length() < 10.f)
+	{
+		target.m_vFinalPos = target.m_vOrigin;
+		target.m_vSimPath.push_back(target.m_vOrigin);
+		return true;
+	}
+
+	// Use Performance Mode for simpler prediction
+	if (Vars::Aimbot::Projectile::PerformanceMode.Value)
+	{
+		// Simple linear prediction
+		target.m_vFinalPos = target.m_vOrigin + target.m_vVelocity * flTravelTime;
+		target.m_vSimPath.push_back(target.m_vOrigin);
+		target.m_vSimPath.push_back(target.m_vFinalPos);
+		return true;
+	}
+
+	// Advanced prediction with MovementSimulation
+	MoveStorage moveData;
+	if (!F::MoveSim.Initialize(pPlayer, moveData, false, true))
+	{
+		// Fallback to linear if simulation fails
+		target.m_vFinalPos = target.m_vOrigin + target.m_vVelocity * flTravelTime;
+		return true;
+	}
+
+	// Simulate ticks
+	int simTicks = static_cast<int>((flTravelTime / I::GlobalVars->interval_per_tick) + 0.5f);
+	simTicks = std::min(simTicks, 64); // Cap at 64 ticks
+
+	for (int i = 0; i < simTicks; i++)
+	{
+		F::MoveSim.RunTick(moveData, true);
+
+		if (moveData.m_bFailed)
+			break;
+	}
+
+	if (!moveData.m_bFailed && !moveData.m_vPath.empty())
+	{
+		target.m_vFinalPos = moveData.m_vPath.back();
+		target.m_vSimPath = moveData.m_vPath;
+	}
+	else
+	{
+		// Fallback to linear if simulation failed
+		target.m_vFinalPos = target.m_vOrigin + target.m_vVelocity * flTravelTime;
+	}
+
+	F::MoveSim.Restore(moveData);
+	return true;
 }
 
 void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
