@@ -770,8 +770,64 @@ bool CAimbotProjectile::SimulatePlayerMovement(ProjTargetData_t& target, CTFPlay
 	return true;
 }
 
+// ===== Phase 5: Visuals =====
+
+void CAimbotProjectile::DrawVisuals()
+{
+	if (!m_bHasVisuals)
+		return;
+
+	int visualFlags = Vars::Aimbot::Projectile::Visuals.Value;
+	float flTime = I::GlobalVars->curtime + Vars::Aimbot::Projectile::VisualsTime.Value;
+
+	// Draw player movement path
+	if ((visualFlags & Vars::Aimbot::Projectile::VisualsEnum::PlayerPath) && !m_vPlayerPath.empty())
+	{
+		DrawPath_t path;
+		path.m_vPath = m_vPlayerPath;
+		path.m_flTime = flTime;
+		path.m_tColor = {136, 192, 208, 255}; // Cyan
+		path.m_iStyle = 0;
+		path.m_bZBuffer = false;
+		G::PathStorage.push_back(path);
+	}
+
+	// Draw projectile trajectory path
+	if ((visualFlags & Vars::Aimbot::Projectile::VisualsEnum::ProjectilePath) && !m_vProjectilePath.empty())
+	{
+		DrawPath_t path;
+		path.m_vPath = m_vProjectilePath;
+		path.m_flTime = flTime;
+		path.m_tColor = {235, 203, 139, 255}; // Gold
+		path.m_iStyle = 0;
+		path.m_bZBuffer = false;
+		G::PathStorage.push_back(path);
+	}
+
+	// Draw target hitbox
+	if ((visualFlags & Vars::Aimbot::Projectile::VisualsEnum::TargetHitbox) && m_CurrentTarget.m_pEntity)
+	{
+		DrawBox_t box;
+		box.m_vOrigin = m_CurrentTarget.m_vFinalPos.IsZero() ? m_CurrentTarget.m_vOrigin : m_CurrentTarget.m_vFinalPos;
+		box.m_vMins = m_CurrentTarget.m_vMins;
+		box.m_vMaxs = m_CurrentTarget.m_vMaxs;
+		box.m_vAngles = Vec3(0, 0, 0);
+		box.m_flTime = flTime;
+		box.m_tColorEdge = {136, 192, 208, 255}; // Cyan edge
+		box.m_tColorFace = {136, 192, 208, 50};  // Transparent cyan face
+		box.m_bZBuffer = false;
+		G::BoxStorage.push_back(box);
+	}
+
+	// Reset visuals flag after drawing
+	m_bHasVisuals = false;
+}
+
 void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
+	// Phase 5: Draw visuals from previous tick
+	DrawVisuals();
+
 	// Check if aim type is Off
 	if (Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Off)
 		return;
@@ -815,6 +871,46 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				float flTime = 0.f;
 				if (ProjAimMath::SolveBallisticArc(vEyePos, vTargetPos, flSpeed, flGravity, vAimAngles, flTime))
 				{
+					// Phase 5: Store visual data
+					m_CurrentTarget = target;
+					m_vPlayerPath = target.m_vSimPath;
+					m_bHasVisuals = true;
+
+					// Phase 5: Simulate projectile trajectory if enabled
+					if (Vars::Aimbot::Projectile::Visuals.Value & Vars::Aimbot::Projectile::VisualsEnum::ProjectilePath)
+					{
+						ProjectileInfo projInfo;
+						if (F::ProjSim.GetInfo(pLocal, pWeapon, vAimAngles, projInfo, ProjSimEnum::Trace))
+						{
+							// Initialize and simulate projectile
+							if (F::ProjSim.Initialize(projInfo, true, false))
+							{
+								m_vProjectilePath.clear();
+								m_vProjectilePath.push_back(projInfo.m_vPos);
+
+								// Simulate up to target time or max 100 ticks
+								int maxTicks = std::min(100, static_cast<int>(flTime / I::GlobalVars->interval_per_tick) + 10);
+								for (int i = 0; i < maxTicks; i++)
+								{
+									F::ProjSim.RunTick(projInfo, true);
+									if (!projInfo.m_vPath.empty())
+										m_vProjectilePath = projInfo.m_vPath;
+
+									// Stop if we're close to target or path is long enough
+									if ((projInfo.m_vPos - vTargetPos).Length() < 50.f || projInfo.m_vPath.size() > 100)
+										break;
+								}
+							}
+						}
+					}
+
+					// Validate trajectory if enabled
+					if (Vars::Aimbot::Projectile::ValidateTrajectory.Value)
+					{
+						// TODO: Check if projectile path actually hits the target
+						// For now, we trust the ballistic solver
+					}
+
 					G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 					G::AimTarget.m_iDuration = 1;
 

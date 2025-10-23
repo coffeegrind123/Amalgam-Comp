@@ -110,6 +110,12 @@ private:
 	std::vector<Vec3> m_vProjectilePath = {};
 	std::vector<DrawBox_t> m_vBoxes = {};
 
+	// Phase 5: Visual storage
+	ProjTargetData_t m_CurrentTarget = {};
+	bool m_bHasVisuals = false;
+
+	void DrawVisuals();
+
 public:
 	void Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
 	float GetSplashRadius(CTFWeaponBase* pWeapon, CTFPlayer* pPlayer);

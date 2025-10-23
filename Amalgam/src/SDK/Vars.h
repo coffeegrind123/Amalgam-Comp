@@ -367,6 +367,11 @@ namespace Vars
 			CVarEnum(IgnoreConditions, VA_LIST("Ignore", "Ignore target conditions"), 0b10100101, DROPDOWN_MULTI, nullptr,
 				VA_LIST("Cloaked", "Disguised", "Ubercharged", "Bonked", "Taunting", "Friends", "Kritzkrieged", "Vaccinated"),
 				Cloaked = 1 << 0, Disguised = 1 << 1, Ubercharged = 1 << 2, Bonked = 1 << 3, Taunting = 1 << 4, Friends = 1 << 5, Kritzkrieged = 1 << 6, Vaccinated = 1 << 7);
+			CVarEnum(Visuals, "Projectile visuals", 0b111, DROPDOWN_MULTI, nullptr,
+				VA_LIST("Player path", "Projectile path", "Target hitbox"),
+				PlayerPath = 1 << 0, ProjectilePath = 1 << 1, TargetHitbox = 1 << 2);
+			CVar(VisualsTime, "Visuals time", 1.f, SLIDER_MIN | SLIDER_PRECISION, 0.1f, 5.f, 0.1f, "%gs");
+			CVar(ValidateTrajectory, "Validate trajectory", false);
 
 			CVar(GroundSamples, "Samples", 33, NOSAVE | DEBUGVAR, 3, 66);
 			CVar(GroundStraightFuzzyValue, "Straight fuzzy value", 100.f, NOSAVE | DEBUGVAR | SLIDER_PRECISION, 0.f, 500.f, 25.f);
