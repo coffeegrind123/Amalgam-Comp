@@ -448,14 +448,14 @@ void CAimbotProjectile::GatherEntities(const char* szClassName, bool bIncludeTea
 
 		ProjTargetData_t target = {};
 		target.m_pEntity = pEntity;
-		target.m_vOrigin = pEntity->GetAbsOrigin();
-		target.m_vVelocity = pEntity->m_vecVelocity();
-		target.m_vMins = pEntity->m_vecMins();
-		target.m_vMaxs = pEntity->m_vecMaxs();
+		target.m_vOrigin = pPlayer->GetAbsOrigin();
+		target.m_vVelocity = pPlayer->m_vecVelocity();
+		target.m_vMins = pPlayer->m_vecMins();
+		target.m_vMaxs = pPlayer->m_vecMaxs();
 		target.m_iHealth = pPlayer->m_iHealth();
 		target.m_iMaxHealth = pPlayer->GetMaxHealth();
 		target.m_iClass = pPlayer->m_iClass();
-		target.m_iTeam = pEntity->m_iTeamNum();
+		target.m_iTeam = pPlayer->m_iTeamNum();
 		target.m_bIsUbered = pPlayer->InCond(TF_COND_INVULNERABLE) || pPlayer->InCond(TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED);
 
 		vOut.push_back(target);
@@ -692,7 +692,7 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 		filter.pSkip = H::Entities.GetLocal();
 		trace_t trace;
 		CTraceFilterWorldAndPropsOnly filterWorld;
-		Utils::Trace(vEyePos, vTestPos, MASK_SHOT, &filterWorld, &trace);
+		SDK::Trace(vEyePos, vTestPos, MASK_SHOT, &filterWorld, &trace);
 
 		if (trace.fraction >= 0.99f)
 		{

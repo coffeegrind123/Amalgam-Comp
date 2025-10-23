@@ -50,7 +50,16 @@ float ProjectileInfo::GetChargeTime(CTFWeaponBase* pWeapon) const
 	if (!m_bCharges || !pWeapon)
 		return 0.0f;
 
-	float flChargeBeginTime = pWeapon->GetChargeBeginTime();
+	float flChargeBeginTime = 0.0f;
+	if (auto pPipebomb = pWeapon->As<CTFPipebombLauncher>())
+		flChargeBeginTime = pPipebomb->m_flChargeBeginTime();
+	else if (auto pCannon = pWeapon->As<CTFParticleCannon>())
+		flChargeBeginTime = pCannon->m_flChargeBeginTime();
+	else if (auto pThrowable = pWeapon->As<CTFThrowable>())
+		flChargeBeginTime = pThrowable->m_flChargeBeginTime();
+	else if (auto pBow = pWeapon->As<CTFCompoundBow>())
+		flChargeBeginTime = pBow->m_flChargeBeginTime();
+
 	if (flChargeBeginTime <= 0.0f)
 		return 0.0f;
 
@@ -104,7 +113,7 @@ namespace ProjWeaponInfo
 		info.m_iAlignDistance = 2000;
 		info.m_flDamageRadius = 146.0f;
 		info.m_bHasGravity = false;
-		info.m_iCollisionType = CollisionType::NONE;
+		info.m_iCollisionType = CollisionType::NO_COLLISION;
 		info.m_vecOffset = Vec3(23.5f, 12.0f, -3.0f);
 		RegisterWeapon(info, {237});
 
@@ -164,7 +173,7 @@ namespace ProjWeaponInfo
 		info.m_vecVelocity = Vec3(1200, 0, 0);
 		info.m_vecMaxs = Vec3(0, 0, 0);
 		info.m_bHasGravity = false;
-		info.m_iCollisionType = CollisionType::NONE;
+		info.m_iCollisionType = CollisionType::NO_COLLISION;
 		info.m_vecOffset = Vec3(23.5f, 12.0f, 8.0f);
 		RegisterWeapon(info, {442, 1153});
 
@@ -183,7 +192,7 @@ namespace ProjWeaponInfo
 		info.m_flGravity = 0.4f;
 		info.m_bHasGravity = true;
 		info.m_flDamageRadius = 146.0f;
-		info.m_iCollisionType = CollisionType::NONE;
+		info.m_iCollisionType = CollisionType::NO_COLLISION;
 		info.m_vecOffset = Vec3(16.0f, 6.0f, -8.0f);
 		RegisterWeapon(info, {308});
 
@@ -339,7 +348,7 @@ namespace ProjWeaponInfo
 		info.m_flGravity = 0.5f;
 		info.m_bHasGravity = true;
 		info.m_flDamageRadius = 146.0f;
-		info.m_iCollisionType = CollisionType::NONE;
+		info.m_iCollisionType = CollisionType::NO_COLLISION;
 		info.m_vecOffset = Vec3(16.0f, 6.0f, -8.0f);
 		RegisterWeapon(info, {309});
 	}

@@ -339,6 +339,12 @@ public:
 	NETVAR(m_flChargeBeginTime, float, "CTFThrowable", "m_flChargeBeginTime");
 };
 
+class CTFCompoundBow : public CTFWeaponBase
+{
+public:
+	NETVAR(m_flChargeBeginTime, float, "CTFCompoundBow", "m_flChargeBeginTime");
+};
+
 class CTFGrapplingHook : public CTFWeaponBase
 {
 public:

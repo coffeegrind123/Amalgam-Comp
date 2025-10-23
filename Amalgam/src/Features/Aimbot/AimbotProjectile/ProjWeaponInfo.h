@@ -14,7 +14,7 @@ enum class CollisionType
 	HEAL_TEAMMATES,
 	HEAL_BUILDINGS,
 	HEAL_HURT,
-	NONE
+	NO_COLLISION
 };
 
 struct ProjectileInfo
