@@ -378,9 +378,21 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 {
 	switch (iMethod)
 	{
+	case Vars::Aimbot::General::AimTypeEnum::Off:
+		return false;
+
+	case Vars::Aimbot::General::AimTypeEnum::Plain:
+		vOut = vToAngle;
+		return true;
+
+	case Vars::Aimbot::General::AimTypeEnum::Silent:
+		// Silent aim is handled specially - just return the angle
+		vOut = vToAngle;
+		return true;
+
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
 	{
-		// Simple smoothing without complex peek logic for reliability
+		// Smooth aim - use a fixed smooth factor (not FOV)
 		Vec3 vDelta = vToAngle - vCurAngle;
 		// Normalize angles
 		while (vDelta.x > 180.0f) vDelta.x -= 360.0f;
@@ -388,13 +400,17 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 		while (vDelta.y > 180.0f) vDelta.y -= 360.0f;
 		while (vDelta.y < -180.0f) vDelta.y += 360.0f;
 
-		float flSmooth = Vars::Aimbot::General::AimFOV.Value;
-		if (flSmooth <= 0.f) flSmooth = 1.f;
-
+		// Use a smooth factor of 3.0 for gradual transition
+		float flSmooth = 3.0f;
 		vDelta /= flSmooth;
 		vOut = vCurAngle + vDelta;
 		return true;
 	}
+
+	case Vars::Aimbot::General::AimTypeEnum::Locking:
+		// Locking mode - snap and hold
+		vOut = vToAngle;
+		return true;
 
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 	{
@@ -404,8 +420,11 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 		while (vDelta.x < -180.0f) vDelta.x += 360.0f;
 		while (vDelta.y > 180.0f) vDelta.y -= 360.0f;
 		while (vDelta.y < -180.0f) vDelta.y += 360.0f;
+
+		// Use AssistStrength value (default 25%)
 		float flAssist = Vars::Aimbot::General::AssistStrength.Value;
 		if (flAssist <= 0.f) flAssist = 1.f;
+		flAssist = 100.f / flAssist; // Convert percentage to divisor
 
 		vDelta /= flAssist;
 		vOut = vCurAngle + vDelta;
@@ -413,8 +432,7 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 	}
 	}
 
-	vOut = vToAngle;
-	return true;
+	return false;
 }
 
 void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
@@ -422,22 +440,26 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	Vec3 vOldAngle = pCmd->viewangles;
 	Vec3 vAimAngle;
 
-	if (Aim(vOldAngle, vAngle, vAimAngle, iMethod))
+	if (!Aim(vOldAngle, vAngle, vAimAngle, iMethod))
+		return;
+
+	// Handle different aim types
+	if (iMethod == Vars::Aimbot::General::AimTypeEnum::Silent)
 	{
-		if (iMethod != Vars::Aimbot::General::AimTypeEnum::Silent)
-		{
-			pCmd->viewangles = vAimAngle;
-			SDK::FixMovement(pCmd, vOldAngle, vAimAngle);
-		}
+		// Silent aim: set angles in G::CurrentUserCmd but not in viewangles
+		if (G::CurrentUserCmd)
+			G::CurrentUserCmd->viewangles = vAimAngle;
 	}
 	else
 	{
+		// All other modes: set viewangles normally
 		pCmd->viewangles = vAimAngle;
+		SDK::FixMovement(pCmd, vOldAngle, vAimAngle);
 	}
 
 	G::AimPoint.m_vOrigin = vAimAngle;
 	G::AimPoint.m_iTickCount = I::GlobalVars->tickcount;
-	G::AimPoint.m_iDuration = Vars::Aimbot::General::AimFOV.Value / 10.f;
+	G::AimPoint.m_iDuration = 1;
 }
 
 bool CAimbotHitscan::ShouldRun(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
@@ -466,23 +488,40 @@ bool CAimbotHitscan::ShouldRun(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserC
 
 bool CAimbotHitscan::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, const Target_t& tTarget)
 {
+	// Check if auto shoot is enabled
+	if (!Vars::Aimbot::General::AutoShoot.Value)
+		return false;
+
 	if (!G::CurrentUserCmd)
 		return false;
 
+	// Check if weapon can fire
+	if (!pWeapon->CanPrimaryAttack())
+		return false;
+
+	// Check weapon-specific conditions
 	if (pLocal->m_iClass() == TF_CLASS_SNIPER && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE)
 	{
-		// Simplified headshot logic - removed invalid method calls and enums
-	}
+		// Check modifier flags
+		if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::ScopedOnly)
+		{
+			if (!pLocal->IsScoped())
+				return false;
+		}
 
-	if (tTarget.m_pEntity->IsPlayer())
-	{
-		if (!pWeapon->CanPrimaryAttack())
-			return false;
-	}
-	else
-	{
-		if (!pWeapon->CanPrimaryAttack())
-			return false;
+		if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::WaitForHeadshot)
+		{
+			if (!G::CanHeadshot)
+				return false;
+		}
+
+		if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::WaitForCharge)
+		{
+			// Check if rifle is sufficiently charged
+			auto pSniperRifle = pWeapon->As<CTFSniperRifle>();
+			if (pSniperRifle && pSniperRifle->m_flChargedDamage() < 150.f)
+				return false;
+		}
 	}
 
 	return true;
@@ -490,6 +529,10 @@ bool CAimbotHitscan::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUser
 
 void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
+	// Check if aim type is Off
+	if (Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Off)
+		return;
+
 	if (!ShouldRun(pLocal, pWeapon, pCmd))
 		return;
 
@@ -512,31 +555,39 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 	G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimTarget.m_iDuration = 1;
 
-	if (ShouldFire(pLocal, pWeapon, pCmd, tTarget))
+	// Determine if we should fire
+	bool bShouldFire = ShouldFire(pLocal, pWeapon, pCmd, tTarget);
+
+	if (bShouldFire && G::CurrentUserCmd)
 	{
-		if (G::CurrentUserCmd)
+		// Handle auto-scoping before firing
+		if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::AutoScope &&
+			pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped())
 		{
-			bool bShouldAttack = true;
-			if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::AutoScope && pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped())
-			{
-				G::CurrentUserCmd->buttons |= IN_ATTACK2;
-				bShouldAttack = false;
-			}
-
-			if (bShouldAttack)
-			{
-				G::CurrentUserCmd->buttons |= IN_ATTACK;
-			}
+			G::CurrentUserCmd->buttons |= IN_ATTACK2;
+			bShouldFire = false; // Don't fire yet, scope first
 		}
-
-		if (Vars::Aimbot::General::AimType.Value != Vars::Aimbot::General::AimTypeEnum::Silent)
-			Aim(pCmd, tTarget.m_vAngleTo);
 		else
-			Aim(pCmd, tTarget.m_vAngleTo);
+		{
+			// Fire the weapon
+			G::CurrentUserCmd->buttons |= IN_ATTACK;
+		}
 	}
-	else
+
+	// Apply aim based on aim type and whether we're firing
+	int iAimType = Vars::Aimbot::General::AimType.Value;
+
+	// Always aim in these modes
+	if (iAimType == Vars::Aimbot::General::AimTypeEnum::Plain ||
+		iAimType == Vars::Aimbot::General::AimTypeEnum::Silent ||
+		iAimType == Vars::Aimbot::General::AimTypeEnum::Locking)
 	{
-		if (Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Smooth || Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Assistive)
-			Aim(pCmd, tTarget.m_vAngleTo);
+		Aim(pCmd, tTarget.m_vAngleTo, iAimType);
+	}
+	// Aim when firing or always for smooth/assistive
+	else if (iAimType == Vars::Aimbot::General::AimTypeEnum::Smooth ||
+			 iAimType == Vars::Aimbot::General::AimTypeEnum::Assistive)
+	{
+		Aim(pCmd, tTarget.m_vAngleTo, iAimType);
 	}
 }
