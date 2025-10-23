@@ -421,6 +421,209 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	}
 }
 
+// ===== Phase 2: Smart Targeting System =====
+
+void CAimbotProjectile::GatherEntities(const char* szClassName, bool bIncludeTeam, CTFPlayer* pLocal, std::vector<ProjTargetData_t>& vOut)
+{
+	if (!pLocal)
+		return;
+
+	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
+	{
+		if (!pEntity || pEntity == pLocal)
+			continue;
+
+		if (pEntity->IsDormant())
+			continue;
+
+		if (!bIncludeTeam && pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
+			continue;
+
+		auto pPlayer = pEntity->As<CTFPlayer>();
+		if (!pPlayer || !pPlayer->IsAlive() || pPlayer->m_iHealth() <= 0)
+			continue;
+
+		if (ShouldIgnoreTarget(pEntity, pLocal))
+			continue;
+
+		ProjTargetData_t target = {};
+		target.m_pEntity = pEntity;
+		target.m_vOrigin = pEntity->GetAbsOrigin();
+		target.m_vVelocity = pEntity->m_vecVelocity();
+		target.m_vMins = pEntity->m_vecMins();
+		target.m_vMaxs = pEntity->m_vecMaxs();
+		target.m_iHealth = pPlayer->m_iHealth();
+		target.m_iMaxHealth = pPlayer->GetMaxHealth();
+		target.m_iClass = pPlayer->m_iClass();
+		target.m_iTeam = pEntity->m_iTeamNum();
+		target.m_bIsUbered = pPlayer->InCond(TF_COND_INVULNERABLE) || pPlayer->InCond(TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED);
+
+		vOut.push_back(target);
+	}
+}
+
+bool CAimbotProjectile::ShouldIgnoreTarget(CBaseEntity* pEntity, CTFPlayer* pLocal)
+{
+	if (!pEntity || !pLocal)
+		return true;
+
+	auto pPlayer = pEntity->As<CTFPlayer>();
+	if (!pPlayer)
+		return false;
+
+	int ignoreFlags = Vars::Aimbot::Projectile::IgnoreConditions.Value;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Cloaked) && pPlayer->InCond(TF_COND_STEALTHED))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Disguised) && pPlayer->InCond(TF_COND_DISGUISED))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Ubercharged) &&
+		(pPlayer->InCond(TF_COND_INVULNERABLE) || pPlayer->InCond(TF_COND_INVULNERABLE_HIDE_UNLESS_DAMAGED)))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Bonked) && pPlayer->InCond(TF_COND_PHASE))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Taunting) && pPlayer->InCond(TF_COND_TAUNTING))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Friends) && H::Entities.IsFriend(pEntity->entindex()))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Kritzkrieged) && pPlayer->InCond(TF_COND_CRITBOOSTED))
+		return true;
+
+	if ((ignoreFlags & Vars::Aimbot::Projectile::IgnoreConditionsEnum::Vaccinated) &&
+		(pPlayer->InCond(TF_COND_MEDIGUN_UBER_BULLET_RESIST) ||
+		 pPlayer->InCond(TF_COND_MEDIGUN_UBER_BLAST_RESIST) ||
+		 pPlayer->InCond(TF_COND_MEDIGUN_UBER_FIRE_RESIST)))
+		return true;
+
+	return false;
+}
+
+float CAimbotProjectile::CalculateScore(const ProjTargetData_t& target, const Vec3& vEyePos, const Vec3& vViewAngles, bool bIncludeTeam, CTFPlayer* pLocal)
+{
+	if (!pLocal)
+		return 0.f;
+
+	float flScore = 0.f;
+	int weightFlags = Vars::Aimbot::Projectile::TargetWeights.Value;
+
+	if ((weightFlags & Vars::Aimbot::Projectile::TargetWeightsEnum::Distance) && Vars::Aimbot::Projectile::DistanceWeight.Value > 0.f)
+	{
+		float flMaxDist = Vars::Aimbot::Projectile::MaxDistance.Value;
+		float flDistScore = 1.f - std::min(target.m_flDistance / flMaxDist, 1.f);
+		flScore += flDistScore * Vars::Aimbot::Projectile::DistanceWeight.Value;
+	}
+
+	if ((weightFlags & Vars::Aimbot::Projectile::TargetWeightsEnum::Health) && Vars::Aimbot::Projectile::HealthWeight.Value > 0.f)
+	{
+		float flHealthScore = 1.f - std::min((float)target.m_iHealth / (float)target.m_iMaxHealth, 1.f);
+		flScore += flHealthScore * Vars::Aimbot::Projectile::HealthWeight.Value;
+	}
+
+	if ((weightFlags & Vars::Aimbot::Projectile::TargetWeightsEnum::FOV) && Vars::Aimbot::Projectile::FOVWeight.Value > 0.f)
+	{
+		Vec3 vAngleTo = ProjAimMath::PositionAngles(vEyePos, target.m_vFinalPos.IsZero() ? target.m_vOrigin : target.m_vFinalPos);
+		float flFOV = ProjAimMath::AngleFov(vViewAngles, vAngleTo);
+		float flFOVScore = 1.f - std::min(flFOV / Vars::Aimbot::General::AimFOV.Value, 1.f);
+		flScore += flFOVScore * Vars::Aimbot::Projectile::FOVWeight.Value;
+	}
+
+	if ((weightFlags & Vars::Aimbot::Projectile::TargetWeightsEnum::Visibility) && Vars::Aimbot::Projectile::VisibilityWeight.Value > 0.f)
+	{
+		flScore += Vars::Aimbot::Projectile::VisibilityWeight.Value;
+	}
+
+	if ((weightFlags & Vars::Aimbot::Projectile::TargetWeightsEnum::Speed) && Vars::Aimbot::Projectile::SpeedWeight.Value > 0.f)
+	{
+		float flSpeed = target.m_vVelocity.Length();
+		float flMaxSpeed = 400.f;
+		float flSpeedScore = 1.f - std::min(flSpeed / flMaxSpeed, 1.f);
+		flScore += flSpeedScore * Vars::Aimbot::Projectile::SpeedWeight.Value;
+	}
+
+	if (target.m_iClass == TF_CLASS_MEDIC && Vars::Aimbot::Projectile::MedicPriority.Value > 0.f)
+		flScore += Vars::Aimbot::Projectile::MedicPriority.Value;
+
+	if (target.m_iClass == TF_CLASS_SNIPER && Vars::Aimbot::Projectile::SniperPriority.Value > 0.f)
+		flScore += Vars::Aimbot::Projectile::SniperPriority.Value;
+
+	if (target.m_bIsUbered && Vars::Aimbot::Projectile::UberPenalty.Value != 0.f)
+		flScore += Vars::Aimbot::Projectile::UberPenalty.Value;
+
+	if (bIncludeTeam && target.m_iTeam == pLocal->m_iTeamNum())
+		flScore += 5.f;
+
+	return flScore;
+}
+
+std::vector<ProjTargetData_t> CAimbotProjectile::GetTargetsSmart(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, bool bIncludeTeam)
+{
+	std::vector<ProjTargetData_t> vTargets;
+
+	if (!pLocal || !pWeapon || !pWeaponInfo)
+		return vTargets;
+
+	std::vector<ProjTargetData_t> vCandidates;
+	GatherEntities("CTFPlayer", bIncludeTeam, pLocal, vCandidates);
+
+	if (vCandidates.empty())
+		return vTargets;
+
+	Vec3 vLocalPos = pLocal->GetAbsOrigin();
+	Vec3 vEyePos = pLocal->GetShootPos();
+	Vec3 vViewAngles = I::EngineClient->GetViewAngles();
+	float flMaxDist = Vars::Aimbot::Projectile::MaxDistance.Value;
+
+	for (auto& candidate : vCandidates)
+	{
+		float flDist = (candidate.m_vOrigin - vLocalPos).Length();
+		if (flDist > flMaxDist)
+			continue;
+
+		candidate.m_flDistance = flDist;
+
+		Vec3 vAngleTo = ProjAimMath::PositionAngles(vEyePos, candidate.m_vOrigin);
+		float flFOV = ProjAimMath::AngleFov(vViewAngles, vAngleTo);
+		if (flFOV > Vars::Aimbot::General::AimFOV.Value)
+			continue;
+
+		candidate.m_flFOV = flFOV;
+
+		Vec3 vVelocity = pWeaponInfo->GetVelocity(0.f);
+		float flProjSpeed = vVelocity.Length2D();
+		float flTravelTime = flDist / (flProjSpeed > 0.f ? flProjSpeed : 1.f);
+
+		Vec3 vPredictedPos = candidate.m_vOrigin + candidate.m_vVelocity * flTravelTime;
+		candidate.m_vFinalPos = vPredictedPos;
+		candidate.m_flTimeToHit = flTravelTime;
+
+		if (flTravelTime > Vars::Aimbot::Projectile::MaxSimulationTime.Value)
+			continue;
+
+		candidate.m_flScore = CalculateScore(candidate, vEyePos, vViewAngles, bIncludeTeam, pLocal);
+
+		if (candidate.m_flScore < Vars::Aimbot::Projectile::MinScore.Value)
+			continue;
+
+		vTargets.push_back(candidate);
+	}
+
+	std::sort(vTargets.begin(), vTargets.end(), [](const ProjTargetData_t& a, const ProjTargetData_t& b) {
+		return a.m_flScore > b.m_flScore;
+	});
+
+	int maxTargets = Vars::Aimbot::Projectile::MaxTargets.Value;
+	if ((int)vTargets.size() > maxTargets)
+		vTargets.resize(maxTargets);
+
+	return vTargets;
+}
+
 void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
 	// Check if aim type is Off
@@ -435,6 +638,68 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 	G::AimTarget.m_iEntIndex = 0;
 	G::AimTarget = {};
 
+	// Phase 2: Use smart targeting if enabled
+	if (Vars::Aimbot::Projectile::SmartTargeting.Value)
+	{
+		int itemDefIndex = pWeapon->m_iItemDefinitionIndex();
+		const ProjectileInfo* pWeaponInfo = ProjWeaponInfo::GetProjectileInfo(itemDefIndex);
+
+		if (pWeaponInfo)
+		{
+			// Check if this weapon can target teammates (crossbow, sandvich, etc.)
+			bool bIncludeTeam = (pWeapon->GetWeaponID() == TF_WEAPON_CROSSBOW);
+
+			auto vSmartTargets = GetTargetsSmart(pLocal, pWeapon, pWeaponInfo, bIncludeTeam);
+			if (!vSmartTargets.empty())
+			{
+				ProjTargetData_t& target = vSmartTargets.front();
+				m_bRunning = true;
+				G::AimTarget.m_iEntIndex = target.m_pEntity->entindex();
+
+				Vec3 vEyePos = pLocal->GetShootPos();
+				Vec3 vTargetPos = target.m_vFinalPos.IsZero() ? target.m_vOrigin : target.m_vFinalPos;
+
+				// Use ballistic solver from Phase 1
+				Vec3 vVelocity = pWeaponInfo->GetVelocity(0.f);
+				float flSpeed = vVelocity.Length2D();
+				float flGravity = 800.f * pWeaponInfo->GetGravity(0.f);
+
+				Vec3 vAimAngles;
+				float flTime = 0.f;
+				if (ProjAimMath::SolveBallisticArc(vEyePos, vTargetPos, flSpeed, flGravity, vAimAngles, flTime))
+				{
+					G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
+					G::AimTarget.m_iDuration = 1;
+
+					// Apply aim
+					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
+
+					// Auto shoot if enabled
+					if (Vars::Aimbot::Projectile::AutoShoot.Value && G::CurrentUserCmd)
+					{
+						if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
+						{
+							if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AutoScope && !pLocal->IsScoped())
+							{
+								G::CurrentUserCmd->buttons |= IN_ATTACK2;
+							}
+							else
+							{
+								G::CurrentUserCmd->buttons |= IN_ATTACK;
+							}
+						}
+						else
+						{
+							G::CurrentUserCmd->buttons |= IN_ATTACK;
+						}
+					}
+					return;
+				}
+			}
+		}
+	}
+
+	// Fall back to original targeting system
 	auto vTargets = SortTargets(pLocal, pWeapon);
 	if (vTargets.empty())
 		return;

@@ -2,9 +2,31 @@
 #include "../../../SDK/SDK.h"
 
 #include "../AimbotGlobal/AimbotGlobal.h"
+#include "ProjAimMath.h"
+#include "ProjWeaponInfo.h"
 
 Enum(PointType, None = 0, Regular = 1 << 0, Obscured = 1 << 1, ObscuredExtra = 1 << 2, ObscuredMulti = 1 << 3)
 Enum(Calculated, Pending, Good, Time, Bad)
+
+struct ProjTargetData_t
+{
+	CBaseEntity* m_pEntity = nullptr;
+	Vec3 m_vOrigin = {};
+	Vec3 m_vVelocity = {};
+	Vec3 m_vMins = {};
+	Vec3 m_vMaxs = {};
+	Vec3 m_vFinalPos = {};
+	int m_iHealth = 0;
+	int m_iMaxHealth = 0;
+	int m_iClass = 0;
+	int m_iTeam = 0;
+	float m_flDistance = 0.f;
+	float m_flFOV = 0.f;
+	float m_flScore = 0.f;
+	float m_flTimeToHit = 0.f;
+	bool m_bIsUbered = false;
+	std::vector<Vec3> m_vSimPath = {};
+}
 
 struct Solution_t
 {
@@ -70,6 +92,12 @@ private:
 
 	bool CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pProjectile);
 	bool TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pProjectile, Target_t& tTarget, Info_t& tInfo, Vec3& vPoint, Vec3& vAngles, int iSimTime, bool bSplash, std::vector<Vec3>* pProjectilePath = nullptr);
+
+	// Phase 2: New smart targeting system
+	void GatherEntities(const char* szClassName, bool bIncludeTeam, CTFPlayer* pLocal, std::vector<ProjTargetData_t>& vOut);
+	float CalculateScore(const ProjTargetData_t& target, const Vec3& vEyePos, const Vec3& vViewAngles, bool bIncludeTeam, CTFPlayer* pLocal);
+	std::vector<ProjTargetData_t> GetTargetsSmart(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, bool bIncludeTeam);
+	bool ShouldIgnoreTarget(CBaseEntity* pEntity, CTFPlayer* pLocal);
 
 	bool m_bLastTickHeld = false;
 

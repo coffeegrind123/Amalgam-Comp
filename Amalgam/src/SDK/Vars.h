@@ -347,6 +347,26 @@ namespace Vars
 			CVar(AutodetRadius, "Autodet radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(SplashRadius, "Splash radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AutoRelease, "Auto release", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 5.f, "%g%%");
+			CVar(AutoShoot, "Auto shoot", true);
+			CVar(MaxDistance, "Max distance", 1024.f, SLIDER_MIN | SLIDER_PRECISION, 100.f, 4096.f, 100.f, "%g HU");
+			CVar(MaxTargets, "Max targets", 1, SLIDER_MIN, 1, 10);
+			CVar(MinScore, "Min score", 2.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 10.f, 0.5f);
+			CVar(SmartTargeting, "Smart targeting", true);
+			CVar(PerformanceMode, "Performance mode", false);
+			CVarEnum(TargetWeights, VA_LIST("Weights", "Target scoring weights"), 0b11111, DROPDOWN_MULTI, nullptr,
+				VA_LIST("Health", "Distance", "FOV", "Visibility", "Speed"),
+				Health = 1 << 0, Distance = 1 << 1, FOV = 1 << 2, Visibility = 1 << 3, Speed = 1 << 4);
+			CVar(HealthWeight, "Health weight", 1.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(DistanceWeight, "Distance weight", 1.1f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(FOVWeight, "FOV weight", 2.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(VisibilityWeight, "Visibility weight", 1.2f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(SpeedWeight, "Speed weight", 0.6f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(MedicPriority, "Medic priority", 0.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(SniperPriority, "Sniper priority", 0.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 5.f, 0.1f);
+			CVar(UberPenalty, "Uber penalty", -2.f, SLIDER_MIN | SLIDER_PRECISION, -5.f, 5.f, 0.1f);
+			CVarEnum(IgnoreConditions, VA_LIST("Ignore", "Ignore target conditions"), 0b10100101, DROPDOWN_MULTI, nullptr,
+				VA_LIST("Cloaked", "Disguised", "Ubercharged", "Bonked", "Taunting", "Friends", "Kritzkrieged", "Vaccinated"),
+				Cloaked = 1 << 0, Disguised = 1 << 1, Ubercharged = 1 << 2, Bonked = 1 << 3, Taunting = 1 << 4, Friends = 1 << 5, Kritzkrieged = 1 << 6, Vaccinated = 1 << 7);
 
 			CVar(GroundSamples, "Samples", 33, NOSAVE | DEBUGVAR, 3, 66);
 			CVar(GroundStraightFuzzyValue, "Straight fuzzy value", 100.f, NOSAVE | DEBUGVAR | SLIDER_PRECISION, 0.f, 500.f, 25.f);
