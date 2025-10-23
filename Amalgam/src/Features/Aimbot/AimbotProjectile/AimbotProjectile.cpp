@@ -977,7 +977,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 					G::AimTarget.m_iDuration = 1;
 
 					// Phase 4: Auto shoot with charge weapon support
-					if (Vars::Aimbot::General::AutoShoot.Value && G::CurrentUserCmd)
+					if (Vars::Aimbot::General::AutoShoot.Value && pCmd)
 					{
 						if (pWeaponInfo->m_bCharges)
 						{
@@ -985,13 +985,13 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 							if (flChargeTime < 0.01f)
 							{
 								// Just started charging, hold attack
-								G::CurrentUserCmd->buttons |= IN_ATTACK;
+								pCmd->buttons |= IN_ATTACK;
 								G::Attacking = 1;
 							}
 							else
 							{
 								// Charging in progress, release to fire
-								G::CurrentUserCmd->buttons &= ~IN_ATTACK;
+								pCmd->buttons &= ~IN_ATTACK;
 							}
 						}
 						else if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
@@ -999,17 +999,17 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 							// Huntsman without charge
 							if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AutoScope && !pLocal->IsScoped())
 							{
-								G::CurrentUserCmd->buttons |= IN_ATTACK2;
+								pCmd->buttons |= IN_ATTACK2;
 							}
 							else
 							{
-								G::CurrentUserCmd->buttons |= IN_ATTACK;
+								pCmd->buttons |= IN_ATTACK;
 								G::Attacking = 1;
 							}
 						}
 						else
 						{
-							G::CurrentUserCmd->buttons |= IN_ATTACK;
+							pCmd->buttons |= IN_ATTACK;
 							G::Attacking = 1;
 						}
 					}
