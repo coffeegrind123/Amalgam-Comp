@@ -4,7 +4,7 @@
 #include "../../CritHack/CritHack.h"
 #include "../../../Utils/Math/SIMDMath.h"
 
-bool CProjectileSimulation::GetInfoMain(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags, float flAutoCharge)
+bool CProjectileSimulation::GetInfoMain(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileSimulationInfo& tProjInfo, int iFlags, float flAutoCharge)
 {
 	if (!pPlayer || !pPlayer->IsAlive() || pPlayer->IsAGhost() || pPlayer->IsTaunting() || !pWeapon)
 		return false;
@@ -254,7 +254,7 @@ bool CProjectileSimulation::GetInfoMain(CTFPlayer* pPlayer, CTFWeaponBase* pWeap
 	return false;
 }
 
-bool CProjectileSimulation::GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags, float flAutoCharge)
+bool CProjectileSimulation::GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileSimulationInfo& tProjInfo, int iFlags, float flAutoCharge)
 {
 	bool InitCheck = iFlags & ProjSimEnum::InitCheck;
 	bool bQuick = iFlags & ProjSimEnum::Quick;
@@ -280,7 +280,7 @@ bool CProjectileSimulation::GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, 
 	return !trace.DidHit();
 }
 
-void CProjectileSimulation::GetInfo(CBaseEntity* pProjectile, ProjectileInfo& tProjInfo)
+void CProjectileSimulation::GetInfo(CBaseEntity* pProjectile, ProjectileSimulationInfo& tProjInfo)
 {
 	auto paEntities = GetEntities(pProjectile);
 	Vec3 vVelocity = GetVelocity(pProjectile);
@@ -297,7 +297,7 @@ void CProjectileSimulation::GetInfo(CBaseEntity* pProjectile, ProjectileInfo& tP
 	tProjInfo.m_flGravity = GetGravity(pProjectile, tProjInfo.m_pWeapon);
 }
 
-bool CProjectileSimulation::Initialize(ProjectileInfo& tProjInfo, bool bSimulate, bool bWorld)
+bool CProjectileSimulation::Initialize(ProjectileSimulationInfo& tProjInfo, bool bSimulate, bool bWorld)
 {
 	if (!m_pEnv)
 		m_pEnv = I::Physics->CreateEnvironment();
@@ -550,7 +550,7 @@ bool CProjectileSimulation::Initialize(ProjectileInfo& tProjInfo, bool bSimulate
 	return true;
 }
 
-void CProjectileSimulation::RunTick(ProjectileInfo& tProjInfo, bool bPath) // bug: per frame projectile trace can cause inconsistencies?
+void CProjectileSimulation::RunTick(ProjectileSimulationInfo& tProjInfo, bool bPath) // bug: per frame projectile trace can cause inconsistencies?
 {
 	if (!m_pEnv)
 		return;

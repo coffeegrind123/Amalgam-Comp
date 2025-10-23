@@ -879,7 +879,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 					// Phase 5: Simulate projectile trajectory if enabled
 					if (Vars::Aimbot::Projectile::Visuals.Value & Vars::Aimbot::Projectile::VisualsEnum::ProjectilePath)
 					{
-						ProjectileInfo projInfo;
+						ProjectileSimulationInfo projInfo;
 						if (F::ProjSim.GetInfo(pLocal, pWeapon, vAimAngles, projInfo, ProjSimEnum::Trace))
 						{
 							// Initialize and simulate projectile

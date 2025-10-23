@@ -11,7 +11,7 @@ Enum(ProjSim,
 	MaxSpeed = 1 << 5
 )
 
-struct ProjectileInfo
+struct ProjectileSimulationInfo
 {
 	CTFPlayer* m_pOwner = nullptr;
 	CTFWeaponBase* m_pWeapon = nullptr;
@@ -32,7 +32,7 @@ struct ProjectileInfo
 
 class CProjectileSimulation
 {
-	bool GetInfoMain(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags, float flAutoCharge);
+	bool GetInfoMain(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileSimulationInfo& tProjInfo, int iFlags, float flAutoCharge);
 
 	const objectparams_t m_tPhysDefaultObjectParams = {
 		NULL,
@@ -49,14 +49,14 @@ class CProjectileSimulation
 	};
 
 public:
-	bool GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags = ProjSimEnum::Trace | ProjSimEnum::InitCheck, float flAutoCharge = -1.f);
+	bool GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileSimulationInfo& tProjInfo, int iFlags = ProjSimEnum::Trace | ProjSimEnum::InitCheck, float flAutoCharge = -1.f);
 	void SetupTrace(CTraceFilterCollideable& filter, int& nMask, CTFWeaponBase* pWeapon, int nTick = 0, bool bQuick = false);
 
-	void GetInfo(CBaseEntity* pProjectile, ProjectileInfo& tProjInfo);
+	void GetInfo(CBaseEntity* pProjectile, ProjectileSimulationInfo& tProjInfo);
 	void SetupTrace(CTraceFilterCollideable& filter, int& nMask, CBaseEntity* pProjectile);
 
-	bool Initialize(ProjectileInfo& tProjInfo, bool bSimulate = true, bool bWorld = false);
-	void RunTick(ProjectileInfo& tProjInfo, bool bPath = true);
+	bool Initialize(ProjectileSimulationInfo& tProjInfo, bool bSimulate = true, bool bWorld = false);
+	void RunTick(ProjectileSimulationInfo& tProjInfo, bool bPath = true);
 	Vec3 GetOrigin();
 	Vec3 GetVelocity();
 

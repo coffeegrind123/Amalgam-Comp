@@ -325,7 +325,7 @@ void CAutoHeal::GetDangers(CTFPlayer* pTarget, bool bVaccinator, float& flBullet
 		}
 		case EWeaponType::PROJECTILE:
 		{
-			ProjectileInfo tProjInfo = {};
+			ProjectileSimulationInfo tProjInfo = {};
 			if (!F::ProjSim.GetInfo(pPlayer, pWeapon, {}, tProjInfo, ProjSimEnum::NoRandomAngles | ProjSimEnum::MaxSpeed))
 				continue;
 
