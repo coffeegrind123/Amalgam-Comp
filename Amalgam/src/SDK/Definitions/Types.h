@@ -619,6 +619,12 @@ public:
 			   fabsf(z) < 0.001f;
 	}
 
+	inline bool IsValid(void) const
+	{
+		return !std::isnan(x) && !std::isnan(y) && !std::isnan(z) &&
+			   !std::isinf(x) && !std::isinf(y) && !std::isinf(z);
+	}
+
 	inline Vec3 ToAngle() const noexcept
 	{
 		return { RAD2DEG(atan2(-z, hypot(x, y))),
