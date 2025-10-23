@@ -13,8 +13,14 @@ Vec3 ProjectileInfo::GetAngleOffset(float flChargeBeginTime) const
 	return m_vecAngleOffset;
 }
 
-Vec3 ProjectileInfo::GetVelocity(float flChargeBeginTime) const
+Vec3 ProjectileInfo::GetVelocity(float flChargeTime) const
 {
+	// Huntsman/Fortified Compound: 1800 + clamp(charge, 0, 1) * 800
+	if (m_bCharges && m_vecVelocity.x == 1800.0f)
+	{
+		float flCharge = std::max(0.0f, std::min(flChargeTime, 1.0f));
+		return Vec3(1800.0f + flCharge * 800.0f, 0, 0);
+	}
 	return m_vecVelocity;
 }
 
@@ -23,14 +29,40 @@ Vec3 ProjectileInfo::GetAngularVelocity(float flChargeBeginTime) const
 	return m_vecAngularVelocity;
 }
 
-float ProjectileInfo::GetGravity(float flChargeBeginTime) const
+float ProjectileInfo::GetGravity(float flChargeTime) const
 {
+	// Huntsman/Fortified Compound: 0.5 - clamp(charge, 0, 1) * 0.4
+	if (m_bCharges && m_flGravity == 0.5f && m_vecVelocity.x == 1800.0f)
+	{
+		float flCharge = std::max(0.0f, std::min(flChargeTime, 1.0f));
+		return 0.5f - flCharge * 0.4f;
+	}
 	return m_flGravity;
 }
 
 float ProjectileInfo::GetLifetime(float flChargeBeginTime) const
 {
 	return m_flLifetime;
+}
+
+float ProjectileInfo::GetChargeTime(CTFWeaponBase* pWeapon) const
+{
+	if (!m_bCharges || !pWeapon)
+		return 0.0f;
+
+	float flChargeBeginTime = pWeapon->GetChargeBeginTime();
+	if (flChargeBeginTime <= 0.0f)
+		return 0.0f;
+
+	float flElapsed = I::GlobalVars->curtime - flChargeBeginTime;
+
+	// Loose Cannon (996) has inverted charge time
+	if (pWeapon->m_iItemDefinitionIndex() == 996)
+	{
+		flElapsed = std::max(0.0f, 1.0f - flElapsed);
+	}
+
+	return flElapsed;
 }
 
 namespace ProjWeaponInfo
@@ -185,14 +217,14 @@ namespace ProjWeaponInfo
 		RegisterWeapon(info, {305});
 
 		info = {};
-		info.m_vecVelocity = Vec3(3000, 0, 0);
+		info.m_vecVelocity = Vec3(1800, 0, 0); // Base velocity, modified by charge
 		info.m_vecMaxs = Vec3(0, 0, 0);
-		info.m_flGravity = 0.2f;
+		info.m_flGravity = 0.5f; // Base gravity, modified by charge
 		info.m_bHasGravity = true;
 		info.m_flLifetime = 10.0f;
 		info.m_flDamageRadius = 0.0f;
 		info.m_bCharges = true;
-		info.m_vecOffset = Vec3(23.5f, 8.0f, -3.0f);
+		info.m_vecOffset = Vec3(23.5f, -8.0f, -3.0f); // Fixed offset sign
 		RegisterWeapon(info, {56, 1005, 1092});
 
 		info = {};

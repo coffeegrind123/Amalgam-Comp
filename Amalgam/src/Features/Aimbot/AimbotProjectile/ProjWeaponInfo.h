@@ -41,11 +41,12 @@ struct ProjectileInfo
 
 	Vec3 GetOffset(bool bDucking, bool bIsFlipped) const;
 	Vec3 GetAngleOffset(float flChargeBeginTime) const;
-	Vec3 GetVelocity(float flChargeBeginTime) const;
+	Vec3 GetVelocity(float flChargeTime) const;
 	Vec3 GetAngularVelocity(float flChargeBeginTime) const;
-	float GetGravity(float flChargeBeginTime) const;
+	float GetGravity(float flChargeTime) const;
 	float GetLifetime(float flChargeBeginTime) const;
 	bool HasGravity() const { return m_bHasGravity; }
+	float GetChargeTime(class CTFWeaponBase* pWeapon) const;
 };
 
 namespace ProjWeaponInfo

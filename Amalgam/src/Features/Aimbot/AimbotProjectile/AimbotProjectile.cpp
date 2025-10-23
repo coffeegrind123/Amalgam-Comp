@@ -594,9 +594,20 @@ std::vector<ProjTargetData_t> CAimbotProjectile::GetTargetsSmart(CTFPlayer* pLoc
 
 		candidate.m_flFOV = flFOV;
 
-		Vec3 vVelocity = pWeaponInfo->GetVelocity(0.f);
+		// Get charge time for charge weapons (Huntsman, Loose Cannon)
+		float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
+
+		Vec3 vVelocity = pWeaponInfo->GetVelocity(flChargeTime);
 		float flProjSpeed = vVelocity.Length2D();
 		float flTravelTime = flDist / (flProjSpeed > 0.f ? flProjSpeed : 1.f);
+
+		// Phase 4: Add sticky detonate time if applicable
+		if (pWeapon->GetWeaponID() == TF_WEAPON_PIPEBOMBLAUNCHER)
+		{
+			float flDetonateTime = 0.7f; // Base detonate time
+			// TODO: Account for sticky_arm_time attribute if needed
+			flTravelTime += flDetonateTime;
+		}
 
 		// Phase 3: Use player movement simulation
 		if (!SimulatePlayerMovement(candidate, pLocal, flTravelTime))
@@ -794,10 +805,11 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				Vec3 vEyePos = pLocal->GetShootPos();
 				Vec3 vTargetPos = target.m_vFinalPos.IsZero() ? target.m_vOrigin : target.m_vFinalPos;
 
-				// Use ballistic solver from Phase 1
-				Vec3 vVelocity = pWeaponInfo->GetVelocity(0.f);
+				// Phase 4: Use charge time for velocity/gravity calculation
+				float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
+				Vec3 vVelocity = pWeaponInfo->GetVelocity(flChargeTime);
 				float flSpeed = vVelocity.Length2D();
-				float flGravity = 800.f * pWeaponInfo->GetGravity(0.f);
+				float flGravity = 800.f * pWeaponInfo->GetGravity(flChargeTime);
 
 				Vec3 vAimAngles;
 				float flTime = 0.f;
@@ -809,11 +821,26 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 					// Apply aim
 					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
 
-					// Auto shoot if enabled
+					// Phase 4: Auto shoot with charge weapon support
 					if (Vars::Aimbot::Projectile::AutoShoot.Value && G::CurrentUserCmd)
 					{
-						if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
+						if (pWeaponInfo->m_bCharges)
 						{
+							// Charge weapon handling (Huntsman, Loose Cannon)
+							if (flChargeTime < 0.01f)
+							{
+								// Just started charging, hold attack
+								G::CurrentUserCmd->buttons |= IN_ATTACK;
+							}
+							else
+							{
+								// Charging in progress, release to fire
+								G::CurrentUserCmd->buttons &= ~IN_ATTACK;
+							}
+						}
+						else if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
+						{
+							// Huntsman without charge
 							if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AutoScope && !pLocal->IsScoped())
 							{
 								G::CurrentUserCmd->buttons |= IN_ATTACK2;
