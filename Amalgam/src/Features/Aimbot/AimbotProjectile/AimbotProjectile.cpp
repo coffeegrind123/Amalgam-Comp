@@ -667,34 +667,20 @@ std::vector<ProjTargetData_t> CAimbotProjectile::GetTargetsSmart(CTFPlayer* pLoc
 
 		candidate.m_flFOV = flFOV;
 
-		// Get charge time for charge weapons (Huntsman, Loose Cannon)
-		float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
-
-		Vec3 vVelocity = pWeaponInfo->GetVelocity(flChargeTime);
-		float flProjSpeed = vVelocity.Length2D();
-		float flTravelTime = flDist / (flProjSpeed > 0.f ? flProjSpeed : 1.f);
-
-		// Phase 4: Add sticky detonate time if applicable
-		if (pWeapon->GetWeaponID() == TF_WEAPON_PIPEBOMBLAUNCHER)
+		// Use SEOwnedDE time-based prediction - simulates tick-by-tick and matches projectile travel time
+		// This will automatically find the right position where projectile arrival matches player position
+		if (!SolveProjectileTarget(pLocal, pWeapon, pWeaponInfo, candidate, nullptr))
 		{
-			float flDetonateTime = 0.7f; // Base detonate time
-			// TODO: Account for sticky_arm_time attribute if needed
-			flTravelTime += flDetonateTime;
+			// Could not solve projectile path to target
+			continue;
 		}
 
-		// Phase 3: Use player movement simulation
-		if (!SimulatePlayerMovement(candidate, pLocal, flTravelTime))
-		{
-			// Fallback to simple linear prediction
-			candidate.m_vFinalPos = candidate.m_vOrigin + candidate.m_vVelocity * flTravelTime;
-		}
+		// candidate.m_vFinalPos and candidate.m_flTimeToHit are set by SolveProjectileTarget
 
-		candidate.m_flTimeToHit = flTravelTime;
-
-		if (flTravelTime > Vars::Aimbot::Projectile::MaxSimulationTime.Value)
+		if (candidate.m_flTimeToHit > Vars::Aimbot::Projectile::MaxSimulationTime.Value)
 			continue;
 
-		// Phase 3: Run multipoint for visibility check and optimal aim position
+		// Run multipoint for final visibility check
 		Vec3 vMultipointPos;
 		if (RunMultipoint(candidate.m_pEntity, pWeapon, pWeaponInfo, vEyePos, candidate.m_vFinalPos, vMultipointPos))
 		{
@@ -787,67 +773,190 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 	return true;  // Changed from false to true - accept center point even if not fully visible
 }
 
-bool CAimbotProjectile::SimulatePlayerMovement(ProjTargetData_t& target, CTFPlayer* pLocal, float flTravelTime)
+// SEOwnedDE-style time-based projectile solving
+bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, CUserCmd* pCmd)
 {
-	if (!target.m_pEntity || !pLocal)
+	if (!target.m_pEntity || !target.m_pEntity->IsPlayer())
 		return false;
 
 	auto pPlayer = target.m_pEntity->As<CTFPlayer>();
 	if (!pPlayer)
 		return false;
 
-	// Use existing MovementSimulation if velocity is significant
-	if (target.m_vVelocity.Length() < 10.f)
-	{
-		target.m_vFinalPos = target.m_vOrigin;
-		target.m_vSimPath.push_back(target.m_vOrigin);
-		return true;
-	}
+	Vec3 vShootPos = pLocal->GetShootPos();
 
-	// Use Performance Mode for simpler prediction
-	if (Vars::Aimbot::Projectile::PerformanceMode.Value)
-	{
-		// Simple linear prediction
-		target.m_vFinalPos = target.m_vOrigin + target.m_vVelocity * flTravelTime;
-		target.m_vSimPath.push_back(target.m_vOrigin);
-		target.m_vSimPath.push_back(target.m_vFinalPos);
-		return true;
-	}
+	// Get projectile info
+	float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
+	Vec3 vVelocity = pWeaponInfo->GetVelocity(flChargeTime);
+	float flSpeed = vVelocity.Length2D();
+	float flGravity = 800.f * pWeaponInfo->GetGravity(flChargeTime);
 
-	// Advanced prediction with MovementSimulation
+	bool bDucked = pPlayer->m_fFlags() & FL_DUCKING;
+	bool bOnGround = pPlayer->m_fFlags() & FL_ONGROUND;
+
+	// Initialize movement simulation
 	MoveStorage moveData;
 	if (!F::MoveSim.Initialize(pPlayer, moveData, false, true))
 	{
-		// Fallback to linear if simulation fails
-		target.m_vFinalPos = target.m_vOrigin + target.m_vVelocity * flTravelTime;
-		return true;
+		// Fallback: simple linear prediction
+		Vec3 vPredicted = target.m_vOrigin + target.m_vVelocity * 0.5f;
+		Vec3 vAimAngles;
+		float flTime = 0.f;
+		if (ProjAimMath::SolveBallisticArc(vShootPos, vPredicted, flSpeed, flGravity, vAimAngles, flTime))
+		{
+			target.m_vFinalPos = vPredicted;
+			target.m_flTimeToHit = flTime;
+			return true;
+		}
+		return false;
 	}
 
-	// Simulate ticks
-	int simTicks = static_cast<int>((flTravelTime / I::GlobalVars->interval_per_tick) + 0.5f);
-	simTicks = std::min(simTicks, 64); // Cap at 64 ticks
+	target.m_vSimPath.clear();
 
-	for (int i = 0; i < simTicks; i++)
+	// Simulate tick-by-tick like SEOwnedDE
+	int maxTicks = TIME_TO_TICKS(Vars::Aimbot::Projectile::MaxSimulationTime.Value);
+	for (int nTick = 0; nTick < maxTicks; nTick++)
 	{
+		target.m_vSimPath.push_back(moveData.m_MoveData.m_vecAbsOrigin);
+
+		// Run simulation tick
 		F::MoveSim.RunTick(moveData, true);
 
 		if (moveData.m_bFailed)
 			break;
-	}
 
-	if (!moveData.m_bFailed && !moveData.m_vPath.empty())
-	{
-		target.m_vFinalPos = moveData.m_vPath.back();
-		target.m_vSimPath = moveData.m_vPath;
-	}
-	else
-	{
-		// Fallback to linear if simulation failed
-		target.m_vFinalPos = target.m_vOrigin + target.m_vVelocity * flTravelTime;
+		Vec3 vTargetPos = moveData.m_MoveData.m_vecAbsOrigin;
+
+		// Offset for hitbox (center of player)
+		Vec3 vMins = pPlayer->m_vecMins();
+		Vec3 vMaxs = pPlayer->m_vecMaxs();
+		vTargetPos.z += (vMins.z + vMaxs.z) * 0.5f;
+
+		// Calculate projectile travel time to this position
+		Vec3 vAimAngles;
+		float flTimeToTarget = 0.f;
+		if (!ProjAimMath::SolveBallisticArc(vShootPos, vTargetPos, flSpeed, flGravity, vAimAngles, flTimeToTarget))
+			continue;
+
+		// Add latency
+		float flLatency = (I::EngineClient->GetNetChannelInfo() ? I::EngineClient->GetNetChannelInfo()->GetLatency(FLOW_OUTGOING) : 0.f);
+		int nTargetTick = TIME_TO_TICKS(flTimeToTarget + flLatency);
+
+		// Handle sticky arm time
+		if (pWeapon->GetWeaponID() == TF_WEAPON_PIPEBOMBLAUNCHER)
+		{
+			float flStickyArmTime = SDK::AttribHookValue(0.8f, "sticky_arm_time", pLocal);
+			if (TICKS_TO_TIME(nTargetTick) < flStickyArmTime)
+			{
+				nTargetTick += TIME_TO_TICKS(fabsf(flTimeToTarget - flStickyArmTime));
+			}
+		}
+
+		// Check if projectile travel time matches simulation time
+		if (nTargetTick == nTick || nTargetTick == nTick - 1)
+		{
+			// Try splash damage for rockets
+			if (pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER ||
+				pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT)
+			{
+				if (GenerateSplashPoints(pLocal, pWeapon, pWeaponInfo, target, vShootPos))
+				{
+					F::MoveSim.Restore(moveData);
+					return true;
+				}
+			}
+
+			// Direct hit
+			target.m_vFinalPos = vTargetPos;
+			target.m_flTimeToHit = flTimeToTarget;
+			F::MoveSim.Restore(moveData);
+			return true;
+		}
 	}
 
 	F::MoveSim.Restore(moveData);
-	return true;
+	return false;
+}
+
+// SEOwnedDE-style splash damage sphere generation
+bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, const Vec3& vShootPos)
+{
+	if (!target.m_pEntity || !target.m_pEntity->IsPlayer())
+		return false;
+
+	auto pPlayer = target.m_pEntity->As<CTFPlayer>();
+	if (!pPlayer)
+		return false;
+
+	// Get current simulated position
+	Vec3 vCenter = target.m_vFinalPos;
+
+	// Determine splash radius based on weapon
+	float flRadius = 180.f; // Default rocket launcher radius
+	if (pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT)
+		flRadius = 80.f;
+
+	// Generate sphere of points (Fibonacci sphere distribution)
+	int numPoints = 80;
+	std::vector<Vec3> potentialPoints;
+
+	for (int n = 0; n < numPoints; n++)
+	{
+		float a1 = acosf(1.0f - 2.0f * (static_cast<float>(n) / static_cast<float>(numPoints)));
+		float a2 = (static_cast<float>(M_PI) * (3.0f - sqrtf(5.0f))) * static_cast<float>(n);
+
+		Vec3 offset = Vec3(sinf(a1) * cosf(a2), sinf(a1) * sinf(a2), cosf(a1));
+		Vec3 point = vCenter + (offset * flRadius);
+
+		// Trace from center to point to find wall/floor
+		CGameTrace trace = {};
+		CTraceFilterWorldAndPropsOnly filter = {};
+		SDK::Trace(vCenter, point, MASK_SOLID, &filter, &trace);
+
+		// If we hit something, that's a potential splash point
+		if (trace.fraction < 0.99f)
+		{
+			potentialPoints.push_back(trace.endpos);
+		}
+	}
+
+	if (potentialPoints.empty())
+		return false;
+
+	// Sort by distance to target - closest splash points are best
+	std::sort(potentialPoints.begin(), potentialPoints.end(), [&](const Vec3& a, const Vec3& b) {
+		return a.DistTo(target.m_vFinalPos) < b.DistTo(target.m_vFinalPos);
+	});
+
+	// Get projectile info for solving
+	float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
+	Vec3 vVelocity = pWeaponInfo->GetVelocity(flChargeTime);
+	float flSpeed = vVelocity.Length2D();
+	float flGravity = 800.f * pWeaponInfo->GetGravity(flChargeTime);
+
+	// Try each splash point
+	for (const auto& point : potentialPoints)
+	{
+		Vec3 vAimAngles;
+		float flTime = 0.f;
+
+		if (!ProjAimMath::SolveBallisticArc(vShootPos, point, flSpeed, flGravity, vAimAngles, flTime))
+			continue;
+
+		// Verify we can actually shoot to this point
+		CGameTrace trace = {};
+		CTraceFilterWorldAndPropsOnly filter = {};
+		SDK::TraceHull(vShootPos, point, Vec3(-4.f, -4.f, -4.f), Vec3(4.f, 4.f, 4.f), MASK_SOLID, &filter, &trace);
+
+		if (trace.fraction > 0.99f || !trace.allsolid)
+		{
+			target.m_vFinalPos = point;
+			target.m_flTimeToHit = flTime;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // ===== Phase 5: Visuals =====

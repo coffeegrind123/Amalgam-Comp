@@ -46,18 +46,6 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 	if (!pTarget->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
 		return false;
 
-	// Early rejection: Check target center against a reasonable FOV limit (120 degrees)
-	// This prevents targets behind/beside the player from being considered
-	Vec3 vTargetCenter = pTarget->GetAbsOrigin();
-	vTargetCenter.z += (pTarget->m_vecMaxs().z - pTarget->m_vecMins().z) * 0.5f;
-	Vec3 vAngleToCenter = Math::CalcAngle(vLocalPos, vTargetCenter);
-	float flFOVToCenter = Math::CalcFov(vLocalAngles, vAngleToCenter);
-
-	// Reject targets more than 120 degrees away (well outside normal FOV range)
-	// This prevents angle wrapping issues with targets directly behind the player
-	if (flFOVToCenter > 120.f)
-		return false;
-
 	float flMinFOV = 180.f;
 	for (int nHitbox = 0; nHitbox < pTarget->GetNumOfHitboxes(); nHitbox++)
 	{

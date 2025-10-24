@@ -62,6 +62,188 @@ float CalculateFOVToTarget(Vec3 vLocalAngles, Vec3 vLocalPos, Vec3 vTargetPos)
 	return Math::CalcFov(vLocalAngles, vAngleTo);
 }
 
+bool CAimbotHitscan::ScanHead(CTFPlayer* pLocal, Target_t& target)
+{
+	if (!target.m_pEntity || !target.m_pEntity->IsPlayer())
+		return false;
+
+	auto pPlayer = target.m_pEntity->As<CTFPlayer>();
+	if (!pPlayer)
+		return false;
+
+	auto pModel = pPlayer->GetModel();
+	if (!pModel)
+		return false;
+
+	auto pHDR = I::ModelInfoClient->GetStudiomodel(pModel);
+	if (!pHDR)
+		return false;
+
+	auto pSet = pHDR->pHitboxSet(pPlayer->m_nHitboxSet());
+	if (!pSet)
+		return false;
+
+	auto pBox = pSet->pHitbox(HITBOX_HEAD);
+	if (!pBox)
+		return false;
+
+	matrix3x4 aBones[MAXSTUDIOBONES];
+	if (!pPlayer->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+		return false;
+
+	Vec3 vMins = pBox->bbmin;
+	Vec3 vMaxs = pBox->bbmax;
+
+	std::vector<Vec3> vPoints = {
+		Vec3((vMins.x + vMaxs.x) * 0.5f, vMins.y * 0.7f, (vMins.z + vMaxs.z) * 0.5f)
+	};
+
+	Vec3 vLocalPos = pLocal->GetShootPos();
+	for (const auto& vPoint : vPoints)
+	{
+		Vec3 vTransformed;
+		Math::VectorTransform(vPoint, aBones[pBox->bone], vTransformed);
+
+		CGameTrace trace = {};
+		CTraceFilterHitscan filter = {};
+		filter.pSkip = pLocal;
+
+		SDK::Trace(vLocalPos, vTransformed, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
+
+		if (trace.m_pEnt == pPlayer && !trace.allsolid && !trace.startsolid)
+		{
+			target.m_vPos = vTransformed;
+			target.m_vAngleTo = Math::CalcAngle(vLocalPos, vTransformed);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CAimbotHitscan::ScanBody(CTFPlayer* pLocal, Target_t& target)
+{
+	if (!target.m_pEntity || !target.m_pEntity->IsPlayer())
+		return false;
+
+	auto pPlayer = target.m_pEntity->As<CTFPlayer>();
+	if (!pPlayer)
+		return false;
+
+	Vec3 vLocalPos = pLocal->GetShootPos();
+
+	for (int n = 1; n < pPlayer->GetNumOfHitboxes(); n++)
+	{
+		if (n == target.m_nAimedHitbox)
+			continue;
+
+		int nHitboxGroup = pPlayer->GetHitboxGroup(n);
+
+		if (nHitboxGroup != HITGROUP_CHEST && nHitboxGroup != HITGROUP_STOMACH &&
+			nHitboxGroup != HITGROUP_LEFTARM && nHitboxGroup != HITGROUP_RIGHTARM &&
+			nHitboxGroup != HITGROUP_LEFTLEG && nHitboxGroup != HITGROUP_RIGHTLEG)
+			continue;
+
+		matrix3x4 aBones[MAXSTUDIOBONES];
+		if (!pPlayer->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+			continue;
+
+		Vec3 vHitbox = pPlayer->GetHitboxCenter(aBones, n);
+
+		CGameTrace trace = {};
+		CTraceFilterHitscan filter = {};
+		filter.pSkip = pLocal;
+
+		SDK::Trace(vLocalPos, vHitbox, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
+
+		if (trace.m_pEnt == pPlayer && !trace.allsolid && !trace.startsolid)
+		{
+			target.m_vPos = vHitbox;
+			target.m_vAngleTo = Math::CalcAngle(vLocalPos, vHitbox);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CAimbotHitscan::ScanBuilding(CTFPlayer* pLocal, Target_t& target)
+{
+	if (!target.m_pEntity || target.m_pEntity->IsPlayer())
+		return false;
+
+	Vec3 vLocalPos = pLocal->GetShootPos();
+
+	if (target.m_pEntity->IsSentrygun())
+	{
+		auto pSentry = target.m_pEntity->As<CBaseObject>();
+		if (!pSentry)
+			return false;
+
+		for (int n = 0; n < pSentry->GetNumOfHitboxes(); n++)
+		{
+			matrix3x4 aBones[MAXSTUDIOBONES];
+			if (!pSentry->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+				continue;
+
+			Vec3 vHitbox = pSentry->GetHitboxCenter(aBones, n);
+
+			CGameTrace trace = {};
+			CTraceFilterHitscan filter = {};
+			filter.pSkip = pLocal;
+
+			SDK::Trace(vLocalPos, vHitbox, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
+
+			if (trace.m_pEnt == pSentry && !trace.allsolid && !trace.startsolid)
+			{
+				target.m_vPos = vHitbox;
+				target.m_vAngleTo = Math::CalcAngle(vLocalPos, vHitbox);
+				return true;
+			}
+		}
+	}
+	else
+	{
+		auto pObject = target.m_pEntity->As<CBaseObject>();
+		if (!pObject)
+			return false;
+
+		Vec3 vMins = pObject->m_vecMins();
+		Vec3 vMaxs = pObject->m_vecMaxs();
+
+		std::vector<Vec3> vPoints = {
+			Vec3(vMins.x * 0.9f, ((vMins.y + vMaxs.y) * 0.5f), ((vMins.z + vMaxs.z) * 0.5f)),
+			Vec3(vMaxs.x * 0.9f, ((vMins.y + vMaxs.y) * 0.5f), ((vMins.z + vMaxs.z) * 0.5f)),
+			Vec3(((vMins.x + vMaxs.x) * 0.5f), vMins.y * 0.9f, ((vMins.z + vMaxs.z) * 0.5f)),
+			Vec3(((vMins.x + vMaxs.x) * 0.5f), vMaxs.y * 0.9f, ((vMins.z + vMaxs.z) * 0.5f)),
+			Vec3(((vMins.x + vMaxs.x) * 0.5f), ((vMins.y + vMaxs.y) * 0.5f), vMins.z * 0.9f),
+			Vec3(((vMins.x + vMaxs.x) * 0.5f), ((vMins.y + vMaxs.y) * 0.5f), vMaxs.z * 0.9f)
+		};
+
+		matrix3x4& transform = pObject->RenderableToWorldTransform();
+		for (const auto& vPoint : vPoints)
+		{
+			Vec3 vTransformed;
+			Math::VectorTransform(vPoint, transform, vTransformed);
+
+			CGameTrace trace = {};
+			CTraceFilterHitscan filter = {};
+			filter.pSkip = pLocal;
+
+			SDK::Trace(vLocalPos, vTransformed, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
+
+			if (trace.m_pEnt == pObject && !trace.allsolid && !trace.startsolid)
+			{
+				target.m_vPos = vTransformed;
+				target.m_vAngleTo = Math::CalcAngle(vLocalPos, vTransformed);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 {
 	std::vector<Target_t> vTargets;
@@ -341,16 +523,54 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 
 		// Simple visibility check like Linux-internals
 		if (!IsPlayerVisibleReliable(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), nOptimalBone))
-			return false;
+		{
+			// Primary hitbox not visible - try multipoint scanning
+			if (nOptimalBone == HITBOX_HEAD)
+			{
+				if (!ScanHead(pLocal, tTarget))
+					return false;
+			}
+			else
+			{
+				if (!ScanBody(pLocal, tTarget))
+					return false;
+			}
+		}
+		else
+		{
+			tTarget.m_vPos = vTargetPos;
+			tTarget.m_vAngleTo = Math::CalcAngle(vEyePos, vTargetPos);
+		}
 
-		tTarget.m_vPos = vTargetPos;
-		tTarget.m_vAngleTo = Math::CalcAngle(vEyePos, vTargetPos);
 		tTarget.m_nAimedHitbox = nOptimalBone;
 		tTarget.m_bBacktrack = false;
 		return true;
 	}
 
-	// Preserve advanced functionality for buildings and other entities
+	// Buildings and other entities - try multipoint scanning
+	if (tTarget.m_pEntity->IsSentrygun() || tTarget.m_pEntity->IsDispenser() || tTarget.m_pEntity->IsTeleporter())
+	{
+		Vec3 vCenter = tTarget.m_pEntity->GetCenter();
+		CGameTrace trace = {};
+		CTraceFilterHitscan filter = {};
+		filter.pSkip = pLocal;
+
+		SDK::Trace(vEyePos, vCenter, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
+
+		if (trace.m_pEnt != tTarget.m_pEntity || trace.allsolid || trace.startsolid)
+		{
+			if (!ScanBuilding(pLocal, tTarget))
+				return false;
+		}
+		else
+		{
+			tTarget.m_vPos = vCenter;
+			tTarget.m_vAngleTo = Math::CalcAngle(vEyePos, vCenter);
+		}
+		return true;
+	}
+
+	// Preserve advanced functionality for other entities
 	auto pModel = tTarget.m_pEntity->GetModel();
 	if (!pModel) return false;
 	auto pHDR = I::ModelInfoClient->GetStudiomodel(pModel);

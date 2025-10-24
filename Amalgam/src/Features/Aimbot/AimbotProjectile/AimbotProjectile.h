@@ -99,9 +99,12 @@ private:
 	std::vector<ProjTargetData_t> GetTargetsSmart(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, bool bIncludeTeam);
 	bool ShouldIgnoreTarget(CBaseEntity* pEntity, CTFPlayer* pLocal);
 
+	// SEOwnedDE time-based prediction
+	bool SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, CUserCmd* pCmd);
+	bool GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, const Vec3& vShootPos);
+
 	// Phase 3: Multipoint and simulation
 	bool RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, const Vec3& vEyePos, const Vec3& vPredictedPos, Vec3& vOut);
-	bool SimulatePlayerMovement(ProjTargetData_t& target, CTFPlayer* pLocal, float flTravelTime);
 
 	bool m_bLastTickHeld = false;
 

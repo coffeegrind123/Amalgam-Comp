@@ -19,6 +19,10 @@ private:
 	void Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod = Vars::Aimbot::General::AimType.Value);
 	bool ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, const Target_t& tTarget);
 
+	bool ScanHead(CTFPlayer* pLocal, Target_t& target);
+	bool ScanBody(CTFPlayer* pLocal, Target_t& target);
+	bool ScanBuilding(CTFPlayer* pLocal, Target_t& target);
+
 public:
 	void Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
 };
