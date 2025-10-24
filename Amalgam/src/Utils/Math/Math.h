@@ -186,8 +186,9 @@ namespace Math
 		flPitchDelta = std::clamp(flPitchDelta, -89.f, 89.f);
 		flYawDelta = std::clamp(flYawDelta, -180.f, 180.f);
 
-		// Calculate FOV as hypotenuse of clamped deltas
-		float flResult = hypotf(flPitchDelta, flYawDelta);
+		// Use only yaw for FOV (2D horizontal FOV like most games/aimbots)
+		// This matches user expectation - vertical angle doesn't affect FOV circle
+		float flResult = std::abs(flYawDelta);
 
 		if (!isfinite(flResult) || isinf(flResult) || isnan(flResult))
 			flResult = 0.f;
