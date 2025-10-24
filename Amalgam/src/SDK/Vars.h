@@ -350,8 +350,8 @@ namespace Vars
 			CVar(AutoShoot, "Auto shoot", true);
 			CVar(MaxDistance, "Max distance", 3000.f, SLIDER_MIN | SLIDER_PRECISION, 100.f, 8000.f, 100.f, "%g HU");
 			CVar(MaxTargets, "Max targets", 1, SLIDER_MIN, 1, 10);
-			CVar(MinScore, "Min score", 2.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 10.f, 0.5f);
-			CVar(SmartTargeting, "Smart targeting", true);
+			CVar(MinScore, "Min score", 0.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 10.f, 0.5f);
+			CVar(SmartTargeting, "Smart targeting", false);
 			CVar(PerformanceMode, "Performance mode", false);
 			CVarEnum(TargetWeights, VA_LIST("Weights", "Target scoring weights"), 0b11111, DROPDOWN_MULTI, nullptr,
 				VA_LIST("Health", "Distance", "FOV", "Visibility", "Speed"),

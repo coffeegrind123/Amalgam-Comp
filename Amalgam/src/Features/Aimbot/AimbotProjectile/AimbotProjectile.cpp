@@ -1054,6 +1054,36 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 			}
 		}
 	}
+
+	// Fallback: If smart targeting is disabled OR didn't find anything, use simple targeting
+	// This ensures the aimbot works even for unsupported weapons or when smart targeting fails
+	if (!Vars::Aimbot::Projectile::SmartTargeting.Value || !m_bRunning)
+	{
+		auto vTargets = SortTargets(pLocal, pWeapon);
+		if (!vTargets.empty())
+		{
+			Target_t& tTarget = vTargets.front();
+
+			// Validate target entity
+			if (!tTarget.m_pEntity)
+				return;
+
+			m_bRunning = true;
+			G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
+			G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
+			G::AimTarget.m_iDuration = 1;
+
+			// Simple aiming - just point at the target position
+			Aim(pCmd, tTarget.m_vAngleTo, Vars::Aimbot::General::AimType.Value);
+
+			// Auto shoot if enabled
+			if (Vars::Aimbot::General::AutoShoot.Value && pCmd)
+			{
+				pCmd->buttons |= IN_ATTACK;
+				G::Attacking = 1;
+			}
+		}
+	}
 }
 
 bool CAimbotProjectile::ShouldFire(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, const Target_t& tTarget)
