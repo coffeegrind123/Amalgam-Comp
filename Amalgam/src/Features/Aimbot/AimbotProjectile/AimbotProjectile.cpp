@@ -1068,6 +1068,12 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 	if (!CanHit(tTarget, pLocal, pWeapon))
 		return;
 
+	// Re-validate target is still in FOV (Linux-internals style continuous validation)
+	Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
+	float flCurrentFOV = Math::CalcFov(vLocalAngles, tTarget.m_vAngleTo);
+	if (flCurrentFOV > Vars::Aimbot::General::AimFOV.Value)
+		return;
+
 	G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
 	G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimTarget.m_iDuration = 1;

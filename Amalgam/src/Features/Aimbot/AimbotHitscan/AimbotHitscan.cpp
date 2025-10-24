@@ -546,6 +546,12 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 	if (!CanHit(tTarget, pLocal, pWeapon))
 		return;
 
+	// Re-validate target is still in FOV (Linux-internals style continuous validation)
+	Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
+	float flCurrentFOV = Math::CalcFov(vLocalAngles, tTarget.m_vAngleTo);
+	if (flCurrentFOV > Vars::Aimbot::General::AimFOV.Value)
+		return;
+
 	G::AimPoint.m_vOrigin = tTarget.m_vPos;
 	G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
 	G::AimTarget.m_iDuration = 1;
@@ -555,9 +561,10 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 
 	if (bShouldFire && G::CurrentUserCmd)
 	{
-		// Handle auto-scoping before firing
+		// Handle auto-scoping before firing (Linux-internals: only scope when on ground)
 		if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::AutoScope &&
-			pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped())
+			pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE && !pLocal->IsScoped() &&
+			pLocal->m_hGroundEntity() != nullptr)  // Only scope when on ground
 		{
 			G::CurrentUserCmd->buttons |= IN_ATTACK2;
 			bShouldFire = false; // Don't fire yet, scope first
@@ -585,5 +592,19 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 			 iAimType == Vars::Aimbot::General::AimTypeEnum::Assistive)
 	{
 		Aim(pCmd, tTarget.m_vAngleTo, iAimType);
+	}
+
+	// Auto-unscope after 1 second (Linux-internals feature)
+	if (Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::AutoScope &&
+		pLocal->m_iClass() == TF_CLASS_SNIPER &&
+		pLocal->IsScoped() &&
+		pWeapon->GetWeaponID() == TF_WEAPON_SNIPERRIFLE)
+	{
+		// Check if we've been scoped for >= 1 second
+		float flTimeSinceScope = (pLocal->m_nTickBase() * I::GlobalVars->interval_per_tick) - pLocal->m_flFOVTime();
+		if (flTimeSinceScope >= 1.0f)
+		{
+			pCmd->buttons |= IN_ATTACK2;  // Unscope
+		}
 	}
 }
