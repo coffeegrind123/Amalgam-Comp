@@ -45,8 +45,9 @@ namespace ProjAimMath
 		Vec3 vDstForward; Math::AngleVectors(vTo, &vDstForward);
 
 		float flDot = vDstForward.Dot(vSrcForward);
-		float flLengthSqr = vDstForward.Length();
-		float fov = RadToDeg(acosf(flDot / (flLengthSqr * flLengthSqr)));
+		// Clamp dot product to valid range for acos [-1, 1]
+		flDot = std::clamp(flDot, -1.0f, 1.0f);
+		float fov = RadToDeg(acosf(flDot));
 
 		if (IsNaN(fov))
 			fov = 0.0f;
