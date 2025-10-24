@@ -708,18 +708,21 @@ std::vector<ProjTargetData_t> CAimbotProjectile::GetTargetsSmart(CTFPlayer* pLoc
 
 		candidate.m_flScore = CalculateScore(candidate, vEyePos, vViewAngles, bIncludeTeam, pLocal);
 
-		if (candidate.m_flScore < Vars::Aimbot::Projectile::MinScore.Value)
+		// Only filter by MinScore if it's above 0 (allows disabling the filter)
+		if (Vars::Aimbot::Projectile::MinScore.Value > 0.f && candidate.m_flScore < Vars::Aimbot::Projectile::MinScore.Value)
 			continue;
 
 		vTargets.push_back(candidate);
 	}
 
+	// Sort by score (highest first)
 	std::sort(vTargets.begin(), vTargets.end(), [](const ProjTargetData_t& a, const ProjTargetData_t& b) {
 		return a.m_flScore > b.m_flScore;
 	});
 
+	// Limit to max targets
 	int maxTargets = Vars::Aimbot::Projectile::MaxTargets.Value;
-	if ((int)vTargets.size() > maxTargets)
+	if (maxTargets > 0 && (int)vTargets.size() > maxTargets)
 		vTargets.resize(maxTargets);
 
 	return vTargets;
@@ -1005,7 +1008,8 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 					G::AimTarget.m_iDuration = 1;
 
 					// Phase 4: Auto shoot with charge weapon support
-					if (Vars::Aimbot::General::AutoShoot.Value && pCmd)
+					bool bShouldShoot = Vars::Aimbot::General::AutoShoot.Value;
+					if (bShouldShoot && pCmd)
 					{
 						if (pWeaponInfo->m_bCharges)
 						{
@@ -1042,7 +1046,8 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 						}
 					}
 
-					// Apply aim regardless of autoshoot (so manual M1 works)
+					// Apply aim - works with autoshoot OR manual firing
+					// For Plain mode to work without autoshoot, we need G::Attacking set or IN_ATTACK held
 					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
 					return;
 				}

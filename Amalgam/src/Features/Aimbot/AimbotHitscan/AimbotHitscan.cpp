@@ -544,14 +544,11 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 	if (!CanHit(tTarget, pLocal, pWeapon))
 		return;
 
-	// Re-validate target is still in FOV (Linux-internals style continuous validation)
-	// IMPORTANT: Recalculate angle to target with current view angles
-	Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
+	// Update angle to target with the final position from CanHit
+	// Don't recheck FOV - target was already validated in GetTargets()
+	// and CanHit may have updated the target position (e.g., different hitbox)
 	Vec3 vLocalPos = pLocal->GetShootPos();
-	tTarget.m_vAngleTo = Math::CalcAngle(vLocalPos, tTarget.m_vPos);  // Recalculate with updated position
-	float flCurrentFOV = Math::CalcFov(vLocalAngles, tTarget.m_vAngleTo);
-	if (flCurrentFOV > Vars::Aimbot::General::AimFOV.Value)
-		return;
+	tTarget.m_vAngleTo = Math::CalcAngle(vLocalPos, tTarget.m_vPos);
 
 	G::AimPoint.m_vOrigin = tTarget.m_vPos;
 	G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;

@@ -342,13 +342,13 @@ namespace Vars
 			CVarEnum(Modifiers, VA_LIST("Modifiers", "Projectile modifiers"), 0b11010, DROPDOWN_MULTI, nullptr,
 				VA_LIST("Charge shot", "Cancel charge", "Use prime time", "##Divider", "Auto scope", "Avoid rockets"),
 				ChargeWeapon = 1 << 0, CancelCharge = 1 << 1, UsePrimeTime = 1 << 2, AutoScope = 1 << 4, AvoidRockets = 1 << 5);
-			CVar(MaxSimulationTime, "Max simulation time", 2.f, SLIDER_MIN | SLIDER_PRECISION, 0.1f, 2.5f, 0.25f, "%gs");
+			CVar(MaxSimulationTime, "Max simulation time", 5.f, SLIDER_MIN | SLIDER_PRECISION, 0.1f, 10.f, 0.25f, "%gs");
 			CVar(HitChance, "Hit chance", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AutodetRadius, "Autodet radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(SplashRadius, "Splash radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AutoRelease, "Auto release", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 5.f, "%g%%");
 			CVar(AutoShoot, "Auto shoot", true);
-			CVar(MaxDistance, "Max distance", 1024.f, SLIDER_MIN | SLIDER_PRECISION, 100.f, 4096.f, 100.f, "%g HU");
+			CVar(MaxDistance, "Max distance", 3000.f, SLIDER_MIN | SLIDER_PRECISION, 100.f, 8000.f, 100.f, "%g HU");
 			CVar(MaxTargets, "Max targets", 1, SLIDER_MIN, 1, 10);
 			CVar(MinScore, "Min score", 2.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 10.f, 0.5f);
 			CVar(SmartTargeting, "Smart targeting", true);
