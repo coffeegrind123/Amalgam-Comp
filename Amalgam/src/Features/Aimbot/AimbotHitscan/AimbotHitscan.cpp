@@ -22,7 +22,8 @@ bool IsPlayerVisibleReliable(CTFPlayer* pLocal, CTFPlayer* pTarget, int nBone)
 	CTraceFilterHitscan filter = {};
 	filter.pSkip = pLocal;
 
-	SDK::TraceHull(vLocalPos, vTargetPos, Vec3(-3, -3, -3), Vec3(3, 3, 3), MASK_SHOT, &filter, &trace);
+	// Use ray trace instead of hull trace (like Linux) for more reliable close-range visibility
+	SDK::Trace(vLocalPos, vTargetPos, MASK_SHOT, &filter, &trace);
 
 	// More lenient visibility check - direct hit or high fraction
 	// Linux uses fixed 0.97, we use 0.95 for more consistency
