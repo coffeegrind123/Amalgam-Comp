@@ -46,6 +46,14 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 	if (!pTarget->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
 		return false;
 
+	// Quick sanity check: reject targets more than 90 degrees away (behind/beside player)
+	// This prevents targeting players behind you when a single hitbox wraps into FOV
+	Vec3 vTargetCenter = pTarget->GetCenter();
+	Vec3 vAngleToCenter = Math::CalcAngle(vLocalPos, vTargetCenter);
+	float flFOVToCenter = Math::CalcFov(vLocalAngles, vAngleToCenter);
+	if (flFOVToCenter > 90.f)
+		return false;
+
 	float flMinFOV = 180.f;
 	for (int nHitbox = 0; nHitbox < pTarget->GetNumOfHitboxes(); nHitbox++)
 	{

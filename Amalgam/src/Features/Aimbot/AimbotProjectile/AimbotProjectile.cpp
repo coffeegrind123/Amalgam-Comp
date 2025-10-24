@@ -866,9 +866,10 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 				}
 			}
 
-			// Direct hit
+			// Direct hit - store position, time, and aim angles
 			target.m_vFinalPos = vTargetPos;
 			target.m_flTimeToHit = flTimeToTarget;
+			target.m_vAimAngles = vAimAngles;
 			F::MoveSim.Restore(moveData);
 			return true;
 		}
@@ -952,6 +953,7 @@ bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* p
 		{
 			target.m_vFinalPos = point;
 			target.m_flTimeToHit = flTime;
+			target.m_vAimAngles = vAimAngles;
 			return true;
 		}
 	}
@@ -1055,19 +1057,15 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				Vec3 vEyePos = pLocal->GetShootPos();
 				Vec3 vTargetPos = target.m_vFinalPos.IsZero() ? target.m_vOrigin : target.m_vFinalPos;
 
-				// Validate positions aren't invalid
-				if (!vEyePos.IsValid() || !vTargetPos.IsValid())
+				// Validate positions and aim angles aren't invalid
+				if (!vEyePos.IsValid() || !vTargetPos.IsValid() || target.m_vAimAngles.IsZero())
 					return;
 
-				// Phase 4: Use charge time for velocity/gravity calculation
-				float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
-				Vec3 vVelocity = pWeaponInfo->GetVelocity(flChargeTime);
-				float flSpeed = vVelocity.Length2D();
-				float flGravity = 800.f * pWeaponInfo->GetGravity(flChargeTime);
+				// Use the pre-calculated aim angles from SolveProjectileTarget
+				Vec3 vAimAngles = target.m_vAimAngles;
+				float flTime = target.m_flTimeToHit;
 
-				Vec3 vAimAngles;
-				float flTime = 0.f;
-				if (ProjAimMath::SolveBallisticArc(vEyePos, vTargetPos, flSpeed, flGravity, vAimAngles, flTime))
+				// We have valid aim solution from SolveProjectileTarget
 				{
 					// Phase 5: Store visual data
 					m_CurrentTarget = target;

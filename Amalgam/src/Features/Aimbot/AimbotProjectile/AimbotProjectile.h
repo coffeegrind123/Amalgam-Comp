@@ -16,6 +16,7 @@ struct ProjTargetData_t
 	Vec3 m_vMins = {};
 	Vec3 m_vMaxs = {};
 	Vec3 m_vFinalPos = {};
+	Vec3 m_vAimAngles = {};
 	int m_iHealth = 0;
 	int m_iMaxHealth = 0;
 	int m_iClass = 0;
