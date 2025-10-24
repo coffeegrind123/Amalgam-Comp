@@ -1043,7 +1043,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 						}
 					}
 
-					// Apply aim AFTER setting attack button so G::Attacking check works
+					// Apply aim regardless of autoshoot (so manual M1 works)
 					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
 					return;
 				}
