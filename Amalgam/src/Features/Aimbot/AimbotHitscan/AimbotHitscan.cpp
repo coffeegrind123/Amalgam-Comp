@@ -24,7 +24,11 @@ bool IsPlayerVisibleReliable(CTFPlayer* pLocal, CTFPlayer* pTarget, int nBone)
 
 	SDK::TraceHull(vLocalPos, vTargetPos, Vec3(-3, -3, -3), Vec3(3, 3, 3), MASK_SHOT, &filter, &trace);
 
-	return (trace.m_pEnt == pTarget || trace.fraction > 0.97f);
+	// Use distance-based fraction threshold (same as HealthBarESP and ProjectileAimbot)
+	float flDistance = (vTargetPos - vLocalPos).Length();
+	float flRequiredFraction = (flDistance < 300.0f) ? 0.75f : 0.90f;
+
+	return (trace.m_pEnt == pTarget || trace.fraction > flRequiredFraction);
 }
 
 // Simplified hitbox selection based on Linux-internals approach
