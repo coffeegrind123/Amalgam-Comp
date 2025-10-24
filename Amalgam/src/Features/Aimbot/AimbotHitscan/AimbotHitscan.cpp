@@ -220,7 +220,7 @@ bool CAimbotHitscan::ScanBuilding(CTFPlayer* pLocal, Target_t& target)
 			Vec3(((vMins.x + vMaxs.x) * 0.5f), ((vMins.y + vMaxs.y) * 0.5f), vMaxs.z * 0.9f)
 		};
 
-		matrix3x4& transform = pObject->RenderableToWorldTransform();
+		const matrix3x4& transform = pObject->RenderableToWorldTransform();
 		for (const auto& vPoint : vPoints)
 		{
 			Vec3 vTransformed;
