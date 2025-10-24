@@ -41,18 +41,9 @@ namespace ProjAimMath
 
 	inline float AngleFov(const Vec3& vFrom, const Vec3& vTo)
 	{
-		Vec3 vSrcForward; Math::AngleVectors(vFrom, &vSrcForward);
-		Vec3 vDstForward; Math::AngleVectors(vTo, &vDstForward);
-
-		float flDot = vDstForward.Dot(vSrcForward);
-		// Clamp dot product to valid range for acos [-1, 1]
-		flDot = std::clamp(flDot, -1.0f, 1.0f);
-		float fov = RadToDeg(acosf(flDot));
-
-		if (IsNaN(fov))
-			fov = 0.0f;
-
-		return fov;
+		// Use Math::CalcFov() for consistent 2D horizontal FOV
+		// This matches the fixed FOV calculation and user expectation
+		return Math::CalcFov(vFrom, vTo);
 	}
 
 	inline Vec3 NormalizeVector(const Vec3& vec)
