@@ -19,6 +19,10 @@ ProjectilePrediction_t PredictProjectilePosition(CTFPlayer* pLocal, CTFPlayer* p
 {
 	ProjectilePrediction_t tPrediction = {};
 
+	// Validate pointers
+	if (!pLocal || !pTarget || !pWeapon)
+		return tPrediction;
+
 	Vec3 vLocalPos = pLocal->GetShootPos();
 	Vec3 vTargetPos = pTarget->GetAbsOrigin();
 	Vec3 vTargetVel = pTarget->m_vecVelocity();
@@ -70,6 +74,9 @@ float CalculateProjectileFOV(Vec3 vLocalAngles, Vec3 vLocalPos, Vec3 vTargetPos)
 // Simple visibility check for projectiles
 bool IsProjectilePathClear(CTFPlayer* pLocal, Vec3 vTargetPos)
 {
+	if (!pLocal)
+		return false;
+
 	Vec3 vLocalPos = pLocal->GetShootPos();
 
 	CGameTrace trace = {};
@@ -255,9 +262,17 @@ std::vector<Target_t> CAimbotProjectile::SortTargets(CTFPlayer* pLocal, CTFWeapo
 
 	for (auto& tTarget : vTargets)
 	{
+		// Validate entity pointer
+		if (!tTarget.m_pEntity)
+			continue;
+
 		if (tTarget.m_pEntity->IsPlayer())
 		{
-			int nHealth = tTarget.m_pEntity->As<CTFPlayer>()->m_iHealth();
+			CTFPlayer* pTargetPlayer = tTarget.m_pEntity->As<CTFPlayer>();
+			if (!pTargetPlayer)
+				continue;
+
+			int nHealth = pTargetPlayer->m_iHealth();
 
 			switch (Vars::Aimbot::General::TargetSelection.Value)
 			{
@@ -308,11 +323,16 @@ std::vector<Target_t> CAimbotProjectile::SortTargets(CTFPlayer* pLocal, CTFWeapo
 	if (pBestTarget)
 		return { *pBestTarget };
 
-	return vTargets;
+	// If no best target found but we have targets, return empty (shouldn't happen with valid targets)
+	return {};
 }
 
 bool CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 {
+	// Validate target entity
+	if (!tTarget.m_pEntity)
+		return false;
+
 	// Simplified projectile hit detection
 	Vec3 vLocalPos = pLocal->GetShootPos();
 	const float flMaxRange = powf(pWeapon->GetRange(), 2.f);
@@ -323,7 +343,11 @@ bool CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBa
 	// For players, use prediction
 	if (tTarget.m_pEntity->IsPlayer())
 	{
-		ProjectilePrediction_t tPrediction = PredictProjectilePosition(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), pWeapon);
+		CTFPlayer* pTargetPlayer = tTarget.m_pEntity->As<CTFPlayer>();
+		if (!pTargetPlayer)
+			return false;
+
+		ProjectilePrediction_t tPrediction = PredictProjectilePosition(pLocal, pTargetPlayer, pWeapon);
 		if (!tPrediction.bValid)
 			return false;
 
@@ -1033,6 +1057,11 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 		return;
 
 	Target_t& tTarget = vTargets.front();
+
+	// Validate target entity
+	if (!tTarget.m_pEntity)
+		return;
+
 	m_bRunning = true;
 	G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
 

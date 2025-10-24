@@ -193,9 +193,17 @@ std::vector<Target_t> CAimbotHitscan::SortTargets(CTFPlayer* pLocal, CTFWeaponBa
 	// Use Linux-internals target selection approach
 	for (auto& tTarget : vTargets)
 	{
+		// Validate entity pointer
+		if (!tTarget.m_pEntity)
+			continue;
+
 		if (tTarget.m_pEntity->IsPlayer())
 		{
-			int nHealth = tTarget.m_pEntity->As<CTFPlayer>()->m_iHealth();
+			CTFPlayer* pTargetPlayer = tTarget.m_pEntity->As<CTFPlayer>();
+			if (!pTargetPlayer)
+				continue;
+
+			int nHealth = pTargetPlayer->m_iHealth();
 
 			switch (Vars::Aimbot::General::TargetSelection.Value)
 			{
@@ -256,7 +264,8 @@ std::vector<Target_t> CAimbotHitscan::SortTargets(CTFPlayer* pLocal, CTFWeaponBa
 	if (pBestTarget)
 		return { *pBestTarget };
 
-	return vTargets;
+	// If no best target found but we have targets, return empty (shouldn't happen with valid targets)
+	return {};
 }
 
 int CAimbotHitscan::GetHitboxPriority(int nHitbox, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pTarget)
@@ -416,9 +425,13 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 	switch (iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
-		if (G::Attacking != 1 && !bUnsure)
-			break;
-		[[fallthrough]];
+		// Plain mode: aim when attacking OR when user is holding attack button
+		if (G::Attacking == 1 || (pCmd->buttons & IN_ATTACK) || bUnsure)
+		{
+			pCmd->viewangles = vAngle;
+			I::EngineClient->SetViewAngles(vAngle);
+		}
+		break;
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 		pCmd->viewangles = vAngle;
@@ -522,6 +535,11 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		return;
 
 	Target_t& tTarget = vTargets.front();
+
+	// Validate target entity
+	if (!tTarget.m_pEntity)
+		return;
+
 	m_bRunning = true;
 	G::AimTarget.m_iEntIndex = tTarget.m_pEntity->entindex();
 
@@ -548,6 +566,7 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		{
 			// Fire the weapon
 			G::CurrentUserCmd->buttons |= IN_ATTACK;
+			G::Attacking = 1;  // Mark that we're attacking so aim logic works
 		}
 	}
 

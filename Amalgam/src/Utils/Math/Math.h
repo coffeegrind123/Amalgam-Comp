@@ -178,13 +178,17 @@ namespace Math
 
 	inline float CalcFov(const Vec3& vFromAng, const Vec3& vToAng)
 	{
-		Vec3 vFromForward = Vec3();
-		AngleVectors(vFromAng, &vFromForward);
+		// Calculate angle deltas (Linux-internals style)
+		float flPitchDelta = remainderf(vToAng.x - vFromAng.x, 360.f);
+		float flYawDelta = remainderf(vToAng.y - vFromAng.y, 360.f);
 
-		Vec3 vToForward = Vec3();
-		AngleVectors(vToAng, &vToForward);
+		// Clamp deltas to valid ranges
+		flPitchDelta = std::clamp(flPitchDelta, -89.f, 89.f);
+		flYawDelta = std::clamp(flYawDelta, -180.f, 180.f);
 
-		float flResult = RAD2DEG(acos(vFromForward.Dot(vToForward)));
+		// Calculate FOV as hypotenuse of clamped deltas
+		float flResult = hypotf(flPitchDelta, flYawDelta);
+
 		if (!isfinite(flResult) || isinf(flResult) || isnan(flResult))
 			flResult = 0.f;
 
