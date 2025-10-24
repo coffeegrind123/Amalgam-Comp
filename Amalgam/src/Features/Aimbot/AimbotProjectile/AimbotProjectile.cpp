@@ -743,17 +743,18 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 		CTraceFilterWorldAndPropsOnly filterWorld;
 		SDK::Trace(vEyePos, vTestPos, MASK_SHOT, &filterWorld, &trace);
 
-		if (trace.fraction >= 0.99f)
+		// Accept if mostly visible (lowered threshold for better close-range targeting)
+		if (trace.fraction >= 0.95f || !trace.DidHit())
 		{
 			vOut = vTestPos;
 			return true;
 		}
 	}
 
-	// If no multipoint visible, use center
+	// If no multipoint visible, still use center (don't reject the target entirely)
 	vOut = vPredictedPos;
 	vOut.z += vTargetMaxs.z * 0.5f;
-	return false;
+	return true;  // Changed from false to true - accept center point even if not fully visible
 }
 
 bool CAimbotProjectile::SimulatePlayerMovement(ProjTargetData_t& target, CTFPlayer* pLocal, float flTravelTime)
