@@ -1069,7 +1069,10 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 		return;
 
 	// Re-validate target is still in FOV (Linux-internals style continuous validation)
+	// IMPORTANT: Recalculate angle to target with current view angles
 	Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
+	Vec3 vLocalPos = pLocal->GetShootPos();
+	tTarget.m_vAngleTo = Math::CalcAngle(vLocalPos, tTarget.m_vPos);  // Recalculate with updated position
 	float flCurrentFOV = Math::CalcFov(vLocalAngles, tTarget.m_vAngleTo);
 	if (flCurrentFOV > Vars::Aimbot::General::AimFOV.Value)
 		return;
@@ -1194,9 +1197,8 @@ bool CAimbotProjectile::ShouldRun(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUs
 	if (I::EngineVGui->IsGameUIVisible())
 		return false;
 
-	// Linux-internals style checks
-	if (!pWeapon->CanPrimaryAttack())
-		return false;
+	// Don't check CanPrimaryAttack here - we want to aim even if weapon is on cooldown
+	// The ShouldFire function will check if we can actually shoot
 
 	return true;
 }
