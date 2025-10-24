@@ -729,6 +729,10 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 
 	Vec3 vTargetMaxs = pTarget->m_vecMaxs();
 
+	// Calculate distance for distance-based fraction threshold
+	float flDistance = (vPredictedPos - vEyePos).Length();
+	float flRequiredFraction = (flDistance < 300.0f) ? 0.75f : 0.90f;
+
 	// Try each multipoint offset
 	for (int i = 0; i < offsetCount; i++)
 	{
@@ -743,8 +747,8 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 		CTraceFilterWorldAndPropsOnly filterWorld;
 		SDK::Trace(vEyePos, vTestPos, MASK_SHOT, &filterWorld, &trace);
 
-		// Accept if mostly visible (lowered threshold for better close-range targeting)
-		if (trace.fraction >= 0.95f || !trace.DidHit())
+		// Use distance-based fraction threshold (same as HealthBarESP)
+		if (trace.fraction > flRequiredFraction || !trace.DidHit())
 		{
 			vOut = vTestPos;
 			return true;
