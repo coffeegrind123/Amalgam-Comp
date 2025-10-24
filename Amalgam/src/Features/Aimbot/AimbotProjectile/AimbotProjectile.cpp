@@ -753,9 +753,8 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 
 	Vec3 vTargetMaxs = pTarget->m_vecMaxs();
 
-	// Calculate distance for distance-based fraction threshold
-	float flDistance = (vPredictedPos - vEyePos).Length();
-	float flRequiredFraction = (flDistance < 300.0f) ? 0.75f : 0.90f;
+	// Use consistent fraction threshold (like hitscan and Linux)
+	float flRequiredFraction = 0.95f;
 
 	// Try each multipoint offset
 	for (int i = 0; i < offsetCount; i++)
