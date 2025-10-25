@@ -767,10 +767,8 @@ bool CAimbotProjectile::RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeap
 		}
 	}
 
-	// If no multipoint visible, still use center (don't reject the target entirely)
-	vOut = vPredictedPos;
-	vOut.z += vTargetMaxs.z * 0.5f;
-	return true;  // Changed from false to true - accept center point even if not fully visible
+	// If no multipoint visible, reject the target (like SEOwnedDE)
+	return false;
 }
 
 // SEOwnedDE-style time-based projectile solving
@@ -804,6 +802,10 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 
 	// Simulate tick-by-tick like SEOwnedDE
 	int maxTicks = TIME_TO_TICKS(Vars::Aimbot::Projectile::MaxSimulationTime.Value);
+
+	// Performance optimization: limit to reasonable tick count (SEOwnedDE uses similar limits)
+	maxTicks = std::min(maxTicks, 150);
+
 	for (int nTick = 0; nTick < maxTicks; nTick++)
 	{
 		target.m_vSimPath.push_back(moveData.m_MoveData.m_vecAbsOrigin);
@@ -848,24 +850,24 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 		}
 
 		// Check if projectile travel time matches simulation time
-		if (nTargetTick == nTick || nTargetTick == nTick - 1)
+		// Allow ±2 tick tolerance to increase hit rate (was ±1 which was too strict)
+		int tickDiff = abs(nTargetTick - nTick);
+		if (tickDiff <= 2)
 		{
-			// Try splash damage for rockets
-			if (pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER ||
-				pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT)
-			{
-				// Pass the current simulated position, not target.m_vFinalPos which isn't set yet!
-				if (GenerateSplashPoints(pLocal, pWeapon, pWeaponInfo, target, vShootPos, vTargetPos))
-				{
-					F::MoveSim.Restore(moveData);
-					return true;
-				}
-			}
-
-			// Direct hit - store position, time, and aim angles
+			// Direct hit first - simpler and faster than splash
 			target.m_vFinalPos = vTargetPos;
 			target.m_flTimeToHit = flTimeToTarget;
 			target.m_vAimAngles = vAimAngles;
+
+			// Try splash damage for rockets only if direct hit position is set
+			// This prevents running expensive splash calc when target position isn't valid
+			if (pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER ||
+				pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT)
+			{
+				// Try splash, but if it fails, still use direct hit
+				GenerateSplashPoints(pLocal, pWeapon, pWeaponInfo, target, vShootPos, vTargetPos);
+			}
+
 			F::MoveSim.Restore(moveData);
 			return true;
 		}
@@ -894,8 +896,10 @@ bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* p
 		flRadius = 80.f;
 
 	// Generate sphere of points (Fibonacci sphere distribution)
-	int numPoints = 80;
+	// Reduced from 80 to 40 for better performance - still provides good coverage
+	int numPoints = 40;
 	std::vector<Vec3> potentialPoints;
+	potentialPoints.reserve(numPoints);  // Pre-allocate to avoid reallocation
 
 	for (int n = 0; n < numPoints; n++)
 	{
