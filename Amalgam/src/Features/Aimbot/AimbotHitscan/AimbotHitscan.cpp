@@ -147,7 +147,8 @@ bool CAimbotHitscan::ScanBody(CTFPlayer* pLocal, Target_t& target)
 
 		int nHitboxGroup = pPlayer->GetHitboxGroup(n);
 
-		if (nHitboxGroup != HITGROUP_CHEST && nHitboxGroup != HITGROUP_STOMACH &&
+		// Include HITGROUP_GENERIC for spine/back hitboxes (critical for vertical angles)
+		if (nHitboxGroup != HITGROUP_GENERIC && nHitboxGroup != HITGROUP_CHEST && nHitboxGroup != HITGROUP_STOMACH &&
 			nHitboxGroup != HITGROUP_LEFTARM && nHitboxGroup != HITGROUP_RIGHTARM &&
 			nHitboxGroup != HITGROUP_LEFTLEG && nHitboxGroup != HITGROUP_RIGHTLEG)
 			continue;
