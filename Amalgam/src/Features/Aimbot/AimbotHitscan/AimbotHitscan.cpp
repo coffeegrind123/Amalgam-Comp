@@ -25,9 +25,16 @@ bool IsPlayerVisibleReliable(CTFPlayer* pLocal, CTFPlayer* pTarget, int nBone)
 	// Use ray trace instead of hull trace (like Linux) for more reliable close-range visibility
 	SDK::Trace(vLocalPos, vTargetPos, MASK_SHOT, &filter, &trace);
 
-	// More lenient visibility check - direct hit or high fraction
-	// Linux uses fixed 0.97, we use 0.95 for more consistency
-	return (trace.m_pEnt == pTarget || trace.fraction > 0.95f);
+	// Check we hit the player AND the specific hitbox we're aiming at (critical for vertical angles)
+	// When looking down/up at players, trace might hit different hitbox than intended
+	if (trace.m_pEnt == pTarget && !trace.allsolid && !trace.startsolid)
+	{
+		// Verify we actually hit the target hitbox, not a different one
+		// This prevents false positives when looking at players from above/below
+		return (trace.hitbox == nBone || trace.fraction > 0.95f);
+	}
+
+	return false;
 }
 
 // Simplified hitbox selection based on Linux-internals approach
