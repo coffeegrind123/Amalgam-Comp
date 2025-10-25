@@ -816,10 +816,16 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 
 		Vec3 vTargetPos = moveData.m_MoveData.m_vecAbsOrigin;
 
-		// Offset for hitbox (center of player)
-		Vec3 vMins = pPlayer->m_vecMins();
-		Vec3 vMaxs = pPlayer->m_vecMaxs();
-		vTargetPos.z += (vMins.z + vMaxs.z) * 0.5f;
+		// SEOwnedDE-style player height offset with ducking and model scale
+		// Standing: 82 units, Ducked: 62 units (TF2 player heights)
+		const float flMaxZ = (bDucked ? 62.0f : 82.0f) * pPlayer->m_flModelScale();
+
+		// Aim at body center (0.5 = 50% of player height)
+		// SEOwnedDE uses different multipliers for different weapons/positions:
+		// - Feet: 0.2, Body: 0.5, Head: 0.85-0.92
+		// - Rockets at grounded targets: 0.2 (feet)
+		// For now, use body center (0.5) which works well for most projectiles
+		vTargetPos.z += (flMaxZ * 0.5f);
 
 		// Calculate projectile travel time to this position
 		Vec3 vAimAngles;
