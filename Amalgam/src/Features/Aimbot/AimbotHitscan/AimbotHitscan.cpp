@@ -335,7 +335,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	// Sticky targeting (SEOwnedDE feature)
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Stickies)
 	{
-		for (auto pEntity : H::Entities.GetGroup(EGroupType::PROJECTILES_ENEMIES))
+		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
 		{
 			if (!pEntity || pEntity->GetClassID() != ETFClassID::CTFGrenadePipebombProjectile)
 				continue;
