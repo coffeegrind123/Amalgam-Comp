@@ -1064,6 +1064,7 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				// Use the pre-calculated aim angles from SolveProjectileTarget
 				Vec3 vAimAngles = target.m_vAimAngles;
 				float flTime = target.m_flTimeToHit;
+				float flChargeTime = pWeaponInfo->GetChargeTime(pWeapon);
 
 				// Phase 5: Store visual data
 				m_CurrentTarget = target;
