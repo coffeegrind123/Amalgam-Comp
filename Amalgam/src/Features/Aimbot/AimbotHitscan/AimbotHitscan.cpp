@@ -286,6 +286,36 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 				}
 			}
 
+			// Backtrack targeting (SEOwnedDE lag records implementation)
+			if (!bTeammate && Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::TargetBacktrack)
+			{
+				std::vector<TickRecord*> vRecords;
+				if (F::Backtrack.GetRecords(pEntity, vRecords))
+				{
+					vRecords = F::Backtrack.GetValidRecords(vRecords, pLocal);
+					for (auto pRecord : vRecords)
+					{
+						if (!pRecord)
+							continue;
+
+						// Get hitbox position from backtrack record
+						float flFOVTo; Vec3 vPos, vAngleTo;
+						if (!F::AimbotGlobal.PlayerBoneInFOV(pEntity->As<CTFPlayer>(), vLocalPos, vLocalAngles, flFOVTo, vPos, vAngleTo, Vars::Aimbot::Hitscan::Hitboxes.Value))
+							continue;
+
+						if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
+							continue;
+
+						float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+						Target_t target = Target_t(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, F::AimbotGlobal.GetPriority(pEntity->entindex()));
+						target.m_pRecord = pRecord;
+						target.m_bBacktrack = true;
+						vTargets.emplace_back(target);
+					}
+				}
+			}
+
+			// Current position targeting
 			float flFOVTo; Vec3 vPos, vAngleTo;
 			if (!F::AimbotGlobal.PlayerBoneInFOV(pEntity->As<CTFPlayer>(), vLocalPos, vLocalAngles, flFOVTo, vPos, vAngleTo, Vars::Aimbot::Hitscan::Hitboxes.Value))
 				continue;
@@ -300,6 +330,29 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 		if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
 			return vTargets;
+	}
+
+	// Sticky targeting (SEOwnedDE feature)
+	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Stickies)
+	{
+		for (auto pEntity : H::Entities.GetGroup(EGroupType::PROJECTILES_ENEMIES))
+		{
+			if (!pEntity || pEntity->GetClassID() != ETFClassID::CTFGrenadePipebombProjectile)
+				continue;
+
+			auto pPipe = pEntity->As<CTFGrenadePipebombProjectile>();
+			if (!pPipe || !pPipe->m_bTouched() || !pPipe->HasStickyEffects() || pPipe->m_iType() == TF_GL_MODE_REMOTE_DETONATE_PRACTICE)
+				continue;
+
+			Vec3 vPos = pPipe->GetCenter();
+			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
+			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
+			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
+				continue;
+
+			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
+			vTargets.emplace_back(pEntity, TargetEnum::Sticky, vPos, vAngleTo, flFOVTo, flDistTo);
+		}
 	}
 
 	// Preserve original advanced targeting for buildings, NPCs, etc.
@@ -321,23 +374,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 		}
 	}
 
-	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Stickies)
-	{
-		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
-		{
-			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
-				continue;
-
-			Vec3 vPos = pEntity->m_vecOrigin();
-			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
-			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
-			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
-				continue;
-
-			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? CSIMDMath::FastDistance(vLocalPos, vPos) : 0.f;
-			vTargets.emplace_back(pEntity, TargetEnum::Sticky, vPos, vAngleTo, flFOVTo, flDistTo);
-		}
-	}
+	// Removed duplicate sticky targeting - now using SEOwnedDE implementation above
 
 	if (Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::NPCs)
 	{
@@ -505,9 +542,37 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 	Vec3 vEyePos = pLocal->GetShootPos();
 	const float flMaxRange = powf(pWeapon->GetRange(), 2.f);
 
-	// Simple current-frame targeting for reliability
+	// Backtrack/lag record handling (SEOwnedDE implementation)
 	if (tTarget.m_pEntity->IsPlayer())
 	{
+		// Handle backtrack records
+		if (tTarget.m_bBacktrack && tTarget.m_pRecord)
+		{
+			// Validate backtrack record is still valid
+			std::vector<TickRecord*> vRecords;
+			if (!F::Backtrack.GetRecords(tTarget.m_pEntity, vRecords))
+				return false;
+
+			vRecords = F::Backtrack.GetValidRecords(vRecords, pLocal);
+			bool bRecordValid = false;
+			for (auto pRecord : vRecords)
+			{
+				if (pRecord == tTarget.m_pRecord)
+				{
+					bRecordValid = true;
+					break;
+				}
+			}
+
+			if (!bRecordValid)
+				return false;
+
+			// Record is valid, use it for targeting
+			tTarget.m_nAimedHitbox = GetOptimalBone(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), pWeapon);
+			return true;
+		}
+
+		// Current-frame targeting for reliability
 		int nOptimalBone = GetOptimalBone(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), pWeapon);
 
 		// Use SetupBones and GetHitboxCenter for reliable bone position
@@ -548,6 +613,25 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 		tTarget.m_nAimedHitbox = nOptimalBone;
 		tTarget.m_bBacktrack = false;
 		return true;
+	}
+
+	// Stickybombs - SEOwnedDE implementation
+	if (tTarget.m_pEntity->GetClassID() == ETFClassID::CTFGrenadePipebombProjectile)
+	{
+		Vec3 vCenter = tTarget.m_pEntity->GetCenter();
+		CGameTrace trace = {};
+		CTraceFilterHitscan filter = {};
+		filter.pSkip = pLocal;
+
+		SDK::Trace(vEyePos, vCenter, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
+
+		if (trace.m_pEnt == tTarget.m_pEntity && !trace.allsolid && !trace.startsolid)
+		{
+			tTarget.m_vPos = vCenter;
+			tTarget.m_vAngleTo = Math::CalcAngle(vEyePos, vCenter);
+			return true;
+		}
+		return false;
 	}
 
 	// Buildings and other entities - try multipoint scanning
