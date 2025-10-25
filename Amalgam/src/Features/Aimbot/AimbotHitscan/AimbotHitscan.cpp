@@ -322,11 +322,12 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 				}
 			}
 
-			// Current position targeting
-			float flFOVTo; Vec3 vPos, vAngleTo;
-			int nHitbox = -1;
-			if (!F::AimbotGlobal.PlayerBoneInFOV(pEntity->As<CTFPlayer>(), vLocalPos, vLocalAngles, flFOVTo, vPos, vAngleTo, Vars::Aimbot::Hitscan::Hitboxes.Value, &nHitbox))
-				continue;
+			// SEOwnedDE approach: Use ONE optimal hitbox, not "lowest FOV" scan
+			// This prevents issues with vertical angles where different hitboxes are visible
+			int nOptimalBone = GetOptimalBone(pLocal, pEntity->As<CTFPlayer>(), pWeapon);
+			Vec3 vPos = pEntity->As<CTFPlayer>()->GetHitboxPos(nOptimalBone);
+			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
+			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
 
 			// Filter targets outside of AimFOV
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
@@ -334,7 +335,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
 			Target_t target = Target_t(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, bTeammate ? 0 : F::AimbotGlobal.GetPriority(pEntity->entindex()));
-			target.m_nAimedHitbox = nHitbox;  // Store the hitbox that PlayerBoneInFOV selected
+			target.m_nAimedHitbox = nOptimalBone;
 			vTargets.emplace_back(target);
 		}
 
