@@ -848,7 +848,8 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 			if (pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER ||
 				pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT)
 			{
-				if (GenerateSplashPoints(pLocal, pWeapon, pWeaponInfo, target, vShootPos))
+				// Pass the current simulated position, not target.m_vFinalPos which isn't set yet!
+				if (GenerateSplashPoints(pLocal, pWeapon, pWeaponInfo, target, vShootPos, vTargetPos))
 				{
 					F::MoveSim.Restore(moveData);
 					return true;
@@ -869,7 +870,7 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 }
 
 // SEOwnedDE-style splash damage sphere generation
-bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, const Vec3& vShootPos)
+bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, const Vec3& vShootPos, const Vec3& vCurrentSimPos)
 {
 	if (!target.m_pEntity || !target.m_pEntity->IsPlayer())
 		return false;
@@ -878,8 +879,8 @@ bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* p
 	if (!pPlayer)
 		return false;
 
-	// Get current simulated position
-	Vec3 vCenter = target.m_vFinalPos;
+	// Use the current simulated position passed from the tick loop (like SEOwnedDE)
+	Vec3 vCenter = vCurrentSimPos;
 
 	// Determine splash radius based on weapon
 	float flRadius = 180.f; // Default rocket launcher radius
@@ -913,9 +914,9 @@ bool CAimbotProjectile::GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* p
 	if (potentialPoints.empty())
 		return false;
 
-	// Sort by distance to target - closest splash points are best
+	// Sort by distance to simulated position - closest splash points are best (SEOwnedDE line 782)
 	std::sort(potentialPoints.begin(), potentialPoints.end(), [&](const Vec3& a, const Vec3& b) {
-		return a.DistTo(target.m_vFinalPos) < b.DistTo(target.m_vFinalPos);
+		return a.DistTo(vCurrentSimPos) < b.DistTo(vCurrentSimPos);
 	});
 
 	// Get projectile info for solving

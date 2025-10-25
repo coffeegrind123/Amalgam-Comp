@@ -102,7 +102,7 @@ private:
 
 	// SEOwnedDE time-based prediction
 	bool SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, CUserCmd* pCmd);
-	bool GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, const Vec3& vShootPos);
+	bool GenerateSplashPoints(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, ProjTargetData_t& target, const Vec3& vShootPos, const Vec3& vCurrentSimPos);
 
 	// Phase 3: Multipoint and simulation
 	bool RunMultipoint(CBaseEntity* pTarget, CTFWeaponBase* pWeapon, const ProjectileInfo* pWeaponInfo, const Vec3& vEyePos, const Vec3& vPredictedPos, Vec3& vOut);
