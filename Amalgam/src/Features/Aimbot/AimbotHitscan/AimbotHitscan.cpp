@@ -325,7 +325,12 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 			// SEOwnedDE approach: Use ONE optimal hitbox, not "lowest FOV" scan
 			// This prevents issues with vertical angles where different hitboxes are visible
 			int nOptimalBone = GetOptimalBone(pLocal, pEntity->As<CTFPlayer>(), pWeapon);
-			Vec3 vPos = pEntity->As<CTFPlayer>()->GetHitboxPos(nOptimalBone);
+
+			matrix3x4 aBones[MAXSTUDIOBONES];
+			if (!pEntity->As<CTFPlayer>()->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+				continue;
+
+			Vec3 vPos = pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nOptimalBone);
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
 			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
 
