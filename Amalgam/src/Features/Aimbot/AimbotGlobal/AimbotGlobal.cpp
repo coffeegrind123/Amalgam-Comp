@@ -40,7 +40,7 @@ void CAimbotGlobal::SortPriority(std::vector<Target_t>& vTargets)
 }
 
 // this won't prevent shooting bones outside of fov
-bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, int iHitboxes)
+bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, int iHitboxes, int* pHitbox)
 {
 	matrix3x4 aBones[MAXSTUDIOBONES];
 	if (!pTarget->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
@@ -49,6 +49,7 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 	// No early rejection - check all hitboxes like SEOwnedDE and Linux-internals
 	// The final FOV check at the end will filter correctly
 	float flMinFOV = 180.f;
+	int nBestHitbox = -1;
 	for (int nHitbox = 0; nHitbox < pTarget->GetNumOfHitboxes(); nHitbox++)
 	{
 		if (!IsHitboxValid(pTarget, nHitbox, iHitboxes))
@@ -63,8 +64,12 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 			vPos = vCurPos;
 			vAngleTo = vCurAngleTo;
 			flFOVTo = flMinFOV = flCurFOVTo;
+			nBestHitbox = nHitbox;
 		}
 	}
+
+	if (pHitbox)
+		*pHitbox = nBestHitbox;
 
 	return flMinFOV < Vars::Aimbot::General::AimFOV.Value;
 }

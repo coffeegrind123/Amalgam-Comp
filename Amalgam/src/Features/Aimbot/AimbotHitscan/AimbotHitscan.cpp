@@ -324,7 +324,8 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			// Current position targeting
 			float flFOVTo; Vec3 vPos, vAngleTo;
-			if (!F::AimbotGlobal.PlayerBoneInFOV(pEntity->As<CTFPlayer>(), vLocalPos, vLocalAngles, flFOVTo, vPos, vAngleTo, Vars::Aimbot::Hitscan::Hitboxes.Value))
+			int nHitbox = -1;
+			if (!F::AimbotGlobal.PlayerBoneInFOV(pEntity->As<CTFPlayer>(), vLocalPos, vLocalAngles, flFOVTo, vPos, vAngleTo, Vars::Aimbot::Hitscan::Hitboxes.Value, &nHitbox))
 				continue;
 
 			// Filter targets outside of AimFOV
@@ -332,7 +333,9 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 				continue;
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? vLocalPos.DistTo(vPos) : 0.f;
-			vTargets.emplace_back(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, bTeammate ? 0 : F::AimbotGlobal.GetPriority(pEntity->entindex()));
+			Target_t target = Target_t(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, bTeammate ? 0 : F::AimbotGlobal.GetPriority(pEntity->entindex()));
+			target.m_nAimedHitbox = nHitbox;  // Store the hitbox that PlayerBoneInFOV selected
+			vTargets.emplace_back(target);
 		}
 
 		if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
@@ -580,14 +583,16 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 		}
 
 		// Current-frame targeting for reliability
-		int nOptimalBone = GetOptimalBone(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), pWeapon);
+		// Use the hitbox that PlayerBoneInFOV selected (lowest FOV), not GetOptimalBone
+		// This prevents mismatch when looking at vertical angles - the FOV-selected hitbox is what's actually visible
+		int nTargetBone = tTarget.m_nAimedHitbox >= 0 ? tTarget.m_nAimedHitbox : GetOptimalBone(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), pWeapon);
 
 		// Use SetupBones and GetHitboxCenter for reliable bone position
 		matrix3x4 aBones[MAXSTUDIOBONES];
 		if (!tTarget.m_pEntity->As<CTFPlayer>()->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
 			return false;
 
-		Vec3 vTargetPos = tTarget.m_pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nOptimalBone);
+		Vec3 vTargetPos = tTarget.m_pEntity->As<CTFPlayer>()->GetHitboxCenter(aBones, nTargetBone);
 		float flDistSqr = vEyePos.DistToSqr(vTargetPos);
 
 		// Temporarily increase range limit for testing - original range check was too restrictive
@@ -597,10 +602,10 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			return false;
 
 		// Simple visibility check like Linux-internals
-		if (!IsPlayerVisibleReliable(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), nOptimalBone))
+		if (!IsPlayerVisibleReliable(pLocal, tTarget.m_pEntity->As<CTFPlayer>(), nTargetBone))
 		{
 			// Primary hitbox not visible - try multipoint scanning
-			if (nOptimalBone == HITBOX_HEAD)
+			if (nTargetBone == HITBOX_HEAD)
 			{
 				if (!ScanHead(pLocal, tTarget))
 					return false;
@@ -617,7 +622,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			tTarget.m_vAngleTo = Math::CalcAngle(vEyePos, vTargetPos);
 		}
 
-		tTarget.m_nAimedHitbox = nOptimalBone;
+		tTarget.m_nAimedHitbox = nTargetBone;
 		tTarget.m_bBacktrack = false;
 		return true;
 	}
