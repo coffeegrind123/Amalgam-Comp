@@ -1065,86 +1065,78 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				Vec3 vAimAngles = target.m_vAimAngles;
 				float flTime = target.m_flTimeToHit;
 
-				// We have valid aim solution from SolveProjectileTarget
+				// Phase 5: Store visual data
+				m_CurrentTarget = target;
+				m_vPlayerPath = target.m_vSimPath;
+				m_bHasVisuals = true;
+
+				// Phase 5: Simulate projectile trajectory if enabled
+				if (Vars::Aimbot::Projectile::Visuals.Value & Vars::Aimbot::Projectile::VisualsEnum::ProjectilePath)
 				{
-					// Phase 5: Store visual data
-					m_CurrentTarget = target;
-					m_vPlayerPath = target.m_vSimPath;
-					m_bHasVisuals = true;
-
-					// Phase 5: Simulate projectile trajectory if enabled
-					if (Vars::Aimbot::Projectile::Visuals.Value & Vars::Aimbot::Projectile::VisualsEnum::ProjectilePath)
+					ProjectileSimulationInfo projInfo;
+					if (F::ProjSim.GetInfo(pLocal, pWeapon, vAimAngles, projInfo, ProjSimEnum::Trace))
 					{
-						ProjectileSimulationInfo projInfo;
-						if (F::ProjSim.GetInfo(pLocal, pWeapon, vAimAngles, projInfo, ProjSimEnum::Trace))
+						// Initialize and simulate projectile
+						if (F::ProjSim.Initialize(projInfo, true, false))
 						{
-							// Initialize and simulate projectile
-							if (F::ProjSim.Initialize(projInfo, true, false))
+							m_vProjectilePath.clear();
+							m_vProjectilePath.push_back(projInfo.m_vPos);
+
+							// Simulate up to target time or max 100 ticks (clamped for safety)
+							int maxTicks = std::clamp(static_cast<int>(flTime / I::GlobalVars->interval_per_tick) + 10, 1, 100);
+							for (int i = 0; i < maxTicks; i++)
 							{
-								m_vProjectilePath.clear();
-								m_vProjectilePath.push_back(projInfo.m_vPos);
+								// Safety: validate position is still valid
+								if (!projInfo.m_vPos.IsValid())
+									break;
 
-								// Simulate up to target time or max 100 ticks (clamped for safety)
-								int maxTicks = std::clamp(static_cast<int>(flTime / I::GlobalVars->interval_per_tick) + 10, 1, 100);
-								for (int i = 0; i < maxTicks; i++)
-								{
-									// Safety: validate position is still valid
-									if (!projInfo.m_vPos.IsValid())
-										break;
+								F::ProjSim.RunTick(projInfo, true);
+								if (!projInfo.m_vPath.empty())
+									m_vProjectilePath = projInfo.m_vPath;
 
-									F::ProjSim.RunTick(projInfo, true);
-									if (!projInfo.m_vPath.empty())
-										m_vProjectilePath = projInfo.m_vPath;
-
-									// Stop if we're close to target or path is long enough
-									if ((projInfo.m_vPos - vTargetPos).Length() < 50.f || projInfo.m_vPath.size() > 100)
-										break;
-								}
+								// Stop if we're close to target or path is long enough
+								if ((projInfo.m_vPos - vTargetPos).Length() < 50.f || projInfo.m_vPath.size() > 100)
+									break;
 							}
 						}
 					}
+				}
 
-					// Validate trajectory if enabled
-					if (Vars::Aimbot::Projectile::ValidateTrajectory.Value)
+				// Validate trajectory if enabled
+				if (Vars::Aimbot::Projectile::ValidateTrajectory.Value)
+				{
+					// TODO: Check if projectile path actually hits the target
+					// For now, we trust the ballistic solver
+				}
+
+				G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
+				G::AimTarget.m_iDuration = 1;
+
+				// Phase 4: Auto shoot with charge weapon support
+				bool bShouldShoot = Vars::Aimbot::General::AutoShoot.Value;
+				if (bShouldShoot && pCmd)
+				{
+					if (pWeaponInfo->m_bCharges)
 					{
-						// TODO: Check if projectile path actually hits the target
-						// For now, we trust the ballistic solver
-					}
-
-					G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
-					G::AimTarget.m_iDuration = 1;
-
-					// Phase 4: Auto shoot with charge weapon support
-					bool bShouldShoot = Vars::Aimbot::General::AutoShoot.Value;
-					if (bShouldShoot && pCmd)
-					{
-						if (pWeaponInfo->m_bCharges)
+						// Charge weapon handling (Huntsman, Loose Cannon)
+						if (flChargeTime < 0.01f)
 						{
-							// Charge weapon handling (Huntsman, Loose Cannon)
-							if (flChargeTime < 0.01f)
-							{
-								// Just started charging, hold attack
-								pCmd->buttons |= IN_ATTACK;
-								G::Attacking = 1;
-							}
-							else
-							{
-								// Charging in progress, release to fire
-								pCmd->buttons &= ~IN_ATTACK;
-							}
+							// Just started charging, hold attack
+							pCmd->buttons |= IN_ATTACK;
+							G::Attacking = 1;
 						}
-						else if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
+						else
 						{
-							// Huntsman without charge
-							if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AutoScope && !pLocal->IsScoped())
-							{
-								pCmd->buttons |= IN_ATTACK2;
-							}
-							else
-							{
-								pCmd->buttons |= IN_ATTACK;
-								G::Attacking = 1;
-							}
+							// Charging in progress, release to fire
+							pCmd->buttons &= ~IN_ATTACK;
+						}
+					}
+					else if (pWeapon->GetWeaponID() == TF_WEAPON_COMPOUND_BOW)
+					{
+						// Huntsman without charge
+						if (Vars::Aimbot::Projectile::Modifiers.Value & Vars::Aimbot::Projectile::ModifiersEnum::AutoScope && !pLocal->IsScoped())
+						{
+							pCmd->buttons |= IN_ATTACK2;
 						}
 						else
 						{
@@ -1152,12 +1144,17 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 							G::Attacking = 1;
 						}
 					}
-
-					// Apply aim - works with autoshoot OR manual firing
-					// For Plain mode to work without autoshoot, we need G::Attacking set or IN_ATTACK held
-					Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
-					return;
+					else
+					{
+						pCmd->buttons |= IN_ATTACK;
+						G::Attacking = 1;
+					}
 				}
+
+				// Apply aim - works with autoshoot OR manual firing
+				// For Plain mode to work without autoshoot, we need G::Attacking set or IN_ATTACK held
+				Aim(pCmd, vAimAngles, Vars::Aimbot::General::AimType.Value);
+				return;
 			}
 		}
 	}
