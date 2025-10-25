@@ -110,22 +110,13 @@ bool CAimbotHitscan::ScanHead(CTFPlayer* pLocal, Target_t& target)
 
 		SDK::Trace(vLocalPos, vTransformed, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
 
-		// Basic trace check
-		if (trace.m_pEnt != pPlayer || trace.allsolid || trace.startsolid)
-			continue;
-
-		// Verify we hit the head hitbox specifically (not occluded by body)
-		matrix3x4 aBones[MAXSTUDIOBONES];
-		if (!pPlayer->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
-			continue;
-
-		int nHitHitbox = pPlayer->GetHitboxFromPosition(aBones, trace.endpos);
-		if (nHitHitbox != HITBOX_HEAD)
-			continue; // Hit a different hitbox, head is occluded
-
-		target.m_vPos = vTransformed;
-		target.m_vAngleTo = Math::CalcAngle(vLocalPos, vTransformed);
-		return true;
+		// Check we hit the player and specifically the head hitbox (not occluded)
+		if (trace.m_pEnt == pPlayer && !trace.allsolid && !trace.startsolid && trace.hitbox == HITBOX_HEAD)
+		{
+			target.m_vPos = vTransformed;
+			target.m_vAngleTo = Math::CalcAngle(vLocalPos, vTransformed);
+			return true;
+		}
 	}
 
 	return false;
@@ -166,20 +157,14 @@ bool CAimbotHitscan::ScanBody(CTFPlayer* pLocal, Target_t& target)
 
 		SDK::Trace(vLocalPos, vHitbox, MASK_SHOT | CONTENTS_GRATE, &filter, &trace);
 
-		// First check basic trace validity
-		if (trace.m_pEnt != pPlayer || trace.allsolid || trace.startsolid)
-			continue;
-
-		// Verify we actually hit the target hitbox, not just any part of the player
-		// Critical for hitting players facing away - prevents aiming at occluded hitboxes
-		int nHitHitbox = pPlayer->GetHitboxFromPosition(aBones, trace.endpos);
-		if (nHitHitbox != n)
-			continue; // We hit a different hitbox (e.g., back instead of chest), this one is occluded
-
-		// Valid hit on the correct hitbox
-		target.m_vPos = vHitbox;
-		target.m_vAngleTo = Math::CalcAngle(vLocalPos, vHitbox);
-		return true;
+		// Verify we hit the player and the SPECIFIC hitbox we're aiming at (not occluded)
+		// Critical for hitting players facing away - prevents aiming at front hitboxes when only back is visible
+		if (trace.m_pEnt == pPlayer && !trace.allsolid && !trace.startsolid && trace.hitbox == n)
+		{
+			target.m_vPos = vHitbox;
+			target.m_vAngleTo = Math::CalcAngle(vLocalPos, vHitbox);
+			return true;
+		}
 	}
 
 	return false;
