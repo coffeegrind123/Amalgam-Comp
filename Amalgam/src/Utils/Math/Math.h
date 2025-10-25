@@ -178,17 +178,18 @@ namespace Math
 
 	inline float CalcFov(const Vec3& vFromAng, const Vec3& vToAng)
 	{
-		// Calculate angle deltas (Linux-internals style)
-		float flPitchDelta = remainderf(vToAng.x - vFromAng.x, 360.f);
-		float flYawDelta = remainderf(vToAng.y - vFromAng.y, 360.f);
+		// SEOwnedDE dot product method - mathematically correct 3D angle calculation
+		// This prevents targeting players behind you (dot product handles this naturally)
+		Vec3 vFromDir;
+		AngleVectors(vFromAng, &vFromDir);
 
-		// Clamp deltas to valid ranges
-		flPitchDelta = std::clamp(flPitchDelta, -89.f, 89.f);
-		flYawDelta = std::clamp(flYawDelta, -180.f, 180.f);
+		Vec3 vToDir;
+		AngleVectors(vToAng, &vToDir);
 
-		// Use only yaw for FOV (2D horizontal FOV like most games/aimbots)
-		// This matches user expectation - vertical angle doesn't affect FOV circle
-		float flResult = std::abs(flYawDelta);
+		// Calculate angle between view directions using dot product
+		// acos(dot(a,b)) gives the angle between two unit vectors
+		float flDotProduct = vToDir.Dot(vFromDir);
+		float flResult = RAD2DEG(acosf(flDotProduct / vToDir.LengthSqr()));
 
 		if (!isfinite(flResult) || isinf(flResult) || isnan(flResult))
 			flResult = 0.f;
