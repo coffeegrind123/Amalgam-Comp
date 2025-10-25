@@ -794,23 +794,11 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 	bool bDucked = pPlayer->m_fFlags() & FL_DUCKING;
 	bool bOnGround = pPlayer->m_fFlags() & FL_ONGROUND;
 
-	// Initialize movement simulation
+	// Initialize movement simulation - SEOwnedDE approach: no fallback
+	// If we can't simulate movement, we can't do proper time-based prediction
 	MoveStorage moveData;
 	if (!F::MoveSim.Initialize(pPlayer, moveData, false, true))
-	{
-		// Fallback: simple linear prediction
-		Vec3 vPredicted = target.m_vOrigin + target.m_vVelocity * 0.5f;
-		Vec3 vAimAngles;
-		float flTime = 0.f;
-		if (ProjAimMath::SolveBallisticArc(vShootPos, vPredicted, flSpeed, flGravity, vAimAngles, flTime))
-		{
-			target.m_vFinalPos = vPredicted;
-			target.m_flTimeToHit = flTime;
-			target.m_vAimAngles = vAimAngles; // Store the calculated aim angles!
-			return true;
-		}
 		return false;
-	}
 
 	target.m_vSimPath.clear();
 
