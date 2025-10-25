@@ -806,6 +806,7 @@ bool CAimbotProjectile::SolveProjectileTarget(CTFPlayer* pLocal, CTFWeaponBase* 
 		{
 			target.m_vFinalPos = vPredicted;
 			target.m_flTimeToHit = flTime;
+			target.m_vAimAngles = vAimAngles; // Store the calculated aim angles!
 			return true;
 		}
 		return false;
@@ -1057,8 +1058,13 @@ void CAimbotProjectile::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd*
 				Vec3 vEyePos = pLocal->GetShootPos();
 				Vec3 vTargetPos = target.m_vFinalPos.IsZero() ? target.m_vOrigin : target.m_vFinalPos;
 
-				// Validate positions and aim angles aren't invalid
-				if (!vEyePos.IsValid() || !vTargetPos.IsValid() || target.m_vAimAngles.IsZero())
+				// Validate positions aren't invalid
+				if (!vEyePos.IsValid() || !vTargetPos.IsValid())
+					return;
+
+				// Validate we have aim angles from SolveProjectileTarget
+				// Note: aim angles CAN be near-zero if target is directly in front, so we check IsValid not IsZero
+				if (!target.m_vAimAngles.IsValid())
 					return;
 
 				// Use the pre-calculated aim angles from SolveProjectileTarget
