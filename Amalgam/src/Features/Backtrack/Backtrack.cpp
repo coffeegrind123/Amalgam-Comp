@@ -227,7 +227,7 @@ void CBacktrack::MakeRecords()
 		{
 			const Vec3 vDelta = tCurRecord.m_vBreak - pLastRecord->m_vBreak;
 			
-			static auto sv_lagcompensation_teleport_dist = U::ConVars.FindVar("sv_lagcompensation_teleport_dist");
+			static auto sv_lagcompensation_teleport_dist = H::ConVars.FindVar("sv_lagcompensation_teleport_dist");
 			const float flDist = powf(sv_lagcompensation_teleport_dist->GetFloat(), 2.f);
 			if (vDelta.Length2DSqr() > flDist)
 			{
@@ -301,7 +301,7 @@ void CBacktrack::Store()
 	if (!I::EngineClient->IsInGame())
 		return;
 
-	static auto sv_maxunlag = U::ConVars.FindVar("sv_maxunlag");
+	static auto sv_maxunlag = H::ConVars.FindVar("sv_maxunlag");
 	m_flMaxUnlag = sv_maxunlag->GetFloat();
 	
 	MakeRecords();
@@ -343,7 +343,7 @@ void CBacktrack::AdjustPing(CNetChannel* pNetChan)
 			if (!pLocal || !pLocal->m_iClass())
 				return 0.f;
 
-			static auto host_timescale = U::ConVars.FindVar("host_timescale");
+			static auto host_timescale = H::ConVars.FindVar("host_timescale");
 			float flTimescale = host_timescale->GetFloat();
 
 			static float flStaticReal = 0.f;

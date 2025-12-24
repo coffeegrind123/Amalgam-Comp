@@ -1,7 +1,6 @@
 #include "Draw.h"
 
 #include "../../SDK.h"
-#include "Icons.h"
 #include "../../Definitions/Interfaces.h"
 #include "../../../Utils/Math/Math.h"
 #include "../../../Utils/Timer/Timer.h"

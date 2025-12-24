@@ -1,7 +1,7 @@
 #pragma once
-#include "../Feature/Feature.h"
-#include "../../SDK/Definitions/Misc/ConVar.h"
-#include "../Hash/FNV1A.h"
+#include "../../../Utils/Feature/Feature.h"
+#include "../../Definitions/Misc/ConVar.h"
+#include "../../../Utils/Hash/FNV1A.h"
 #include <unordered_map>
 
 class CConVars
@@ -14,6 +14,8 @@ public:
 	void Initialize();
 	void Unload();
 	ConVar* FindVar(const char* sCVar);
+	void Unlock();
+	void Restore();
 };
 
-ADD_FEATURE_CUSTOM(CConVars, ConVars, U);
+ADD_FEATURE_CUSTOM(CConVars, ConVars, H);

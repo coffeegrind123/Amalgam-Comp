@@ -166,24 +166,10 @@ bool CInterfaces::Initialize()
 			if (log_file14) {
 				fprintf(log_file14, "Interfaces::Initialize: Type 2 - FindSignature returned 0x%llx, calling RelToAbs\n", dwDest);
 				fclose(log_file14);
-			}
+		}
 
-			auto dwAddress = U::Memory.RelToAbs(dwDest);
-
-			FILE* log_file15 = fopen("C:\\temp\\amalgam_debug.log", "a");
-			if (log_file15) {
-				fprintf(log_file15, "Interfaces::Initialize: Type 2 - RelToAbs returned 0x%llx, applying offset %d\n", dwAddress, Interface->m_nOffset);
-				fclose(log_file15);
-			}
-
-			*Interface->m_pPtr = reinterpret_cast<void*>(dwAddress + Interface->m_nOffset);
-
-			FILE* log_file16 = fopen("C:\\temp\\amalgam_debug.log", "a");
-			if (log_file16) {
-				fprintf(log_file16, "Interfaces::Initialize: Type 2 - Final pointer set to %p\n", *Interface->m_pPtr);
-				fclose(log_file16);
-			}
-			break;
+		*Interface->m_pPtr = reinterpret_cast<void*>(U::Memory.RelToAbs(dwDest) + Interface->m_nOffset);
+		break;
 		}
 		}
 

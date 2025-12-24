@@ -102,6 +102,26 @@ std::string SDK::GetClipboard()
 	return sString;
 }
 
+std::string SDK::GetDate()
+{
+	time_t tTime = time(nullptr);
+	tm timeinfo;
+	localtime_s(&timeinfo, &tTime);
+	char buffer[16];
+	strftime(buffer, sizeof(buffer), "%b %e %Y", &timeinfo);
+	return buffer;
+}
+
+std::string SDK::GetTime()
+{
+	time_t tTime = time(nullptr);
+	tm timeinfo;
+	localtime_s(&timeinfo, &tTime);
+	char buffer[16];
+	strftime(buffer, sizeof(buffer), "%T", &timeinfo);
+	return buffer;
+}
+
 HWND SDK::GetTeamFortressWindow()
 {
 	static HWND hWindow = nullptr;
@@ -304,32 +324,32 @@ bool SDK::IsOnScreen(CBaseEntity* pEntity, bool bShouldGetOwner)
 	return IsOnScreen(pEntity, pEntity->entindex() == I::EngineClient->GetLocalPlayer() && !I::EngineClient->IsPlayingDemo() ? F::EnginePrediction.m_vOrigin : pEntity->GetAbsOrigin());
 }
 
-void SDK::Trace(const Vec3& vecStart, const Vec3& vecEnd, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
+void SDK::Trace(const Vec3& vStart, const Vec3& vEnd, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
 {
 	Ray_t ray;
-	ray.Init(vecStart, vecEnd);
+	ray.Init(vStart, vEnd);
 	I::EngineTrace->TraceRay(ray, nMask, pFilter, pTrace);
 
 #ifdef DEBUG_TRACES
 	if (Vars::Debug::VisualizeTraces.Value)
-		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vecStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vecEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
 #endif
 }
 
-void SDK::TraceHull(const Vec3& vecStart, const Vec3& vecEnd, const Vec3& vecHullMin, const Vec3& vecHullMax, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
+void SDK::TraceHull(const Vec3& vStart, const Vec3& vEnd, const Vec3& vHullMin, const Vec3& vHullMax, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
 {
 	Ray_t ray;
-	ray.Init(vecStart, vecEnd, vecHullMin, vecHullMax);
+	ray.Init(vStart, vEnd, vHullMin, vHullMax);
 	I::EngineTrace->TraceRay(ray, nMask, pFilter, pTrace);
 
 #ifdef DEBUG_TRACES
 	if (Vars::Debug::VisualizeTraces.Value)
 	{
-		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vecStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vecEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
-		if (!(vecHullMax - vecHullMin).IsZero())
+		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+		if (!(vHullMax - vHullMin).IsZero())
 		{
-			G::BoxStorage.emplace_back(vecStart, vecHullMin, vecHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
-			G::BoxStorage.emplace_back(Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vecEnd, vecHullMin, vecHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+			G::BoxStorage.emplace_back(vStart, vHullMin, vHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+			G::BoxStorage.emplace_back(Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vEnd, vHullMin, vHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
 		}
 	}
 #endif
@@ -608,7 +628,7 @@ int SDK::IsAttacking(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const CUserCmd* 
 
 		CGameTrace trace = {};
 		CTraceFilterHitscan filter = {}; filter.pSkip = pLocal;
-		static auto tf_grapplinghook_max_distance = U::ConVars.FindVar("tf_grapplinghook_max_distance");
+		static auto tf_grapplinghook_max_distance = H::ConVars.FindVar("tf_grapplinghook_max_distance");
 		const float flGrappleDistance = tf_grapplinghook_max_distance->GetFloat();
 		Trace(vPos, vPos + vForward * flGrappleDistance, MASK_SOLID, &filter, &trace);
 		return trace.DidHit() && !(trace.surface.flags & SURF_SKY);
@@ -774,7 +794,7 @@ void SDK::WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vTo, float flScale)
 
 void SDK::GetProjectileFireSetup(CTFPlayer* pPlayer, const Vec3& vAngIn, Vec3 vOffset, Vec3& vPosOut, Vec3& vAngOut, bool bPipes, bool bInterp, bool bAllowFlip)
 {
-	static auto cl_flipviewmodels = U::ConVars.FindVar("cl_flipviewmodels");
+	static auto cl_flipviewmodels = H::ConVars.FindVar("cl_flipviewmodels");
 	if (bAllowFlip && cl_flipviewmodels->GetBool())
 		vOffset.y *= -1.f;
 
@@ -797,4 +817,9 @@ void SDK::GetProjectileFireSetup(CTFPlayer* pPlayer, const Vec3& vAngIn, Vec3 vO
 
 		vAngOut = Math::VectorAngles(vEndPos - vPosOut);
 	}
+}
+
+bool SDK::CleanScreenshot()
+{
+	return Vars::Visuals::UI::CleanScreenshots.Value && I::EngineClient->IsTakingScreenshot();
 }

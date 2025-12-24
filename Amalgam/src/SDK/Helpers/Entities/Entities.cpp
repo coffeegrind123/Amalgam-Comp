@@ -131,8 +131,8 @@ void CEntities::Store()
 		case ETFClassID::CZombie:
 			m_mGroups[EGroupType::WORLD_NPC].push_back(pEntity);
 			break;
-		case ETFClassID::CTFPumpkinBomb:
 		case ETFClassID::CTFGenericBomb:
+		case ETFClassID::CTFPumpkinBomb:
 			m_mGroups[EGroupType::WORLD_BOMBS].push_back(pEntity);
 			break;
 		case ETFClassID::CCurrencyPack:
@@ -387,7 +387,7 @@ void CEntities::Clear(bool bShutdown)
 
 void CEntities::ManualNetwork(const StartSoundParams_t& params)
 {
-	if (params.soundsource <= 0 || params.soundsource == I::EngineClient->GetLocalPlayer())
+	if (params.soundsource <= 0 || !params.origin || params.soundsource == I::EngineClient->GetLocalPlayer())
 		return;
 
 	auto pEntity = I::ClientEntityList->GetClientEntity(params.soundsource)->As<CBaseEntity>();

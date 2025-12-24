@@ -31,7 +31,7 @@ static inline std::string GetProcessName(DWORD dwProcessID)
 
 static inline bool CheckDXLevel()
 {
-	auto mat_dxlevel = U::ConVars.FindVar("mat_dxlevel");
+	auto mat_dxlevel = H::ConVars.FindVar("mat_dxlevel");
 	if (mat_dxlevel->GetInt() < 90)
 	{
 		//const char* sMessage = "You are running with graphics options that Amalgam does not support.\n-dxlevel must be at least 90.";
@@ -91,12 +91,18 @@ void CCore::Load()
 		}
 
 	float flTime = 0.f;
-	while (!U::Memory.FindSignature("client.dll", "48 8B 0D ? ? ? ? 48 8B 10 48 8B 19 48 8B C8 FF 92") || !SDK::GetTeamFortressWindow())
+	while (true)
 	{
+		auto uSignature = U::Memory.FindSignature("client.dll", "48 8B 0D ? ? ? ? 48 8B 10 48 8B 19 48 8B C8 FF 92");
+		auto uDereference = uSignature ? *reinterpret_cast<uintptr_t*>(U::Memory.RelToAbs(uSignature)) : 0;
+		auto hWindow = SDK::GetTeamFortressWindow();
+		if (uDereference && hWindow)
+			break;
+
 		Sleep(500), flTime += 0.5f;
 		if (m_bUnload = m_bFailed = flTime >= 60.f)
 		{
-			AppendFailText("Failed to load");
+			AppendFailText(std::format("Failed to load in time:\n  {:#x} ({:#x})\n  {:#x}", uDereference, uSignature, uintptr_t(hWindow)).c_str());
 			return;
 		}
 		if (m_bUnload = m_bFailed = U::KeyHandler.Down(VK_F11, true))
@@ -246,7 +252,7 @@ void CCore::Load()
 		fclose(log_file8);
 	}
 	F::Materials.LoadMaterials();
-	U::ConVars.Initialize();
+	H::ConVars.Unlock();
 	F::Commands.Initialize();
 
 	F::Configs.LoadConfig(F::Configs.m_sCurrentConfig, false);
@@ -299,9 +305,12 @@ void CCore::Unload()
 		}
 	}
 
+	H::ConVars.FindVar("cl_wpn_sway_interp")->SetValue(0.f);
+	H::ConVars.FindVar("cl_wpn_sway_scale")->SetValue(0.f);
+
 	Sleep(250);
 	F::EnginePrediction.Unload();
-	U::ConVars.Unload();
+	H::ConVars.Restore();
 	F::Materials.UnloadMaterials();
 
 	if (m_bFailed2)

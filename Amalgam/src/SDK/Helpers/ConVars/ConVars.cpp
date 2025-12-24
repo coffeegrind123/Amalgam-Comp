@@ -29,3 +29,22 @@ ConVar* CConVars::FindVar(const char* sCVar)
 		mCVarMap[uHash] = I::CVar->FindVar(sCVar);
 	return mCVarMap[uHash];
 }
+
+void CConVars::Unlock()
+{
+	ConCommandBase* pCmdBase = I::CVar->GetCommands();
+	while (pCmdBase != nullptr)
+	{
+		pCmdBase->m_nFlags &= ~(FCVAR_HIDDEN | FCVAR_DEVELOPMENTONLY | FCVAR_CHEAT | FCVAR_NOT_CONNECTED);
+		pCmdBase = pCmdBase->m_pNext;
+	}
+}
+
+void CConVars::Restore()
+{
+	for (auto& [pCmdBase, nFlags] : mFlagMap)
+	{
+		if (pCmdBase)
+			pCmdBase->m_nFlags = nFlags;
+	}
+}

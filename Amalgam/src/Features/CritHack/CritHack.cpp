@@ -108,7 +108,7 @@ void CCritHack::GetTotalCrits(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 	if (!bShouldUpdate)
 		return;
 
-	static auto tf_weapon_criticals_bucket_cap = U::ConVars.FindVar("tf_weapon_criticals_bucket_cap");
+	static auto tf_weapon_criticals_bucket_cap = H::ConVars.FindVar("tf_weapon_criticals_bucket_cap");
 	const float flBucketCap = tf_weapon_criticals_bucket_cap->GetFloat();
 	bool bRapidFire = pWeapon->IsRapidFire();
 	float flFireRate = pWeapon->GetFireRate();
@@ -457,7 +457,10 @@ void CCritHack::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 			auto pVictim = I::ClientEntityList->GetClientEntity(iVictim)->As<CTFPlayer>();
 
 			if (!iHealth)
+			{
 				iDamage = std::clamp(iDamage, 0, tHistory.m_iNewHealth);
+				tHistory.m_iSpawnCounter = -1;
+			}
 			else if (pVictim && (pVictim->m_bFeignDeathReady() || pVictim->InCond(TF_COND_FEIGN_DEATH))) // damage number is spoofed upon sending, correct it
 			{
 				int iOldHealth = (tHistory.m_mHistory.contains(iHealth) ? tHistory.m_mHistory[iHealth].m_iOldHealth : tHistory.m_iNewHealth) % 32768;
@@ -536,21 +539,31 @@ void CCritHack::Store()
 	for (auto& pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
-		if (pPlayer->IsAlive() && !pPlayer->IsAGhost())
-			StoreHealthHistory(pPlayer->entindex(), pPlayer->m_iHealth());
+		if (pPlayer && pPlayer->IsAlive() && !pPlayer->IsAGhost())
+			StoreHealthHistory(pPlayer->entindex(), pPlayer->m_iHealth(), pPlayer);
 	}
 }
 
-void CCritHack::StoreHealthHistory(int iIndex, int iHealth, bool bDamage)
+void CCritHack::StoreHealthHistory(int iIndex, int iHealth, CTFPlayer* pPlayer)
 {
 	bool bContains = m_mHealthHistory.contains(iIndex);
 	auto& tHistory = m_mHealthHistory[iIndex];
+
+	if (bContains && pPlayer)
+	{	// deal with instant respawn damage desync better
+		if (pPlayer->IsDormant())
+			tHistory.m_iSpawnCounter = -1;
+		else if (tHistory.m_iSpawnCounter == -1)
+			tHistory.m_iSpawnCounter = pPlayer->m_iSpawnCounter();
+		else if (tHistory.m_iSpawnCounter != pPlayer->m_iSpawnCounter())
+			return; // wait for event
+	}
 
 	if (!bContains)
 		tHistory = { iHealth, iHealth };
 	else if (iHealth != tHistory.m_iNewHealth)
 	{
-		tHistory.m_iOldHealth = std::max(bDamage && tHistory.m_mHistory.contains(iHealth % 32768) ? tHistory.m_mHistory[iHealth % 32768].m_iOldHealth : tHistory.m_iNewHealth, iHealth);
+		tHistory.m_iOldHealth = std::max(tHistory.m_iNewHealth, iHealth);
 		tHistory.m_iNewHealth = iHealth;
 	}
 

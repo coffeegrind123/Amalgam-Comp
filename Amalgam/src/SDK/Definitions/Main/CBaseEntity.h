@@ -60,13 +60,14 @@ public:
 	NETVAR(m_clrRender, Color_t, "CBaseEntity", "m_clrRender");
 	NETVAR(m_iTeamNum, int, "CBaseEntity", "m_iTeamNum");
 	NETVAR(m_CollisionGroup, int, "CBaseEntity", "m_CollisionGroup");
+	NETVAR(m_flGravity, float, "CBaseEntity", "m_flGravity");
 	NETVAR(m_flElasticity, float, "CBaseEntity", "m_flElasticity");
 	NETVAR(m_flShadowCastDistance, float, "CBaseEntity", "m_flShadowCastDistance");
 	NETVAR(m_hOwnerEntity, EHANDLE, "CBaseEntity", "m_hOwnerEntity");
 	NETVAR(m_hEffectEntity, EHANDLE, "CBaseEntity", "m_hEffectEntity");
 	NETVAR(moveparent, int, "CBaseEntity", "moveparent");
 	NETVAR(m_iParentAttachment, int, "CBaseEntity", "m_iParentAttachment");
-	NETVAR(m_Collision, CCollisionProperty*, "CBaseEntity", "m_Collision");
+	NETVAR_EMBED(m_Collision, CCollisionProperty*, "CBaseEntity", "m_Collision");
 	NETVAR(m_vecMinsPreScaled, Vec3, "CBaseEntity", "m_vecMinsPreScaled");
 	NETVAR(m_vecMaxsPreScaled, Vec3, "CBaseEntity", "m_vecMaxsPreScaled");
 	NETVAR(m_vecMins, Vec3, "CBaseEntity", "m_vecMins");
@@ -90,11 +91,10 @@ public:
 	NETVAR(movetype, int, "CBaseEntity", "movetype");
 	
 	NETVAR_OFF(m_flOldSimulationTime, float, "CBaseEntity", "m_flSimulationTime", 4);
-	NETVAR_OFF(m_flGravity, float, "CTFPlayer", "m_nWaterLevel", -24);
 	NETVAR_OFF(m_MoveType, byte, "CTFPlayer", "m_nWaterLevel", -4);
 	NETVAR_OFF(m_MoveCollide, byte, "CTFPlayer", "m_nWaterLevel", -3);
 	NETVAR_OFF(m_nWaterType, byte, "CTFPlayer", "m_nWaterLevel", 1);
-	NETVAR_OFF(m_Particles, CParticleProperty*, "CBaseEntity", "m_flElasticity", -56);
+	NETVAR_EMBED_OFF(m_Particles, CParticleProperty*, "CBaseEntity", "m_flElasticity", -56);
 	inline CBaseEntity* GetMoveParent()
 	{
 		static int nOffset = U::NetVars.GetNetVar("CBaseEntity", "moveparent") - 8;
@@ -235,8 +235,8 @@ public:
 	{
 		switch (GetClassID())
 		{
-		case ETFClassID::CTFPumpkinBomb:
 		case ETFClassID::CTFGenericBomb:
+		case ETFClassID::CTFPumpkinBomb:
 			return true;
 		}
 		return false;

@@ -85,7 +85,9 @@ void CVisuals::ProjectileTrace(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, const
 	F::ProjSim.SetupTrace(filter, nMask, pWeapon, 0, bQuick);
 
 	Vec3* pNormal = nullptr;
-	for (int n = 1; n <= TIME_TO_TICKS(tProjInfo.m_flLifetime); n++)
+
+	int iTicks = TIME_TO_TICKS(std::min(tProjInfo.m_flLifetime, 10.f));
+	for (int n = 1; n <= iTicks; n++)
 	{
 		Vec3 Old = F::ProjSim.GetOrigin();
 		F::ProjSim.RunTick(tProjInfo);
@@ -655,28 +657,43 @@ MAKE_HOOK(NDebugOverlay_BoxAngles, S::NDebugOverlay_BoxAngles(), void,
 
 void CVisuals::FOV(CTFPlayer* pLocal, CViewSetup* pView)
 {
+	static auto fov_desired = H::ConVars.FindVar("fov_desired");
+	static auto default_fov = H::ConVars.FindVar("default_fov");
 	bool bZoomed = pLocal->InCond(TF_COND_ZOOMED);
-	static auto fov_desired = U::ConVars.FindVar("fov_desired");
-	float flDefaultFOV = fov_desired->GetFloat();
+
+	float flRegularFOV = fov_desired->GetFloat();
+	float flZoomedFOV = 90.f;
+
 	float flRegularOverride = Vars::Visuals::UI::FieldOfView.Value;
 	float flZoomOverride = Vars::Visuals::UI::ZoomFieldOfView.Value;
-	float flDesiredFOV = !bZoomed ? flRegularOverride : flZoomOverride;
+	if (SDK::CleanScreenshot())
+		flRegularOverride = flZoomOverride = 0.f;
 
-	pView->fov = pLocal->m_iFOV() = flDesiredFOV ? flDesiredFOV : pView->fov;
-	pLocal->m_iDefaultFOV() = std::max(flRegularOverride, flDefaultFOV);
-
-	if (!I::Prediction->InPrediction() && (flRegularOverride || flZoomOverride))
+	if (flRegularOverride || flZoomOverride)
 	{
-		float flDeltaTime = (TICKS_TO_TIME(pLocal->m_nFinalPredictedTick()) - pLocal->m_flFOVTime() + TICKS_TO_TIME(I::GlobalVars->interpolation_amount)) / pLocal->m_flFOVRate();
-		if (flDeltaTime < 1.f)
-		{
-			float flRegular = flRegularOverride ? flRegularOverride : flDefaultFOV;
-			float flZoomed = flZoomOverride ? flZoomOverride : 20.f;
+		pView->fov = !bZoomed ? (flRegularOverride ? flRegularOverride : flRegularFOV) : (flZoomOverride ? flZoomOverride : flZoomedFOV);
 
-			float flFrom = !bZoomed ? flZoomed : flRegular;
-			float flTo = !bZoomed ? flRegular : flZoomed;
-			pView->fov = pLocal->m_iFOV() = Math::SimpleSplineRemapVal(flDeltaTime, 0.f, 1.f, flFrom, flTo);
+		if (!I::Prediction->InPrediction())
+		{
+			float flDeltaTime = (TICKS_TO_TIME(pLocal->m_nFinalPredictedTick()) - pLocal->m_flFOVTime() + TICKS_TO_TIME(I::GlobalVars->interpolation_amount)) / pLocal->m_flFOVRate();
+			if (flDeltaTime < 1.f)
+			{
+				float flRegular = flRegularOverride ? flRegularOverride : flRegularFOV;
+				float flZoomed = flZoomOverride ? flZoomOverride : flZoomedFOV;
+
+				float flFrom = !bZoomed ? flZoomed : flRegular;
+				float flTo = !bZoomed ? flRegular : flZoomed;
+				pView->fov = Math::SimpleSplineRemapVal(flDeltaTime, 0.f, 1.f, flFrom, flTo);
+			}
 		}
+	}
+
+	F::Aimbot.m_flFOV = pView->fov;
+	if (pLocal->IsAlive())
+	{
+		pLocal->m_iFOV() = pView->fov;
+		pLocal->m_iDefaultFOV() = std::max(flRegularOverride, flRegularFOV);
+		default_fov->SetValue(pLocal->m_iDefaultFOV());
 	}
 }
 
@@ -688,16 +705,14 @@ void CVisuals::ThirdPerson(CTFPlayer* pLocal, CViewSetup* pView)
 	// Don't force third person when taunting if freecam is active
 	bool bTauntForce = pLocal->IsTaunting() && !F::SpectateAll.IsInFreecam();
 	const bool bForce = bTauntForce || pLocal->IsAGhost() || pLocal->InCond(TF_COND_HALLOWEEN_KART) || pLocal->InCond(TF_COND_HALLOWEEN_THRILLER);
-	//if (bForce)
-	//	return;
 
-	if (Vars::Visuals::Thirdperson::Enabled.Value || bForce)
+	if (Vars::Visuals::Thirdperson::Enabled.Value && !SDK::CleanScreenshot() || bForce)
 		I::Input->CAM_ToThirdPerson();
 	else
 		I::Input->CAM_ToFirstPerson();
 	pLocal->ThirdPersonSwitch();
 
-	static auto cam_ideallag = U::ConVars.FindVar("cam_ideallag");
+	static auto cam_ideallag = H::ConVars.FindVar("cam_ideallag");
 	cam_ideallag->SetValue(0.f);
 
 	if (I::Input->CAM_IsThirdPerson())
@@ -990,7 +1005,7 @@ static inline void ApplyModulation(const Color_t& tColor, bool bSky = false)
 
 void CVisuals::Modulate()
 {
-	const bool bScreenshot = Vars::Visuals::UI::CleanScreenshots.Value && I::EngineClient->IsTakingScreenshot();
+	const bool bScreenshot = SDK::CleanScreenshot();
 	const bool bWorldModulation = Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::World && !bScreenshot;
 	const bool bSkyModulation = Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Sky && !bScreenshot;
 
@@ -1067,7 +1082,7 @@ void CVisuals::CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 		iOldMedigunCharge = iNewMedigunCharge;
 	}
 
-	static auto r_aspectratio = U::ConVars.FindVar("r_aspectratio");
+	static auto r_aspectratio = H::ConVars.FindVar("r_aspectratio");
 	static float flStaticRatio = 0.f;
 	float flOldRatio = flStaticRatio;
 	float flNewRatio = flStaticRatio = Vars::Visuals::UI::AspectRatio.Value;

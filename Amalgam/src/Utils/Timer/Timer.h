@@ -14,5 +14,5 @@ public:
 	Timer();
 	bool Check(float flS) const;
 	bool Run(float flS);
-	inline void Update();
+	void Update();
 };

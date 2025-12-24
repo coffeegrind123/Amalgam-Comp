@@ -48,9 +48,9 @@ static inline bool GetRadius(EGroupType entityGroup, CBaseEntity* pProjectile, f
 		flRadius *= 146.f;
 		if (!pPipebomb->m_bTouched())
 		{
-			static auto tf_grenadelauncher_livetime = U::ConVars.FindVar("tf_grenadelauncher_livetime");
-			static auto tf_sticky_radius_ramp_time = U::ConVars.FindVar("tf_sticky_radius_ramp_time");
-			static auto tf_sticky_airdet_radius = U::ConVars.FindVar("tf_sticky_airdet_radius");
+			static auto tf_grenadelauncher_livetime = H::ConVars.FindVar("tf_grenadelauncher_livetime");
+			static auto tf_sticky_radius_ramp_time = H::ConVars.FindVar("tf_sticky_radius_ramp_time");
+			static auto tf_sticky_airdet_radius = H::ConVars.FindVar("tf_sticky_airdet_radius");
 			float flLiveTime = tf_grenadelauncher_livetime->GetFloat();
 			float flRampTime = tf_sticky_radius_ramp_time->GetFloat();
 			float flAirdetRadius = tf_sticky_airdet_radius->GetFloat();
@@ -76,7 +76,7 @@ static inline bool CheckEntities(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUse
 			continue;
 
 		// CEntitySphereQuery actually does a box test so we need to make sure the distance is less than the radius first
-		Vec3 vPos; reinterpret_cast<CCollisionProperty*>(pEntity->GetCollideable())->CalcNearestPoint(vOrigin, &vPos);
+		Vec3 vPos; pEntity->m_Collision()->CalcNearestPoint(vOrigin, &vPos);
 		if (vOrigin.DistTo(vPos) > flRadius)
 			continue;
 
@@ -136,7 +136,7 @@ static inline bool CheckLocal(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEn
 {
 	flRadius += 1;
 
-	Vec3 vPos; reinterpret_cast<CCollisionProperty*>(pLocal->GetCollideable())->CalcNearestPoint(vOrigin, &vPos);
+	Vec3 vPos; pLocal->m_Collision()->CalcNearestPoint(vOrigin, &vPos);
 	if (vOrigin.DistTo(vPos) > flRadius)
 		return false;
 

@@ -111,7 +111,7 @@ void CMisc::AutoStrafe(CTFPlayer* pLocal, CUserCmd* pCmd)
 	{
 	case Vars::Misc::Movement::AutoStrafeEnum::Legit:
 	{
-		static auto cl_sidespeed = U::ConVars.FindVar("cl_sidespeed");
+		static auto cl_sidespeed = H::ConVars.FindVar("cl_sidespeed");
 		const float flSideSpeed = cl_sidespeed->GetFloat();
 
 		if (pCmd->mousedx)
@@ -222,7 +222,7 @@ void CMisc::InstantRespawnMVM(CTFPlayer* pLocal)
 void CMisc::CheatsBypass()
 {
 	static bool bCheatSet = false;
-	static auto sv_cheats = U::ConVars.FindVar("sv_cheats");
+	static auto sv_cheats = H::ConVars.FindVar("sv_cheats");
 	if (Vars::Misc::Exploits::CheatsBypass.Value)
 	{
 		sv_cheats->m_nValue = 1;
@@ -237,8 +237,8 @@ void CMisc::CheatsBypass()
 
 void CMisc::WeaponSway()
 {
-	static auto cl_wpn_sway_interp = U::ConVars.FindVar("cl_wpn_sway_interp");
-	static auto cl_wpn_sway_scale = U::ConVars.FindVar("cl_wpn_sway_scale");
+	static auto cl_wpn_sway_interp = H::ConVars.FindVar("cl_wpn_sway_interp");
+	static auto cl_wpn_sway_scale = H::ConVars.FindVar("cl_wpn_sway_scale");
 
 	bool bSway = Vars::Visuals::Viewmodel::SwayInterp.Value || Vars::Visuals::Viewmodel::SwayScale.Value;
 	cl_wpn_sway_interp->SetValue(bSway ? Vars::Visuals::Viewmodel::SwayInterp.Value : 0.f);
@@ -522,7 +522,7 @@ void CMisc::PingReducer()
 	if (!tTimer.Run(0.1f))
 		return;
 
-	static auto cl_cmdrate = U::ConVars.FindVar("cl_cmdrate");
+	static auto cl_cmdrate = H::ConVars.FindVar("cl_cmdrate");
 	int iTarget = Vars::Misc::Exploits::PingReducer.Value ? Vars::Misc::Exploits::PingTarget.Value : cl_cmdrate->GetInt();
 	if (m_iWishCmdrate != iTarget)
 	{
@@ -536,7 +536,7 @@ void CMisc::PingReducer()
 		}
 	}
 
-	static auto sv_maxupdaterate = U::ConVars.FindVar("sv_maxupdaterate"); // force highest cl_updaterate command possible
+	static auto sv_maxupdaterate = H::ConVars.FindVar("sv_maxupdaterate"); // force highest cl_updaterate command possible
 	iTarget = sv_maxupdaterate->GetInt();
 	if (m_iWishUpdaterate != iTarget)
 	{

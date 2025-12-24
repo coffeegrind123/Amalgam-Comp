@@ -34,7 +34,6 @@ public:
 
 	bool ShouldAim();
 	bool ShouldHoldAttack(CTFWeaponBase* pWeapon);
-	bool ValidBomb(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pBomb);
 };
 
 ADD_FEATURE(CAimbotGlobal, AimbotGlobal);

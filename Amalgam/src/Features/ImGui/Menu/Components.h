@@ -367,7 +367,7 @@ namespace ImGui
 		return sText;
 	}
 
-	inline std::string TruncateText(std::string sText, int iPixels, ImFont* pFont = nullptr, std::string sEnd = "...", size_t* pLength = nullptr)
+	inline std::string TruncateText(const std::string& sText, int iPixels, ImFont* pFont = nullptr, const char* sEnd = "...", size_t* pLength = nullptr)
 	{
 		if (sText.empty())
 			return "";
@@ -393,7 +393,7 @@ namespace ImGui
 		return sTruncated;
 	}
 
-	inline std::deque<std::string> WrapText(std::string sText, int iPixels, ImFont* pFont = nullptr)
+	inline std::deque<std::string> WrapText(const std::string& sText, int iPixels, ImFont* pFont = nullptr)
 	{
 		if (sText.empty())
 			return { "" };

@@ -17,7 +17,6 @@ void CSpectate::NetUpdateEnd(CTFPlayer* pLocal)
 	{
 		if (pLocal->IsAlive() && pLocal->m_hObserverTarget())
 		{
-			pLocal->m_vecViewOffset() = pLocal->GetViewOffset();
 			pLocal->m_iObserverMode() = OBS_MODE_NONE;
 			pLocal->m_hObserverTarget().Set(nullptr);
 		}
@@ -44,7 +43,6 @@ void CSpectate::NetUpdateEnd(CTFPlayer* pLocal)
 	if (currentTime - lastCameraChange > 0.1f) // 100ms delay between camera changes
 	{
 		pLocal->m_iObserverMode() = Vars::Visuals::Thirdperson::Enabled.Value ? OBS_MODE_THIRDPERSON : OBS_MODE_FIRSTPERSON;
-		pLocal->m_vecViewOffset() = pEntity->GetViewOffset();
 		Vars::Visuals::Thirdperson::Enabled.Value ? I::Input->CAM_ToThirdPerson() : I::Input->CAM_ToFirstPerson();
 		lastCameraChange = currentTime;
 	}

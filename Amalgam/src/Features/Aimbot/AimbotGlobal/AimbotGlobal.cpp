@@ -244,13 +244,44 @@ bool CAimbotGlobal::ShouldIgnore(CBaseEntity* pEntity, CTFPlayer* pLocal, CTFWea
 
 		return false;
 	}
-	case ETFClassID::CTFPumpkinBomb:
 	case ETFClassID::CTFGenericBomb:
+	case ETFClassID::CTFPumpkinBomb:
 	{
 		if (!(Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Bombs))
 			return true;
 
-		return false;
+		Vec3 vOrigin = pEntity->m_vecOrigin();
+
+		CBaseEntity* pEntity;
+		for (CEntitySphereQuery sphere(vOrigin, 300.f);
+			(pEntity = sphere.GetCurrentEntity()) != nullptr;
+			sphere.NextEntity())
+		{
+			if (!pEntity || pEntity == pLocal || pEntity->IsPlayer() && (!pEntity->As<CTFPlayer>()->IsAlive() || pEntity->As<CTFPlayer>()->IsAGhost()) || pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
+				continue;
+
+			Vec3 vPos; pEntity->m_Collision()->CalcNearestPoint(vOrigin, &vPos);
+			if (vOrigin.DistTo(vPos) > 300.f)
+				continue;
+
+			bool isPlayer = pEntity->IsPlayer() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Players;
+			bool isSentry = pEntity->IsSentrygun() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Sentry;
+			bool isDispenser = pEntity->IsDispenser() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Dispenser;
+			bool isTeleporter = pEntity->IsTeleporter() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Teleporter;
+			bool isNPC = pEntity->IsNPC() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::NPCs;
+			if (isPlayer || isSentry || isDispenser || isTeleporter || isNPC)
+			{
+				if (isPlayer && ShouldIgnore(pEntity->As<CTFPlayer>(), pLocal, pWeapon))
+					continue;
+
+				if (!SDK::VisPosCollideable(pEntity, pEntity, vOrigin, isPlayer ? pEntity->m_vecOrigin() + pEntity->As<CTFPlayer>()->GetViewOffset() : pEntity->GetCenter(), MASK_SHOT))
+					continue;
+
+				return false;
+			}
+		}
+
+		return true;
 	}
 	}
 
@@ -287,45 +318,5 @@ bool CAimbotGlobal::ShouldHoldAttack(CTFWeaponBase* pWeapon)
 		if (!F::Aimbot.m_bRunningSecondary && !G::CanPrimaryAttack && G::LastUserCmd->buttons & IN_ATTACK && Vars::Aimbot::General::AimType.Value && !pWeapon->IsInReload())
 			return true;
 	}
-	return false;
-}
-
-// will not predict for projectile weapons
-bool CAimbotGlobal::ValidBomb(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pBomb)
-{
-	if (G::PrimaryWeaponType == EWeaponType::PROJECTILE)
-		return false;
-
-	Vec3 vOrigin = pBomb->m_vecOrigin();
-
-	CBaseEntity* pEntity;
-	for (CEntitySphereQuery sphere(vOrigin, 300.f);
-		(pEntity = sphere.GetCurrentEntity()) != nullptr;
-		sphere.NextEntity())
-	{
-		if (!pEntity || pEntity == pLocal || pEntity->IsPlayer() && (!pEntity->As<CTFPlayer>()->IsAlive() || pEntity->As<CTFPlayer>()->IsAGhost()) || pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
-			continue;
-
-		Vec3 vPos; reinterpret_cast<CCollisionProperty*>(pEntity->GetCollideable())->CalcNearestPoint(vOrigin, &vPos);
-		if (vOrigin.DistTo(vPos) > 300.f)
-			continue;
-
-		bool isPlayer = pEntity->IsPlayer() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Players;
-		bool isSentry = pEntity->IsSentrygun() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Sentry;
-		bool isDispenser = pEntity->IsDispenser() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Dispenser;
-		bool isTeleporter = pEntity->IsTeleporter() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::Teleporter;
-		bool isNPC = pEntity->IsNPC() && Vars::Aimbot::General::Target.Value & Vars::Aimbot::General::TargetEnum::NPCs;
-		if (isPlayer || isSentry || isDispenser || isTeleporter || isNPC)
-		{
-			if (isPlayer && ShouldIgnore(pEntity->As<CTFPlayer>(), pLocal, pWeapon))
-				continue;
-
-			if (!SDK::VisPosCollideable(pBomb, pEntity, vOrigin, isPlayer ? pEntity->m_vecOrigin() + pEntity->As<CTFPlayer>()->GetViewOffset() : pEntity->GetCenter(), MASK_SHOT))
-				continue;
-
-			return true;
-		}
-	}
-
 	return false;
 }
