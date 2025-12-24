@@ -3,11 +3,15 @@
 #include "../PacketManip/FakeLag/FakeLag.h"
 #include "../Ticks/Ticks.h"
 
+#include <ranges>
+
 void CBacktrack::Reset()
 {
 	m_mRecords.clear();
 	m_dSequences.clear();
 	m_iLastInSequence = 0;
+	m_tRecord.m_vHitboxInfos.clear();
+	memset(m_tRecord.m_BoneMatrix.m_aBones, 0, sizeof(m_tRecord.m_BoneMatrix.m_aBones));
 }
 
 
@@ -208,6 +212,36 @@ void CBacktrack::MakeRecords()
 		if (!aBones)
 			continue;
 
+		// Capture hitbox information for crosshair backtrack
+		matrix3x4* pBoneMatrix = reinterpret_cast<matrix3x4*>(aBones);
+		std::vector<HitboxInfo> vHitboxInfos{};
+
+		auto pModel = pPlayer->GetModel();
+		if (pModel)
+		{
+			auto pHDR = I::ModelInfoClient->GetStudiomodel(pModel);
+			if (pHDR)
+			{
+				auto pSet = pHDR->pHitboxSet(pPlayer->m_nHitboxSet());
+				if (pSet)
+				{
+					for (int nHitbox = 0; nHitbox < pPlayer->GetNumOfHitboxes(); nHitbox++)
+					{
+						auto pBox = pSet->pHitbox(nHitbox);
+						if (!pBox)
+							continue;
+
+						const Vec3 iMin = pBox->bbmin;
+						const Vec3 iMax = pBox->bbmax;
+						const int iBone = pBox->bone;
+						Vec3 vCenter{};
+						Math::VectorTransform((iMin + iMax) / 2, pBoneMatrix[iBone], vCenter);
+						vHitboxInfos.push_back({ iBone, nHitbox, vCenter, iMin, iMax });
+					}
+				}
+			}
+		}
+
 		auto& vRecords = m_mRecords[pPlayer];
 
 		const TickRecord* pLastRecord = !vRecords.empty() ? &vRecords.front() : nullptr;
@@ -220,7 +254,8 @@ void CBacktrack::MakeRecords()
 			m_mDidShoot[pPlayer->entindex()],
 			pPlayer->m_vecOrigin()
 		);
-		const TickRecord& tCurRecord = vRecords.front();
+		TickRecord& tCurRecord = vRecords.front();
+		tCurRecord.m_vHitboxInfos = std::move(vHitboxInfos);
 
 		bool bLagComp = false;
 		if (pLastRecord)
@@ -249,6 +284,7 @@ void CBacktrack::MakeRecords()
 				tRecord.m_vMins = tCurRecord.m_vMins;
 				tRecord.m_vMaxs = tCurRecord.m_vMaxs;
 				tRecord.m_BoneMatrix = tCurRecord.m_BoneMatrix;
+				tRecord.m_vHitboxInfos = tCurRecord.m_vHitboxInfos;
 				tRecord.m_bOnShot = tCurRecord.m_bOnShot;
 			}
 		}
@@ -382,6 +418,99 @@ void CBacktrack::AdjustPing(CNetChannel* pNetChan)
 void CBacktrack::RestorePing(CNetChannel* pNetChan)
 {
 	pNetChan->m_nInSequenceNr = m_nOldInSequenceNr, pNetChan->m_nInReliableState = m_nOldInReliableState;
+}
+
+std::optional<TickRecord> CBacktrack::GetHitRecord(CBaseEntity* pEntity, CTFWeaponBase* pWeapon, CUserCmd* pCmd, CrosshairRecordInfo_t& InfoOut, const Vec3 vAngles, const Vec3 vPos)
+{
+	std::optional<TickRecord> pReturnRecord{};
+	float flMinFov = 45.f;
+	float flMinDist = 50.f;
+	bool bInsideRecord = false;
+	std::vector<TickRecord*> vRecords;
+	if (GetRecords(pEntity, vRecords))
+	{
+		vRecords = GetValidRecords(vRecords);
+		for (auto pRecord : vRecords)
+		{
+			for (int n = 0; n < pRecord->m_vHitboxInfos.size(); n++)
+			{
+				auto sHitboxInfo = pRecord->m_vHitboxInfos[n];
+
+				// pSet->pHitbox failed, this hitbox cannot be used
+				if (sHitboxInfo.m_iBone == -1)
+					continue;
+
+				const auto vAngleTo = Math::CalcAngle(vPos, sHitboxInfo.m_vCenter);
+				const float flFOVTo = Math::CalcFov(vAngles, vAngleTo);
+				const float flDistTo = vPos.DistTo(sHitboxInfo.m_vCenter);
+
+				// We are inside this record (probably)
+				if (flDistTo < flMinDist)
+				{
+					pReturnRecord = *pRecord;
+					flMinDist = flDistTo;
+					bInsideRecord = true;
+				}
+				else if (!bInsideRecord && flFOVTo < flMinFov)
+				{
+					pReturnRecord = *pRecord;
+					flMinFov = flFOVTo;
+				}
+			}
+		}
+	}
+
+	InfoOut = CrosshairRecordInfo_t{ flMinDist, flMinFov, bInsideRecord };
+	return pReturnRecord;
+}
+
+void CBacktrack::BacktrackToCrosshair(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
+{
+	if (!Vars::Backtrack::CrosshairBacktrack.Value)
+		return;
+
+	if (G::Attacking != 1 ||
+		!pLocal->IsAlive() || pLocal->IsAGhost() || pLocal->InCond(TF_COND_HALLOWEEN_KART))
+		return;
+
+	const Vec3 vShootPos = F::Ticks.GetShootPos();
+	const Vec3 vAngles = pCmd->viewangles;
+
+	std::vector<std::pair<TickRecord, CrosshairRecordInfo_t>> vValidRecords;
+	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ENEMIES))
+	{
+		if (!pEntity)
+			continue;
+
+		if (/*pEntity->IsDormant() || */!pEntity->As<CTFPlayer>()->IsAlive() || pEntity->As<CTFPlayer>()->IsAGhost() || pEntity->As<CTFPlayer>()->IsInvulnerable())
+			continue;
+
+		CrosshairRecordInfo_t sRecordInfo{};
+		if (auto pCheckRec = GetHitRecord(pEntity, pWeapon, pCmd, sRecordInfo, vAngles, vShootPos))
+			vValidRecords.push_back({ *pCheckRec, sRecordInfo });
+	}
+
+	std::optional<TickRecord> pReturnTick{};
+	if (!vValidRecords.empty())
+	{
+		auto pFinalTick = std::ranges::min_element(vValidRecords, [&](const std::pair<TickRecord, CrosshairRecordInfo_t>& a, const std::pair<TickRecord, CrosshairRecordInfo_t>& b)
+			{
+				const bool bInsideBoth = a.second.m_bInsideThisRecord && b.second.m_bInsideThisRecord;
+				const bool bNotInsideRecords = !a.second.m_bInsideThisRecord && !b.second.m_bInsideThisRecord;
+
+				const bool bResult =
+				{
+						bInsideBoth ? a.second.m_flMinDist < b.second.m_flMinDist :
+						bNotInsideRecords ? a.second.m_flFov < b.second.m_flFov :
+						a.second.m_bInsideThisRecord
+				};
+				return bResult;
+			});
+		pReturnTick = pFinalTick->first;
+	}
+
+	if (pReturnTick)
+		pCmd->tick_count = TIME_TO_TICKS(pReturnTick->m_flSimTime + m_flFakeInterp);
 }
 
 void CBacktrack::Draw(CTFPlayer* pLocal)

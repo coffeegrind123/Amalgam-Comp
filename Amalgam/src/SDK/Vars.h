@@ -442,6 +442,7 @@ namespace Vars
 		CVar(Interp, "Fake interp", 0, SLIDER_CLAMP | SLIDER_PRECISION, 0, 1000, 5);
 		CVar(Window, VA_LIST("Window", "Backtrack window"), 185, SLIDER_CLAMP | SLIDER_PRECISION, 0, 200, 5);
 		CVar(PreferOnShot, "Prefer on shot", false);
+		CVar(CrosshairBacktrack, "Crosshair backtrack", false, "Adjust tick when manually aiming");
 
 		CVar(Offset, "Offset", 0, NOSAVE | DEBUGVAR, -1, 1);
 	NAMESPACE_END(Backtrack);

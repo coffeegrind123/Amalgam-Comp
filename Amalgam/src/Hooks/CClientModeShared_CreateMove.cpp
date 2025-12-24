@@ -262,6 +262,7 @@ MAKE_HOOK(CClientModeShared_CreateMove, U::Memory.GetVirtual(I::ClientModeShared
 
 	F::EnginePrediction.Start(pLocal, pCmd);
 	F::Aimbot.Run(pLocal, pWeapon, pCmd);
+	F::Backtrack.BacktrackToCrosshair(pLocal, pWeapon, pCmd);
 	F::CritHack.Run(pLocal, pWeapon, pCmd);
 	F::NoSpread.Run(pLocal, pWeapon, pCmd);
 	F::Resolver.CreateMove(pLocal);

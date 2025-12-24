@@ -195,6 +195,7 @@ void CMenu::MenuAimbot(int iTab)
 					FSlider(Vars::Backtrack::Interp);
 					FSlider(Vars::Backtrack::Window);
 					//FToggle(Vars::Backtrack::PreferOnShot);
+					FToggle(Vars::Backtrack::CrosshairBacktrack);
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{

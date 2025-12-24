@@ -1,5 +1,6 @@
 #pragma once
 #include "../../SDK/SDK.h"
+#include <optional>
 
 class CIncomingSequence
 {
@@ -21,6 +22,15 @@ struct BoneMatrix
 	matrix3x4 m_aBones[MAXSTUDIOBONES];
 };
 
+struct HitboxInfo
+{
+	int m_iBone = -1;
+	int m_nHitbox = -1;
+	Vec3 m_vCenter = {};
+	Vec3 m_iMin = {};
+	Vec3 m_iMax = {};
+};
+
 struct TickRecord
 {
 	float m_flSimTime = 0.f;
@@ -28,6 +38,7 @@ struct TickRecord
 	Vec3 m_vMins = {};
 	Vec3 m_vMaxs = {};
 	BoneMatrix m_BoneMatrix = {};
+	std::vector<HitboxInfo> m_vHitboxInfos = {};
 	bool m_bOnShot = false;
 	Vec3 m_vBreak = {};
 	bool m_bInvalid = false;
@@ -53,6 +64,16 @@ class CBacktrack
 	float m_flFakeLatency = 0.f;
 	float m_flFakeInterp = 0.015f;
 
+	struct CrosshairRecordInfo_t
+	{
+		float m_flMinDist = -1.f;
+		float m_flFov = -1.f;
+		bool m_bInsideThisRecord = false; // If our shoot pos is inside this record
+	};
+
+private:
+	bool m_bSettingUpBones = false;
+
 public:
 	void Store();
 	void SendLerp();
@@ -75,6 +96,10 @@ public:
 	void ReportShot(int iIndex);
 	void AdjustPing(CNetChannel* netChannel);
 	void RestorePing(CNetChannel* netChannel);
+
+	// Crosshair backtrack - adjust tick when manually aiming
+	std::optional<TickRecord> GetHitRecord(CBaseEntity* pEntity, CTFWeaponBase* pWeapon, CUserCmd* pCmd, CrosshairRecordInfo_t& InfoOut, const Vec3 vAngles, const Vec3 vPos);
+	void BacktrackToCrosshair(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
 
 	int m_iTickCount = 0;
 	float m_flSentInterp = -1.f;
