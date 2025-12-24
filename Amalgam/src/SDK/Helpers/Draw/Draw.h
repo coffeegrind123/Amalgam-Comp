@@ -1,5 +1,6 @@
 #pragma once
 #include "../Fonts/Fonts.h"
+#include "Icons.h"
 #include "../../Definitions/Definitions.h"
 #include "../../Vars.h"
 #include <mutex>

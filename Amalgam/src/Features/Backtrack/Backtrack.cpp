@@ -245,7 +245,7 @@ void CBacktrack::MakeRecords()
 		auto& vRecords = m_mRecords[pPlayer];
 
 		const TickRecord* pLastRecord = !vRecords.empty() ? &vRecords.front() : nullptr;
-		vRecords.emplace_front(
+		TickRecord tCurRecord = {
 			pPlayer->m_flSimulationTime(),
 			pPlayer->m_vecOrigin(),
 			pPlayer->m_vecMins(),
@@ -253,10 +253,9 @@ void CBacktrack::MakeRecords()
 			*reinterpret_cast<BoneMatrix*>(aBones),
 			m_mDidShoot[pPlayer->entindex()],
 			pPlayer->m_vecOrigin(),
-			{} // m_vHitboxInfos
-		);
-		TickRecord& tCurRecord = vRecords.front();
-		tCurRecord.m_vHitboxInfos = std::move(vHitboxInfos);
+			std::move(vHitboxInfos)
+		};
+		vRecords.emplace_front(std::move(tCurRecord));
 
 		bool bLagComp = false;
 		if (pLastRecord)

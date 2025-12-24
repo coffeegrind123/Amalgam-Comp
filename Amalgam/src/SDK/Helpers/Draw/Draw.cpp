@@ -363,7 +363,7 @@ void CDraw::Texture(int x, int y, int w, int h, int iId, const EAlign& eAlign)
 	else
 	{
 		nTexture = ICONS::TEXTURES[iId].first = I::MatSystemSurface->CreateNewTextureID();
-		I::MatSystemSurface->DrawSetTextureFile(nTexture, ICONS::TEXTURES[iId].second.c_str(), false, true);
+		I::MatSystemSurface->DrawSetTextureFile(nTexture, ICONS::TEXTURES[iId].second.c_str());
 	}
 
 	I::MatSystemSurface->DrawSetColor(255, 255, 255, 255);
