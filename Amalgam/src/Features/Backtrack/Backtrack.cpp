@@ -252,7 +252,8 @@ void CBacktrack::MakeRecords()
 			pPlayer->m_vecMaxs(),
 			*reinterpret_cast<BoneMatrix*>(aBones),
 			m_mDidShoot[pPlayer->entindex()],
-			pPlayer->m_vecOrigin()
+			pPlayer->m_vecOrigin(),
+			{} // m_vHitboxInfos
 		);
 		TickRecord& tCurRecord = vRecords.front();
 		tCurRecord.m_vHitboxInfos = std::move(vHitboxInfos);
