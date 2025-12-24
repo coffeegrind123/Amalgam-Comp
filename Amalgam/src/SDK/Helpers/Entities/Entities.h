@@ -16,7 +16,9 @@ enum struct EGroupType
 };
 
 // Entity storage constants for MSVC compatibility
+#ifndef MAX_PLAYERS
 #define MAX_PLAYERS 64
+#endif
 #define MAX_BUILDINGS 128
 #define MAX_PROJECTILES 256
 
