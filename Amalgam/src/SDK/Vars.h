@@ -291,6 +291,7 @@ namespace Vars
 			CVar(AutoShoot, "Auto shoot", true);
 			CVar(FOVCircle, "FOV Circle", false);
 			CVar(NoSpread, "No spread", false);
+			CVar(SwitchDelay, "Target switch delay", 100.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 2000.f, 0.1f, "%.1f ms");
 
 			CVar(HitscanPeek, "Hitscan peek", 1, NOSAVE | DEBUGVAR, 0, 5);
 			CVar(PeekDTOnly, "Peek DT only", true, NOSAVE | DEBUGVAR);
@@ -423,6 +424,10 @@ namespace Vars
 			CVar(AutoVaccinatorBlastScale, "Auto vaccinator blast scale", 100.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 200.f, 10.f, "%g%%");
 			CVar(AutoVaccinatorFireScale, "Auto vaccinator fire scale", 100.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 200.f, 10.f, "%g%%");
 			CVar(AutoVaccinatorFlamethrowerDamageOnly, "Auto vaccinator flamethrower damage only", false, NOSAVE | DEBUGVAR);
+			CVar(AutoVaccinatorSwitchCooldown, "Auto vaccinator switch cooldown", 0.5f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.0f, 5.0f, 0.1f, "%g s");
+			CVar(AutoVaccinatorHysteresis, "Auto vaccinator hysteresis", 20.0f, NOSAVE | DEBUGVAR | SLIDER_CLAMP | SLIDER_PRECISION, 0.0f, 100.0f, 5.0f, "%g%%");
+			CVar(AutoVaccinatorFOVRestriction, "Auto vaccinator FOV restriction", true, NOSAVE | DEBUGVAR);
+			CVar(AutoVaccinatorFOV, "Auto vaccinator FOV", 90.0f, NOSAVE | DEBUGVAR | SLIDER_CLAMP | SLIDER_PRECISION, 0.0f, 180.0f, 5.0f, "%g°");
 		SUBNAMESPACE_END(Healing);
 	NAMESPACE_END(AIMBOT);
 	
@@ -1320,6 +1325,10 @@ namespace Vars
 			CVar(AutoF1Priority, "Auto F1 priority", false);
 			CVar(AcceptItemDrops, "Auto accept item drops", false);
 		SUBNAMESPACE_END(Automation);
+
+		SUBNAMESPACE_BEGIN(AutoDisguise)
+			CVar(Enabled, "Auto disguise", false);
+		SUBNAMESPACE_END(AutoDisguise);
 
 		SUBNAMESPACE_BEGIN(Sound)
 			CVarEnum(Block, VA_LIST("Block", "Sound block"), 0b0000, DROPDOWN_MULTI, nullptr,

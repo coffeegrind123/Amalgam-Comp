@@ -14,6 +14,7 @@
 #include "../Features/Visuals/FakeAngle/FakeAngle.h"
 #include "../Features/Spectate/Spectate.h"
 #include "../Features/Misc/SpectateAll/SpectateAll.h"
+#include "../Features/AutoDisguise/AutoDisguise.h"
 
 #define MATH_EPSILON (1.f / 16)
 #define PSILENT_EPSILON (1.f - MATH_EPSILON)
@@ -265,6 +266,9 @@ MAKE_HOOK(CClientModeShared_CreateMove, U::Memory.GetVirtual(I::ClientModeShared
 	F::NoSpread.Run(pLocal, pWeapon, pCmd);
 	F::Resolver.CreateMove(pLocal);
 	F::EnginePrediction.End(pLocal, pCmd);
+
+	// Run AutoDisguise state checking
+	F::AutoDisguise.Run(pLocal);
 
 	F::Misc.RunPost(pLocal, pCmd, *pSendPacket);
 	F::PacketManip.Run(pLocal, pWeapon, pCmd, pSendPacket);

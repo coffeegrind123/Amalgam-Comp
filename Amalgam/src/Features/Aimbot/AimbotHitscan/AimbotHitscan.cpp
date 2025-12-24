@@ -121,7 +121,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
-			if (!F::AimbotGlobal.ValidBomb(pLocal, pWeapon, pEntity))
+			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? CSIMDMath::FastDistance(vLocalPos, vPos) : 0.f;
@@ -373,11 +373,11 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 
 			for (auto& [pBox, iHitbox, _] : vHitboxes)
 			{
-				Vec3 vAngle; Math::MatrixAngles(aBones[pBox->bone], vAngle);
 				Vec3 vMins = pBox->bbmin;
 				Vec3 vMaxs = pBox->bbmax;
 				Vec3 vCheckMins = (vMins + flBoneSubtract / flModelScale) * flBoneScale;
 				Vec3 vCheckMaxs = (vMaxs - flBoneSubtract / flModelScale) * flBoneScale;
+				Vec3 vAngle; Math::MatrixAngles(aBones[pBox->bone], vAngle);
 
 				Vec3 vOffset;
 				{
@@ -467,11 +467,10 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			Vec3 vCheckMins = (vMins + flBoneSubtract) * flBoneScale;
 			Vec3 vCheckMaxs = (vMaxs - flBoneSubtract) * flBoneScale;
 
-			auto pCollideable = tTarget.m_pEntity->GetCollideable();
-			const matrix3x4& mTransform = pCollideable ? pCollideable->CollisionToWorldTransform() : tTarget.m_pEntity->RenderableToWorldTransform();
+			const matrix3x4& mTransform = tTarget.m_pEntity->m_Collision()->CollisionToWorldTransform();
 
 			std::vector<Vec3> vPoints = { Vec3() };
-			//if (Vars::Aimbot::Hitscan::PointScale.Value > 0.f)
+			//if (Vars::Aimbot::Hitscan::MultipointScale.Value > 0.f)
 			{
 				bool bTriggerbot = (Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Smooth
 					|| Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Assistive)
@@ -479,7 +478,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 
 				if (!bTriggerbot)
 				{
-					float flScale = 0.5f; //Vars::Aimbot::Hitscan::PointScale.Value / 100;
+					float flScale = 0.5f; //Vars::Aimbot::Hitscan::MultipointScale.Value / 100;
 					Vec3 vMinsS = (vMins - vMaxs) / 2 * flScale;
 					Vec3 vMaxsS = (vMaxs - vMins) / 2 * flScale;
 
@@ -636,7 +635,7 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 // assume angle calculated outside with other overload
 void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 {
-	bool bUnsure = F::Ticks.IsTimingUnsure() || F::Ticks.GetTicks(H::Entities.GetWeapon());
+	bool bUnsure = F::Ticks.IsTimingUnsure();
 	switch (iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
@@ -753,11 +752,56 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 			pCmd->buttons |= IN_ATTACK;
 	}
 
-	if (!G::AimTarget.m_iEntIndex)
-		G::AimTarget = { vTargets.front().m_pEntity->entindex(), I::GlobalVars->tickcount, 0 };
+	// Target switch delay logic
+	bool bCanSwitchTarget = true;
+	float flCurrentTime = I::EngineClient->Time();
+
+	if (G::AimTarget.m_iEntIndex != 0 && vTargets.front().m_pEntity->entindex() != G::AimTarget.m_iEntIndex)
+	{
+		float flTimeSinceLastAcquire = (flCurrentTime - G::AimTarget.m_flLastAcquiredTime) * 1000.0f; // Convert to milliseconds
+		if (flTimeSinceLastAcquire < Vars::Aimbot::General::SwitchDelay.Value)
+		{
+			bCanSwitchTarget = false;
+		}
+		else
+		{
+			// Reset target - set new acquisition time
+			G::AimTarget = { vTargets.front().m_pEntity->entindex(), I::GlobalVars->tickcount, 32, flCurrentTime };
+		}
+	}
+	else if (!G::AimTarget.m_iEntIndex)
+	{
+		// No current target - set new acquisition time
+		G::AimTarget = { vTargets.front().m_pEntity->entindex(), I::GlobalVars->tickcount, 32, flCurrentTime };
+	}
+
+	// If we can't switch targets, use the current target if it's still valid
+	if (!bCanSwitchTarget && G::AimTarget.m_iEntIndex)
+	{
+		// Check if current target is still in our target list
+		bool bCurrentTargetStillValid = false;
+		for (auto& tTarget : vTargets)
+		{
+			if (tTarget.m_pEntity->entindex() == G::AimTarget.m_iEntIndex)
+			{
+				bCurrentTargetStillValid = true;
+				break;
+			}
+		}
+
+		if (!bCurrentTargetStillValid)
+		{
+			// Current target is no longer valid, we must switch
+			bCanSwitchTarget = true;
+			G::AimTarget = { vTargets.front().m_pEntity->entindex(), I::GlobalVars->tickcount, 32, flCurrentTime };
+		}
+	}
 
 	for (auto& tTarget : vTargets)
 	{
+		// Skip targets that don't match our current target if switch delay is active
+		if (!bCanSwitchTarget && tTarget.m_pEntity->entindex() != G::AimTarget.m_iEntIndex)
+			continue;
 		if (nWeaponID == TF_WEAPON_MEDIGUN && pWeapon->As<CWeaponMedigun>()->m_hHealingTarget().Get() == tTarget.m_pEntity)
 		{
 			if (G::LastUserCmd->buttons & IN_ATTACK)
@@ -769,13 +813,21 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		if (!iResult) continue;
 		if (iResult == 2)
 		{
-			G::AimTarget = { tTarget.m_pEntity->entindex(), I::GlobalVars->tickcount, 0 };
+			// Only switch target if we can (delay expired)
+			if (bCanSwitchTarget)
+			{
+				G::AimTarget = { tTarget.m_pEntity->entindex(), I::GlobalVars->tickcount, 32, flCurrentTime };
+			}
 			Aim(pCmd, tTarget.m_vAngleTo);
 			break;
 		}
 
-		G::AimTarget = { tTarget.m_pEntity->entindex(), I::GlobalVars->tickcount };
-		G::AimPoint = { tTarget.m_vPos, I::GlobalVars->tickcount };
+		// Only switch target if we can (delay expired)
+		if (bCanSwitchTarget || tTarget.m_pEntity->entindex() == G::AimTarget.m_iEntIndex)
+		{
+			G::AimTarget = { tTarget.m_pEntity->entindex(), I::GlobalVars->tickcount, 32, flCurrentTime };
+			G::AimPoint = { tTarget.m_vPos, I::GlobalVars->tickcount };
+		}
 
 		if (ShouldFire(pLocal, pWeapon, pCmd, tTarget))
 		{

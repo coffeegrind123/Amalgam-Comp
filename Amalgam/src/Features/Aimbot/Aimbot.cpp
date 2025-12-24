@@ -49,8 +49,26 @@ void CAimbot::RunMain(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 	}
 
 	m_bRan = false;
+	// Check if AimTarget has timed out
 	if (abs(G::AimTarget.m_iTickCount - I::GlobalVars->tickcount) > G::AimTarget.m_iDuration)
-		G::AimTarget = {};
+	{
+		// Determine if the target is still valid
+		bool bValid = false;
+		if (G::AimTarget.m_iEntIndex)
+		{
+			if (auto pEntity = I::ClientEntityList->GetClientEntity(G::AimTarget.m_iEntIndex))
+			{
+				if (!F::AimbotGlobal.ShouldIgnore(pEntity->As<CBaseEntity>(), pLocal, pWeapon))
+				{
+					// Target is still valid, refresh the tick count
+					G::AimTarget.m_iTickCount = I::GlobalVars->tickcount;
+					bValid = true;
+				}
+			}
+		}
+		if (!bValid)
+			G::AimTarget = {};
+	}
 	if (abs(G::AimPoint.m_iTickCount - I::GlobalVars->tickcount) > G::AimPoint.m_iDuration)
 		G::AimPoint = {};
 

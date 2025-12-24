@@ -15,7 +15,7 @@ void CAutoHeal::ActivateOnVoice(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUse
 	if (!pTarget || Vars::Aimbot::Healing::FriendsOnly.Value && !H::Entities.IsFriend(pTarget->entindex()) && !H::Entities.InParty(pTarget->entindex()))
 		return;
 
-	if (m_mMedicCallers.contains(pTarget->entindex()))
+	if (m_mMedicCallers.count(pTarget->entindex()))
 		pCmd->buttons |= IN_ATTACK2;
 }
 
@@ -208,7 +208,7 @@ static inline float GetMult(CBaseEntity* pProjectile, CTFWeaponBase* pWeapon, CT
 	return flReturn;
 }
 
-void CAutoHeal::GetDangers(CTFPlayer* pTarget, bool bVaccinator, float& flBulletOut, float& flBlastOut, float& flFireOut)
+void CAutoHeal::GetDangers(CTFPlayer* pTarget, CTFPlayer* pMedic, bool bVaccinator, float& flBulletOut, float& flBlastOut, float& flFireOut)
 {
 	if (pTarget->IsInvulnerable())
 		return;
@@ -248,6 +248,17 @@ void CAutoHeal::GetDangers(CTFPlayer* pTarget, bool bVaccinator, float& flBullet
 		bool bFOV = bCheater || flFOV < (bZoom ? 10 : eWeaponType == EWeaponType::HITSCAN ? 30 : 90);
 		if (!bFOV || !TraceToEntity(pTarget, pPlayer, vTargetCenter, vPlayerEye))
 			continue;
+
+		// Medic FOV restriction
+		if (Vars::Aimbot::Healing::AutoVaccinatorFOVRestriction.Value)
+		{
+			Vec3 vMedicEye = pMedic->GetShootPos();
+			float flMedicFOV = Math::CalcFov(I::EngineClient->GetViewAngles(), Math::CalcAngle(vMedicEye, vPlayerEye));
+			if (flMedicFOV > Vars::Aimbot::Healing::AutoVaccinatorFOV.Value)
+				continue;
+			if (!TraceToEntity(pMedic, pPlayer, vMedicEye, vPlayerEye))
+				continue;
+		}
 
 		bool bCrits = pPlayer->IsCritBoosted() || F::CritHack.WeaponCanCrit(pWeapon);
 		bool bMinicrits = pPlayer->IsMiniCritBoosted() || pTarget->IsMarked();
@@ -378,6 +389,18 @@ void CAutoHeal::GetDangers(CTFPlayer* pTarget, bool bVaccinator, float& flBullet
 		if (pSentry->m_hEnemy().Get() != pTarget && pSentry->m_hAutoAimTarget().Get() != pTarget || !pSentry->m_iAmmoShells())
 			continue;
 
+		// Medic FOV restriction
+		if (Vars::Aimbot::Healing::AutoVaccinatorFOVRestriction.Value)
+		{
+			Vec3 vMedicEye = pMedic->GetShootPos();
+			Vec3 vSentryCenter = pSentry->GetCenter();
+			float flMedicFOV = Math::CalcFov(I::EngineClient->GetViewAngles(), Math::CalcAngle(vMedicEye, vSentryCenter));
+			if (flMedicFOV > Vars::Aimbot::Healing::AutoVaccinatorFOV.Value)
+				continue;
+			if (!TraceToEntity(pMedic, pSentry, vMedicEye, vSentryCenter))
+				continue;
+		}
+
 		float flDistance = pSentry->GetCenter().DistTo(vTargetCenter);
 		float flDamage = 19.f, flMult = pTarget->IsMarked() ? 1.36f : 1.f;
 		float flFireRate;
@@ -445,6 +468,17 @@ void CAutoHeal::GetDangers(CTFPlayer* pTarget, bool bVaccinator, float& flBullet
 		Vec3 vProjectileOrigin = PredictOrigin(pEntity->m_vecOrigin(), vVelocity, flLatency, true, pEntity->m_vecMins(), pEntity->m_vecMaxs());
 		if (!TraceToEntity(pTarget, pEntity, vTargetEye, vProjectileOrigin, MASK_SHOT))
 			continue;
+
+		// Medic FOV restriction
+		if (Vars::Aimbot::Healing::AutoVaccinatorFOVRestriction.Value)
+		{
+			Vec3 vMedicEye = pMedic->GetShootPos();
+			float flMedicFOV = Math::CalcFov(I::EngineClient->GetViewAngles(), Math::CalcAngle(vMedicEye, vProjectileOrigin));
+			if (flMedicFOV > Vars::Aimbot::Healing::AutoVaccinatorFOV.Value)
+				continue;
+			if (!TraceToEntity(pMedic, pEntity, vMedicEye, vProjectileOrigin))
+				continue;
+		}
 
 		int iType = MEDIGUN_BLAST_RESIST;
 		float flMult = GetMult(pEntity, pWeapon, pTarget);
@@ -561,7 +595,9 @@ void CAutoHeal::AutoVaccinator(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUser
 		vTargets.push_back(pTarget);
 
 	for (auto pTarget : vTargets)
-		GetDangers(pTarget, true, vResistDangers[MEDIGUN_BULLET_RESIST].first, vResistDangers[MEDIGUN_BLAST_RESIST].first, vResistDangers[MEDIGUN_FIRE_RESIST].first);
+		GetDangers(pTarget, pLocal, true, vResistDangers[MEDIGUN_BULLET_RESIST].first, vResistDangers[MEDIGUN_BLAST_RESIST].first, vResistDangers[MEDIGUN_FIRE_RESIST].first);
+
+	// Raw dangers for activation
 	std::sort(vResistDangers.begin(), vResistDangers.end(), [&](const std::pair<float, int>& a, const std::pair<float, int>& b) -> bool
 		{
 			return a.first > b.first;
@@ -569,8 +605,48 @@ void CAutoHeal::AutoVaccinator(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUser
 
 	int iTargetResist = vResistDangers.front().second;
 	float flTargetDanger = vResistDangers.front().first;
-	if (flTargetDanger)
-		SwapResistType(pCmd, iTargetResist);
+
+	// Smoothing and hysteresis
+	float flDangers[3] = {
+		vResistDangers[MEDIGUN_BULLET_RESIST].first,
+		vResistDangers[MEDIGUN_BLAST_RESIST].first,
+		vResistDangers[MEDIGUN_FIRE_RESIST].first
+	};
+	const float flSmoothFactor = 0.3f;
+	for (int i = 0; i < 3; i++)
+		m_flSmoothedDanger[i] = m_flSmoothedDanger[i] * (1.f - flSmoothFactor) + flDangers[i] * flSmoothFactor;
+
+	// Determine best resistance based on smoothed dangers
+	std::vector<std::pair<float, int>> vSmoothedDangers = {
+		{ m_flSmoothedDanger[MEDIGUN_BULLET_RESIST], MEDIGUN_BULLET_RESIST },
+		{ m_flSmoothedDanger[MEDIGUN_BLAST_RESIST], MEDIGUN_BLAST_RESIST },
+		{ m_flSmoothedDanger[MEDIGUN_FIRE_RESIST], MEDIGUN_FIRE_RESIST }
+	};
+	std::sort(vSmoothedDangers.begin(), vSmoothedDangers.end(), [&](const std::pair<float, int>& a, const std::pair<float, int>& b) -> bool
+		{
+			return a.first > b.first;
+		});
+	int iBestSmoothed = vSmoothedDangers.front().second;
+	float flBestSmoothed = vSmoothedDangers.front().first;
+
+	// Update current danger for hysteresis comparison
+	m_flCurrentDanger = m_flSmoothedDanger[m_iResistType];
+
+	// Cooldown and hysteresis
+	float flCooldown = Vars::Aimbot::Healing::AutoVaccinatorSwitchCooldown.Value;
+	if (I::GlobalVars->curtime - m_flLastSwitchTime >= flCooldown)
+	{
+		float flHysteresis = Vars::Aimbot::Healing::AutoVaccinatorHysteresis.Value / 100.f; // percentage to decimal
+		float flThreshold = m_flCurrentDanger * (1.f + flHysteresis);
+		if (flBestSmoothed > flThreshold)
+		{
+			SwapResistType(pCmd, iBestSmoothed);
+			m_flLastSwitchTime = I::GlobalVars->curtime;
+			m_flCurrentDanger = flBestSmoothed;
+		}
+	}
+
+	// Uber activation based on raw danger
 	if (flTargetDanger >= 1.f)
 		ActivateResistType(pCmd, iTargetResist);
 

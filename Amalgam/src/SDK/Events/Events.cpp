@@ -2,6 +2,7 @@
 
 #include "../../Core/Core.h"
 #include "../../Features/Aimbot/AutoHeal/AutoHeal.h"
+#include "../../Features/AutoDisguise/AutoDisguise.h"
 #include "../../Features/Backtrack/Backtrack.h"
 #include "../../Features/CheaterDetection/CheaterDetection.h"
 #include "../../Features/CritHack/CritHack.h"
@@ -70,6 +71,7 @@ void CEventListener::FireGameEvent(IGameEvent* pEvent)
 		F::Backtrack.SetLerp(pEvent);
 		break;
 	case FNV1A::Hash32Const("player_death"):
+		F::AutoDisguise.Event(pEvent, uHash, pLocal);
 		F::SpectateAll.OnPlayerDeath(pEvent);
 		break;
 	case FNV1A::Hash32Const("revive_player_notify"):

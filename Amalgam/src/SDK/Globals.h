@@ -70,6 +70,7 @@ struct AimTarget_t
 	int m_iEntIndex = 0;
 	int m_iTickCount = 0;
 	int m_iDuration = 32;
+	float m_flLastAcquiredTime = 0.0f;
 };
 
 struct AimPoint_t
