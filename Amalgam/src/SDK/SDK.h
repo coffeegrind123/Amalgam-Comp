@@ -14,7 +14,7 @@
 #include "../Utils/Interfaces/Interfaces.h"
 #include "../Utils/Hooks/Hooks.h"
 #include "../Utils/Memory/Memory.h"
-#include "../Utils/ConVars/ConVars.h"
+#include "Helpers/ConVars/ConVars.h"
 #include "../Utils/KeyHandler/KeyHandler.h"
 #include "../Utils/Hash/FNV1A.h"
 #include "../Utils/Math/Math.h"
