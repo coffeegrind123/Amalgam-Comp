@@ -73,6 +73,13 @@ jobs:
           exit 1
         }
 
+        Write-Host "Installing freetype (font rendering library)..."
+        .\vcpkg.exe install freetype:x64-windows-static --clean-after-build
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "ERROR: Failed to install freetype"
+          exit 1
+        }
+
         Write-Host "Integrating vcpkg with Visual Studio..."
         .\vcpkg.exe integrate install
         if ($LASTEXITCODE -ne 0) {
