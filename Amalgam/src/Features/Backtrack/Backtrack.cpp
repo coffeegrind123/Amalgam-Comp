@@ -251,9 +251,9 @@ void CBacktrack::MakeRecords()
 			pPlayer->m_vecMins(),
 			pPlayer->m_vecMaxs(),
 			*reinterpret_cast<BoneMatrix*>(aBones),
+			std::move(vHitboxInfos),
 			m_mDidShoot[pPlayer->entindex()],
-			pPlayer->m_vecOrigin(),
-			std::move(vHitboxInfos)
+			pPlayer->m_vecOrigin()
 		};
 		vRecords.emplace_front(std::move(tCurRecord));
 

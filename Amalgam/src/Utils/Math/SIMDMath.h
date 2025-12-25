@@ -10,9 +10,15 @@
 #define SIMD_PI_CONST 3.14159265358979323846f
 #define SIMD_TWO_PI_CONST 6.28318530717958647692f
 #define SIMD_HALF_PI_CONST 1.57079632679489661923f
+#ifndef PI
 #define PI SIMD_PI_CONST
+#endif
+#ifndef TWO_PI
 #define TWO_PI SIMD_TWO_PI_CONST
+#endif
+#ifndef HALF_PI
 #define HALF_PI SIMD_HALF_PI_CONST
+#endif
 #endif
 
 // SIMD Vector Math Library - High Performance Vector Operations

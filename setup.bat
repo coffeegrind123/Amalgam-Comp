@@ -77,18 +77,47 @@ if not exist "vcpkg.exe" (
 :: Install dependencies
 echo.
 echo [4/5] Installing dependencies...
+
+:: Clean any corrupted builds
+echo Cleaning vcpkg build cache...
+if exist "buildtrees" (
+    rmdir /s /q buildtrees
+    echo Build cache cleaned
+)
+if exist "packages\cpr_x64-windows-static" (
+    rmdir /s /q packages\cpr_x64-windows-static
+)
+if exist "packages\curl_x64-windows-static" (
+    rmdir /s /q packages\curl_x64-windows-static
+)
+if exist "packages\zlib_x64-windows-static" (
+    rmdir /s /q packages\zlib_x64-windows-static
+)
+
 echo Installing cpr (C++ Requests library)...
-vcpkg.exe install cpr:x64-windows-static
+vcpkg.exe install cpr:x64-windows-static --clean-after-build
 if errorlevel 1 (
     echo ERROR: Failed to install cpr
+    echo Retrying with verbose output...
+    vcpkg.exe install cpr:x64-windows-static --clean-after-build --debug
+    if errorlevel 1 (
+        pause
+        exit /b 1
+    )
+)
+
+echo Installing nlohmann-json...
+vcpkg.exe install nlohmann-json:x64-windows-static --clean-after-build
+if errorlevel 1 (
+    echo ERROR: Failed to install nlohmann-json
     pause
     exit /b 1
 )
 
-echo Installing nlohmann-json...
-vcpkg.exe install nlohmann-json:x64-windows-static
+echo Installing freetype (font rendering library)...
+vcpkg.exe install freetype:x64-windows-static --clean-after-build
 if errorlevel 1 (
-    echo ERROR: Failed to install nlohmann-json
+    echo ERROR: Failed to install freetype
     pause
     exit /b 1
 )
@@ -149,6 +178,22 @@ if errorlevel 1 (
     )
 )
 
+:: Clean any existing Visual Studio build artifacts
+echo.
+echo Cleaning Visual Studio build artifacts...
+if exist ".vs" (
+    rmdir /s /q .vs
+    echo .vs folder cleaned
+)
+if exist "Amalgam\x64" (
+    rmdir /s /q Amalgam\x64
+    echo Amalgam x64 build folder cleaned
+)
+if exist "build" (
+    rmdir /s /q build
+    echo Build folder cleaned
+)
+
 echo.
 echo ================================
 echo        Setup Complete!
@@ -169,6 +214,7 @@ echo.
 echo Dependencies installed:
 echo - cpr (C++ Requests) - x64-windows-static (for Amalgam DLL only)
 echo - nlohmann-json - x64-windows-static (for Amalgam DLL only)
+echo - freetype (font rendering) - x64-windows-static (for Amalgam DLL only)
 echo - boost (via NuGet)
 echo - libolm (embedded in source)
 echo - AmalgamLoader (submodule - standalone executable)

@@ -1013,9 +1013,9 @@ float CSIMDMath::FastCos(float x)
     PERF_TIMER_SIMD();
 
     // Range reduction to [-π, π]
-    x = fmod(x + PI, TWO_PI);
-    if (x < 0) x += TWO_PI;
-    if (x > PI) x -= TWO_PI;
+    x = fmodf(x + SIMD_PI_CONST, SIMD_TWO_PI_CONST);
+    if (x < 0) x += SIMD_TWO_PI_CONST;
+    if (x > SIMD_PI_CONST) x -= SIMD_TWO_PI_CONST;
 
     // Use minimax polynomial approximation for cos(x)
     // cos(x) ≈ 1 - x²/2! + x⁴/4! - x⁶/6! + x⁸/8!
@@ -1037,9 +1037,9 @@ float CSIMDMath::FastSin(float x)
     PERF_TIMER_SIMD();
 
     // Range reduction to [-π, π]
-    x = fmod(x + PI, TWO_PI);
-    if (x < 0) x += TWO_PI;
-    if (x > PI) x -= TWO_PI;
+    x = fmodf(x + SIMD_PI_CONST, SIMD_TWO_PI_CONST);
+    if (x < 0) x += SIMD_TWO_PI_CONST;
+    if (x > SIMD_PI_CONST) x -= SIMD_TWO_PI_CONST;
 
     // Use minimax polynomial approximation for sin(x)
     // sin(x) ≈ x - x³/3! + x⁵/5! - x⁷/7! + x⁹/9!
@@ -1079,9 +1079,9 @@ void CSIMDMath::FastSinCos(float x, float& sinOut, float& cosOut)
     PERF_TIMER_SIMD();
 
     // Range reduction to [-π, π] (done once for both functions)
-    x = fmod(x + PI, TWO_PI);
-    if (x < 0) x += TWO_PI;
-    if (x > PI) x -= TWO_PI;
+    x = fmodf(x + SIMD_PI_CONST, SIMD_TWO_PI_CONST);
+    if (x < 0) x += SIMD_TWO_PI_CONST;
+    if (x > SIMD_PI_CONST) x -= SIMD_TWO_PI_CONST;
 
     // Calculate powers once and reuse
     const float x2 = x * x;
