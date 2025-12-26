@@ -5,6 +5,9 @@
 
 class CAimbotMelee
 {
+private:
+	enum AimDirection { LEFT = 0, RIGHT };
+
 	std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
 	bool AimFriendlyBuilding(CBaseObject* pBuilding);
 	std::vector<Target_t> SortTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
@@ -13,7 +16,7 @@ class CAimbotMelee
 	void SimulatePlayers(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, std::vector<Target_t> vTargets, Vec3& vEyePos);
 	bool CanBackstab(CBaseEntity* pTarget, CTFPlayer* pLocal, Vec3 vEyeAngles);
 	int CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Vec3 vEyePos);
-	
+
 	bool Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod = Vars::Aimbot::General::AimType.Value);
 	void Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod = Vars::Aimbot::General::AimType.Value);
 
@@ -22,6 +25,17 @@ class CAimbotMelee
 
 	int m_iDoubletapTicks = 0;
 	bool m_bShouldSwing = false;
+
+	void ClearLegitAimStepVars();
+
+	// Smooth aim state variables
+	float m_flCurAimTime = 0.0f;
+	float m_flLegitAimStepIncTimeOverShoot = 0.0f;
+	bool m_bReachedLegitAimStepTarget = false;
+	bool m_bInitializedLegitAimStepDirection = false;
+	AimDirection m_LegitAimStartDirection = LEFT;
+	Vec3 m_vLegitAimStepInitialDelta = {};
+	int m_nLegitAimCurveType = 0;
 
 	std::unordered_map<int, std::deque<TickRecord>> m_mRecordMap;
 	std::unordered_map<int, std::vector<Vec3>> m_mPaths;

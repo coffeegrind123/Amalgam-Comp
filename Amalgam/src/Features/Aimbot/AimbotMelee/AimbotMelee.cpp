@@ -423,6 +423,32 @@ int CAimbotMelee::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pW
 
 
 
+void CAimbotMelee::ClearLegitAimStepVars()
+{
+	m_bReachedLegitAimStepTarget = false;
+	m_flLegitAimStepIncTimeOverShoot = 0.0f;
+	m_flCurAimTime = 0.0f;
+	m_bInitializedLegitAimStepDirection = false;
+	int nRandom = rand() % 3;
+	m_nLegitAimCurveType = nRandom != m_nLegitAimCurveType ? nRandom : rand() % 3;
+}
+
+static void SmoothAngle(const Vec3& vFrom, Vec3& vTo, float flPercent)
+{
+	Vec3 vDelta = vFrom - vTo;
+	Math::NormalizeAngle(vDelta.x);
+	Math::NormalizeAngle(vDelta.y);
+	vDelta.x *= flPercent;
+	vDelta.y *= flPercent;
+	vTo = vFrom - vDelta;
+	Math::ClampAngles(vTo);
+}
+
+static inline float RandFloatRange(float flMin, float flMax)
+{
+	return ((float)rand() / (float)RAND_MAX) * (flMax - flMin) + flMin;
+}
+
 bool CAimbotMelee::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 {
 	if (Vec3* pDoubletapAngle = F::Ticks.GetShootAngle())
@@ -440,9 +466,205 @@ bool CAimbotMelee::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 		vOut = vToAngle;
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
-		vOut = vCurAngle.LerpAngle(vToAngle, Vars::Aimbot::General::AssistStrength.Value / 100.f);
+	{
+		Vec3 vOldAngles = vCurAngle;
+
+		Vec3 vDelta = vToAngle - vCurAngle;
+		Math::NormalizeAngle(vDelta.x);
+		Math::NormalizeAngle(vDelta.y);
+		Math::ClampAngles(vDelta);
+
+		if (!m_bInitializedLegitAimStepDirection)
+		{
+			m_LegitAimStartDirection = vDelta.y > 0 ? LEFT : RIGHT;
+			m_vLegitAimStepInitialDelta = vDelta;
+			m_bInitializedLegitAimStepDirection = true;
+		}
+
+		if (m_bReachedLegitAimStepTarget)
+		{
+			if (fabsf(vDelta.y) > 15.0f || fabsf(vDelta.x) > 15.0f)
+			{
+				ClearLegitAimStepVars();
+			}
+		}
+
+		static float flLastAimStepTime = 0.0f;
+		if (flLastAimStepTime == 0.0f)
+			flLastAimStepTime = I::GlobalVars->curtime;
+
+		float flFrameTime = std::min(I::GlobalVars->curtime - flLastAimStepTime, 0.1f);
+		flLastAimStepTime = I::GlobalVars->curtime;
+
+		m_flCurAimTime += flFrameTime;
+
+		float flFOV = std::max(0.001f, Math::CalcFov(vOldAngles, vToAngle));
+
+		float flSmoothScale = std::max(0.1f, Vars::Aimbot::General::AssistStrength.Value);
+		float flSmoothTime = m_flCurAimTime * flSmoothScale + (m_bReachedLegitAimStepTarget ? 0.1f / flFOV : 0.33f / flFOV);
+
+		if (m_bReachedLegitAimStepTarget)
+		{
+			auto pLocal = H::Entities.GetLocal();
+			if (pLocal)
+			{
+				float flLocalVel = pLocal->m_vecVelocity().Length();
+				if (flLocalVel > 0.0f)
+				{
+					flSmoothTime *= RandFloatRange(0.35f, 0.45f);
+				}
+			}
+		}
+
+		if (flSmoothTime > 0.92f)
+			flSmoothTime = 1.0f;
+
+		if (G::CurrentUserCmd && (abs(G::CurrentUserCmd->mousedx) > 2 || abs(G::CurrentUserCmd->mousedy) > 2))
+		{
+			flSmoothTime *= 0.25f;
+			m_flCurAimTime = std::max(0.0f, m_flCurAimTime - (flFrameTime * 2.0f));
+		}
+
+		vOut = vToAngle;
+		SmoothAngle(vOldAngles, vOut, flSmoothTime);
+
+		Vec3 vDeltaAngle = (vOut - vOldAngles);
+		Math::NormalizeAngle(vDeltaAngle.x);
+		Math::NormalizeAngle(vDeltaAngle.y);
+
+		switch (m_nLegitAimCurveType)
+		{
+		case 0:
+			if (vDeltaAngle.y > 0.4f)
+			{
+				float flInc = RandFloatRange(0.265f, 0.291f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y < -0.4f)
+			{
+				float flInc = RandFloatRange(0.252f, 0.294f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y > 0.2f)
+			{
+				float flInc = RandFloatRange(-0.002f, 0.0385f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y < -0.2f)
+			{
+				float flInc = RandFloatRange(-0.00212f, 0.032f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else
+			{
+				m_bReachedLegitAimStepTarget = true;
+			}
+			break;
+		case 1:
+			if (vDeltaAngle.y > 0.4f)
+			{
+				float flInc = RandFloatRange(0.265f, 0.331f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y < -0.4f)
+			{
+				float flInc = RandFloatRange(0.252f, 0.324f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y > 0.2f)
+			{
+				float flInc = RandFloatRange(-0.002f, 0.0385f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y < -0.2f)
+			{
+				float flInc = RandFloatRange(-0.00212f, 0.032f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else
+			{
+				m_bReachedLegitAimStepTarget = true;
+			}
+			break;
+		case 2:
+			if (vDeltaAngle.y > 0.4f)
+			{
+				float flInc = RandFloatRange(0.2f, 0.25f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y < -0.4f)
+			{
+				float flInc = RandFloatRange(0.15f, 0.20f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y > 0.2f)
+			{
+				float flInc = RandFloatRange(-0.005f, 0.018f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else if (vDeltaAngle.y < -0.2f)
+			{
+				float flInc = RandFloatRange(-0.001f, 0.04f) - std::min(0.0f, (1.0f / flFOV)) - flSmoothTime;
+				if (m_vLegitAimStepInitialDelta.x < 0)
+					vOut.x -= flInc;
+				else
+					vOut.x += flInc;
+				vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+			}
+			else
+			{
+				m_bReachedLegitAimStepTarget = true;
+			}
+			break;
+		}
+
 		bReturn = true;
 		break;
+	}
 	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 		Vec3 vMouseDelta = G::CurrentUserCmd->viewangles.DeltaAngle(G::LastUserCmd->viewangles);
 		Vec3 vTargetDelta = vToAngle.DeltaAngle(G::LastUserCmd->viewangles);

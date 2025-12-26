@@ -45,6 +45,9 @@ struct Info_t
 
 class CAimbotProjectile
 {
+private:
+	enum AimDirection { LEFT = 0, RIGHT };
+
 	std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
 	std::vector<Target_t> SortTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
 
@@ -66,6 +69,17 @@ class CAimbotProjectile
 	void Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod = Vars::Aimbot::General::AimType.Value);
 
 	bool m_bLastTickHeld = false;
+
+	void ClearLegitAimStepVars();
+
+	// Smooth aim state variables
+	float m_flCurAimTime = 0.0f;
+	float m_flLegitAimStepIncTimeOverShoot = 0.0f;
+	bool m_bReachedLegitAimStepTarget = false;
+	bool m_bInitializedLegitAimStepDirection = false;
+	AimDirection m_LegitAimStartDirection = LEFT;
+	Vec3 m_vLegitAimStepInitialDelta = {};
+	int m_nLegitAimCurveType = 0;
 
 	float m_flTimeTo = std::numeric_limits<float>::max();
 	std::vector<Vec3> m_vPlayerPath = {};

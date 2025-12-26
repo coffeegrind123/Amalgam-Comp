@@ -6,6 +6,8 @@
 class CAimbotHitscan
 {
 private:
+	enum AimDirection { LEFT = 0, RIGHT };
+
 	std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
 	std::vector<Target_t> SortTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
 
@@ -20,6 +22,17 @@ private:
 	Vec3 WarpPredictDelta(CTFPlayer* pTarget, const Vec3& vEyePos, const Vec3& vOrigin);
 
 	Vec3 m_vEyePos = {};
+
+	void ClearLegitAimStepVars();
+
+	// Smooth aim state variables
+	float m_flCurAimTime = 0.0f;
+	float m_flLegitAimStepIncTimeOverShoot = 0.0f;
+	bool m_bReachedLegitAimStepTarget = false;
+	bool m_bInitializedLegitAimStepDirection = false;
+	AimDirection m_LegitAimStartDirection = LEFT;
+	Vec3 m_vLegitAimStepInitialDelta = {};
+	int m_nLegitAimCurveType = 0;
 
 public:
 	void Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
