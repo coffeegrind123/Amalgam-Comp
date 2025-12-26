@@ -1,8 +1,12 @@
 #pragma once
+#include "../Feature/Feature.h"
 #include <Windows.h>
 
-namespace CrashLog
+class CCrashLog
 {
-	void Initialize();
-	void Unload();
-}
+public:
+    void Initialize(LPVOID lpParam = nullptr);
+    void Unload();
+};
+
+ADD_FEATURE_CUSTOM(CCrashLog, CrashLog, U);

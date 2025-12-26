@@ -26,7 +26,6 @@ struct HealthHistory_t
 {
 	int m_iNewHealth = 0;
 	int m_iOldHealth = 0;
-	int m_iSpawnCounter = -1;
 
 	struct HealthStorage_t
 	{
@@ -50,7 +49,7 @@ private:
 	void ResetWeapons(CTFPlayer* pLocal);
 	void Reset();
 
-	void StoreHealthHistory(int iIndex, int iHealth, CTFPlayer* pPlayer = nullptr);
+	void StoreHealthHistory(int iIndex, int iHealth, bool bDamage = false);
 
 	int m_iFillStart = 0;
 

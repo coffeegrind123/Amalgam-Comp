@@ -459,7 +459,6 @@ void CCritHack::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 			if (!iHealth)
 			{
 				iDamage = std::clamp(iDamage, 0, tHistory.m_iNewHealth);
-				tHistory.m_iSpawnCounter = -1;
 			}
 			else if (pVictim && (pVictim->m_bFeignDeathReady() || pVictim->InCond(TF_COND_FEIGN_DEATH))) // damage number is spoofed upon sending, correct it
 			{
@@ -540,30 +539,20 @@ void CCritHack::Store()
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
 		if (pPlayer && pPlayer->IsAlive() && !pPlayer->IsAGhost())
-			StoreHealthHistory(pPlayer->entindex(), pPlayer->m_iHealth(), pPlayer);
+			StoreHealthHistory(pPlayer->entindex(), pPlayer->m_iHealth());
 	}
 }
 
-void CCritHack::StoreHealthHistory(int iIndex, int iHealth, CTFPlayer* pPlayer)
+void CCritHack::StoreHealthHistory(int iIndex, int iHealth, bool bDamage)
 {
 	bool bContains = m_mHealthHistory.contains(iIndex);
 	auto& tHistory = m_mHealthHistory[iIndex];
-
-	if (bContains && pPlayer)
-	{	// deal with instant respawn damage desync better
-		if (pPlayer->IsDormant())
-			tHistory.m_iSpawnCounter = -1;
-		else if (tHistory.m_iSpawnCounter == -1)
-			tHistory.m_iSpawnCounter = pPlayer->m_iSpawnCounter();
-		else if (tHistory.m_iSpawnCounter != pPlayer->m_iSpawnCounter())
-			return; // wait for event
-	}
 
 	if (!bContains)
 		tHistory = { iHealth, iHealth };
 	else if (iHealth != tHistory.m_iNewHealth)
 	{
-		tHistory.m_iOldHealth = std::max(tHistory.m_iNewHealth, iHealth);
+		tHistory.m_iOldHealth = std::max(bDamage && tHistory.m_mHistory.contains(iHealth % 32768) ? tHistory.m_mHistory[iHealth % 32768].m_iOldHealth : tHistory.m_iNewHealth, iHealth);
 		tHistory.m_iNewHealth = iHealth;
 	}
 

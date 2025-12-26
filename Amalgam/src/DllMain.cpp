@@ -13,6 +13,8 @@ DWORD WINAPI MainThread(LPVOID lpParam)
 
 	try
 	{
+		U::CrashLog.Initialize(lpParam);
+
 		FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
 		if (log_file1) {
 			fprintf(log_file1, "MainThread: About to call Core.Load()\n");
@@ -37,8 +39,8 @@ DWORD WINAPI MainThread(LPVOID lpParam)
 
 		U::Core.Unload();
 
-		CrashLog::Unload();
-		
+		U::CrashLog.Unload();
+
 		// Check if this is manual mapping or native injection
 		HMODULE hModule = static_cast<HMODULE>(lpParam);
 		if (hModule && GetModuleHandleA(nullptr) != hModule)
@@ -80,11 +82,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 				fclose(log_file);
 			}
 
-			CrashLog::Initialize();
-
 			FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file1) {
-				fprintf(log_file1, "DllMain: CrashLog initialized, creating MainThread\n");
+				fprintf(log_file1, "DllMain: Creating MainThread\n");
 				fclose(log_file1);
 			}
 

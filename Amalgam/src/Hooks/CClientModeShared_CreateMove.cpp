@@ -97,12 +97,6 @@ MAKE_HOOK(CClientModeShared_CreateMove, U::Memory.GetVirtual(I::ClientModeShared
 		fclose(log_file4);
 	}
 
-	if (!Vars::Misc::Game::AntiCheatCompatibility.Value)
-	{	// correct tick_count for fakeinterp / nointerp
-		pCmd->tick_count += TIME_TO_TICKS(F::Backtrack.GetFakeInterp());
-		if (!Vars::Visuals::Removals::Interpolation.Value && Vars::Visuals::Removals::NoLerp.Value)
-			pCmd->tick_count -= TIME_TO_TICKS(G::Lerp);
-	}
 	if (G::OriginalMove.m_iButtons & IN_DUCK)
 		pCmd->buttons |= IN_DUCK; // lol
 
@@ -261,8 +255,8 @@ MAKE_HOOK(CClientModeShared_CreateMove, U::Memory.GetVirtual(I::ClientModeShared
 	}
 
 	F::EnginePrediction.Start(pLocal, pCmd);
+	F::Backtrack.CreateMove(pLocal, pWeapon, pCmd);
 	F::Aimbot.Run(pLocal, pWeapon, pCmd);
-	F::Backtrack.BacktrackToCrosshair(pLocal, pWeapon, pCmd);
 	F::CritHack.Run(pLocal, pWeapon, pCmd);
 	F::NoSpread.Run(pLocal, pWeapon, pCmd);
 	F::Resolver.CreateMove(pLocal);

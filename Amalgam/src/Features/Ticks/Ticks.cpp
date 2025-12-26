@@ -65,8 +65,11 @@ void CTicks::Doubletap(CTFPlayer* pLocal, CUserCmd* pCmd)
 		return;
 
 	int iTicks = std::min(m_iShiftedTicks + 1, 22);
+	int iRttTicks = TIME_TO_TICKS(F::Backtrack.GetReal(MAX_FLOWS, false));
+	static auto sv_maxusrcmdprocessticks = H::ConVars.FindVar("sv_maxusrcmdprocessticks");
+	int iProcGate = std::max(sv_maxusrcmdprocessticks->GetInt() - 1, 1);
 	auto pWeapon = H::Entities.GetWeapon();
-	if (!(iTicks >= Vars::Doubletap::TickLimit.Value || pWeapon && GetShotsWithinPacket(pWeapon, iTicks) > 1))
+	if (!(iTicks >= Vars::Doubletap::TickLimit.Value || iTicks >= iRttTicks || iTicks >= iProcGate || pWeapon && GetShotsWithinPacket(pWeapon, iTicks) > 1))
 		return;
 
 	bool bAttacking = G::PrimaryWeaponType == EWeaponType::MELEE ? pCmd->buttons & IN_ATTACK : G::Attacking;
@@ -74,7 +77,7 @@ void CTicks::Doubletap(CTFPlayer* pLocal, CUserCmd* pCmd)
 		return;
 
 	m_bDoubletap = true;
-	m_iShiftedGoal = std::max(m_iShiftedTicks - Vars::Doubletap::TickLimit.Value + 1, 0);
+	m_iShiftedGoal = std::max(m_iShiftedTicks - std::min(Vars::Doubletap::TickLimit.Value, m_iMaxShift) + 1, 0);
 	if (Vars::Doubletap::AntiWarp.Value)
 		m_bAntiWarp = pLocal->m_hGroundEntity();
 }
@@ -242,8 +245,11 @@ void CTicks::CLMoveFunc(float accumulated_extra_samples, bool bFinalTick)
 		m_iWait--;
 
 	int iTicks = std::min(m_iShiftedTicks + 1, 22);
+	int iRttTicks = TIME_TO_TICKS(F::Backtrack.GetReal(MAX_FLOWS, false));
+	static auto sv_maxusrcmdprocessticks2 = H::ConVars.FindVar("sv_maxusrcmdprocessticks");
+	int iProcGate2 = std::max(sv_maxusrcmdprocessticks2->GetInt() - 1, 1);
 	auto pWeapon = H::Entities.GetWeapon();
-	if (!(iTicks >= Vars::Doubletap::TickLimit.Value || pWeapon && GetShotsWithinPacket(pWeapon, iTicks) > 1))
+	if (!(iTicks >= Vars::Doubletap::TickLimit.Value || iTicks >= iRttTicks || iTicks >= iProcGate2 || pWeapon && GetShotsWithinPacket(pWeapon, iTicks) > 1))
 		m_iWait = 1;
 
 	m_bGoalReached = bFinalTick && m_iShiftedTicks == m_iShiftedGoal;

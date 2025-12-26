@@ -76,6 +76,7 @@ private:
 
 public:
 	void Store();
+	void CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd);
 	void SendLerp();
 	void Draw(CTFPlayer* pLocal);
 	void Reset();

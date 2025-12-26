@@ -288,6 +288,22 @@ bool CAimbotMelee::CanBackstab(CBaseEntity* pTarget, CTFPlayer* pLocal, Vec3 vEy
 		};
 
 	Vec3 vTargetAngles = { 0.f, H::Entities.GetEyeAngles(pTarget->entindex()).y, 0.f };
+
+	Vec3 vBoneForward2D = {};
+	matrix3x4 aBones[MAXSTUDIOBONES];
+	if (pTarget->As<CBaseAnimating>()->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, pTarget->m_flSimulationTime()))
+	{
+		Vec3 vSpine0 = pTarget->As<CBaseAnimating>()->GetHitboxOrigin(aBones, HITBOX_SPINE0);
+		Vec3 vSpine2 = pTarget->As<CBaseAnimating>()->GetHitboxOrigin(aBones, HITBOX_SPINE2);
+		vBoneForward2D = (vSpine2 - vSpine0).To2D();
+		if (!vBoneForward2D.IsZero())
+		{
+			vBoneForward2D.Normalize();
+			float flYaw = RAD2DEG(atan2f(vBoneForward2D.y, vBoneForward2D.x));
+			vTargetAngles.y = flYaw;
+		}
+	}
+
 	if (!Vars::Aimbot::Melee::BackstabAccountPing.Value)
 	{
 		if (!TestDots(vTargetAngles))

@@ -853,6 +853,7 @@
     <ClCompile Include="src\Features\Aimbot\Aimbot.cpp" />
     <ClCompile Include="src\Features\Aimbot\AimbotGlobal\AimbotGlobal.cpp" />
     <ClCompile Include="src\Features\Aimbot\AimbotHitscan\AimbotHitscan.cpp" />
+    <ClCompile Include="src\Features\Aimbot\AimbotHitscan\WarpPrediction\WarpPrediction.cpp" />
     <ClCompile Include="src\Features\Aimbot\AimbotMelee\AimbotMelee.cpp" />
     <ClCompile Include="src\Features\Aimbot\AimbotProjectile\AimbotProjectile.cpp" />
     <ClCompile Include="src\Features\Aimbot\AutoAirblast\AutoAirblast.cpp" />
@@ -1211,6 +1212,7 @@
     <ClInclude Include="src\Features\Aimbot\Aimbot.h" />
     <ClInclude Include="src\Features\Aimbot\AimbotGlobal\AimbotGlobal.h" />
     <ClInclude Include="src\Features\Aimbot\AimbotHitscan\AimbotHitscan.h" />
+    <ClInclude Include="src\Features\Aimbot\AimbotHitscan\WarpPrediction\WarpPrediction.h" />
     <ClInclude Include="src\Features\Aimbot\AimbotMelee\AimbotMelee.h" />
     <ClInclude Include="src\Features\Aimbot\AimbotProjectile\AimbotProjectile.h" />
     <ClInclude Include="src\Features\Aimbot\AutoAirblast\AutoAirblast.h" />

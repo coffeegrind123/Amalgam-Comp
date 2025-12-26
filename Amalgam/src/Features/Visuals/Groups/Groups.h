@@ -25,6 +25,11 @@ struct Group_t
 	int m_iOutOfFOVArrowsOffset = 100;
 	float m_flOutOfFOVArrowsMaxDistance = 1000.f;
 
+	int m_iOffscreenArcHeight = 8;
+	float m_flOffscreenArcWidthMinDeg = 24.f;
+	float m_flOffscreenArcWidthMaxDeg = 90.f;
+	int m_iOffscreenArcMaxPlayers = 5;
+
 	int m_iActiveAlpha = 255;
 	int m_iDormantAlpha = 100;
 	float m_flDormantDuration = 1.f;

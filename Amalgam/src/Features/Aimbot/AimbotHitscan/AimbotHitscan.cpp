@@ -5,6 +5,7 @@
 #include "../../Ticks/Ticks.h"
 #include "../../Visuals/Visuals.h"
 #include "../../Simulation/MovementSimulation/MovementSimulation.h"
+#include "WarpPrediction/WarpPrediction.h"
 #include "../../../Utils/Math/SIMDMath.h"
 
 std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
@@ -807,6 +808,17 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 			if (G::LastUserCmd->buttons & IN_ATTACK)
 				pCmd->buttons |= IN_ATTACK;
 			return;
+		}
+
+		if (tTarget.m_pEntity->IsPlayer())
+		{
+			auto pT = tTarget.m_pEntity->As<CTFPlayer>();
+			if (WarpPrediction::ShouldPredict(pT))
+			{
+				Vec3 vPred = WarpPrediction::PredictPos(pT, m_vEyePos, tTarget.m_vPos);
+				tTarget.m_vPos = vPred;
+				tTarget.m_vAngleTo = Math::CalcAngle(m_vEyePos, vPred);
+			}
 		}
 
 		const auto iResult = CanHit(tTarget, pLocal, pWeapon);

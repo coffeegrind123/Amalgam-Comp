@@ -68,6 +68,20 @@ int CBacktrack::GetAnticipatedChoke(int iMethod)
 	return iAnticipatedChoke;
 }
 
+void CBacktrack::CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
+{
+	if (Vars::Misc::Game::AntiCheatCompatibility.Value)
+		return;
+
+	// correct tick_count for fakeinterp / nointerp
+	pCmd->tick_count += TIME_TO_TICKS(GetFakeInterp());
+	if (!Vars::Visuals::Removals::Interpolation.Value)
+		pCmd->tick_count -= TIME_TO_TICKS(G::Lerp);
+
+	// Performs tick_count manipulations if aiming at a record manually
+	BacktrackToCrosshair(pLocal, pWeapon, pCmd);
+}
+
 void CBacktrack::SendLerp()
 {
 	static Timer tTimer = {};
