@@ -13,7 +13,9 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	std::vector<Target_t> vTargets;
 	const auto iSort = Vars::Aimbot::General::TargetSelection.Value;
 
-	Vec3 vLocalPos = F::Ticks.GetShootPos();
+	// CRITICAL FIX: Use pLocal->GetShootPos() directly instead of cached Ticks position
+	// F::Ticks.GetShootPos() may return stale/incorrect position causing aimbot to aim from wrong location
+	Vec3 vLocalPos = pLocal->GetShootPos();
 	Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
 
 	{
@@ -67,8 +69,10 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
+			// Mutiny-style: AllowAnyFOV check for FOV >= 180
+			bool AllowAnyFOV = Vars::Aimbot::General::AimFOV.Value >= 180.0f;
 			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
-			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
+			if (!AllowAnyFOV && flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? CSIMDMath::FastDistance(vLocalPos, vPos) : 0.f;
@@ -85,7 +89,7 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			Vec3 vPos = pEntity->m_vecOrigin();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
-			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
+			float flFOVTo = Math::CalcFovScaled(vLocalPos, vPos, vLocalAngles);
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
@@ -103,8 +107,10 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
+			// Mutiny-style: AllowAnyFOV check for FOV >= 180
+			bool AllowAnyFOV = Vars::Aimbot::General::AimFOV.Value >= 180.0f;
 			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
-			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
+			if (!AllowAnyFOV && flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
 			float flDistTo = iSort == Vars::Aimbot::General::TargetSelectionEnum::Distance ? CSIMDMath::FastDistance(vLocalPos, vPos) : 0.f;
@@ -118,8 +124,10 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 		{
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
+			// Mutiny-style: AllowAnyFOV check for FOV >= 180
+			bool AllowAnyFOV = Vars::Aimbot::General::AimFOV.Value >= 180.0f;
 			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
-			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
+			if (!AllowAnyFOV && flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
@@ -324,7 +332,9 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 				Vec3 vForward; Math::AngleVectors(vAngles, &vForward);
 				float flDist = CSIMDMath::FastDistance(vEyePos, tTarget.m_vPos);
 
-				if (!bChanged || Math::RayToOBB(vEyePos, vForward, vCheckMins, vCheckMaxs, mTransform) && SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vEyePos + vForward * flDist))
+				// Mutiny-style: extend trace beyond target for better visibility
+				const Vec3 vExtendedPos = vEyePos + vForward * (flDist + 40.0f);
+				if (!bChanged || Math::RayToOBB(vEyePos, vForward, vCheckMins, vCheckMaxs, mTransform) && SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vExtendedPos))
 				{
 					tTarget.m_vAngleTo = vAngles;
 					tTarget.m_pRecord = pRecord;
@@ -392,8 +402,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 				if (Vars::Aimbot::Hitscan::PointScale.Value > 0.f)
 				{
 					bool bTriggerbot = (Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Smooth
-						|| Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Assistive)
-						&& !Vars::Aimbot::General::AssistStrength.Value;
+						&& !Vars::Aimbot::General::SmoothStrength.Value);
 
 					if (!bTriggerbot)
 					{
@@ -436,7 +445,9 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 					if (bChanged || SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vOrigin))
 					{
 						// for the time being, no vischecks against other hitboxes
-						if ((!bChanged || Math::RayToOBB(vEyePos, vForward, vCheckMins, vCheckMaxs, aBones[pBox->bone], flModelScale) && SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vEyePos + vForward * flDist))
+						// Mutiny-style: extend trace 40 units beyond target position for better visibility (Aimbot.cpp:112)
+						const Vec3 vExtendedPos = vEyePos + vForward * (flDist + 40.0f);
+						if ((!bChanged || Math::RayToOBB(vEyePos, vForward, vCheckMins, vCheckMaxs, aBones[pBox->bone], flModelScale) && SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vExtendedPos))
 							&& Math::RayToOBB(vEyePos, vForward, vHullMins, vHullMaxs, mTransform))
 						{
 							iTargetBone = pBox->bone;
@@ -474,8 +485,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 			//if (Vars::Aimbot::Hitscan::MultipointScale.Value > 0.f)
 			{
 				bool bTriggerbot = (Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Smooth
-					|| Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Assistive)
-					&& !Vars::Aimbot::General::AssistStrength.Value;
+					&& !Vars::Aimbot::General::SmoothStrength.Value);
 
 				if (!bTriggerbot)
 				{
@@ -510,7 +520,9 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 
 				if (bChanged || SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vOrigin))
 				{
-					if (!bChanged || Math::RayToOBB(vEyePos, vForward, vCheckMins, vCheckMaxs, mTransform) && SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vEyePos + vForward * flDist))
+					// Mutiny-style: extend trace beyond target for better visibility
+					const Vec3 vExtendedPos = vEyePos + vForward * (flDist + 40.0f);
+					if (!bChanged || Math::RayToOBB(vEyePos, vForward, vCheckMins, vCheckMaxs, mTransform) && SDK::VisPos(pLocal, tTarget.m_pEntity, vEyePos, vExtendedPos))
 					{
 						tTarget.m_vAngleTo = vAngles;
 						tTarget.m_pRecord = pRecord;
@@ -601,8 +613,7 @@ void CAimbotHitscan::ClearLegitAimStepVars()
 	m_flLegitAimStepIncTimeOverShoot = 0.0f;
 	m_flCurAimTime = 0.0f;
 	m_bInitializedLegitAimStepDirection = false;
-	int nRandom = rand() % 3;
-	m_nLegitAimCurveType = nRandom != m_nLegitAimCurveType ? nRandom : rand() % 3;
+	m_nLegitAimCurveType = Vars::Aimbot::General::CurveType.Value;
 }
 
 static void SmoothAngle(const Vec3& vFrom, Vec3& vTo, float flPercent)
@@ -638,7 +649,6 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
 	case Vars::Aimbot::General::AimTypeEnum::Silent:
-	case Vars::Aimbot::General::AimTypeEnum::Locking:
 		vOut = vToAngle;
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
@@ -668,6 +678,20 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 				ClearLegitAimStepVars();
 			}
 		}
+		// Reset smooth time when target changes significantly (5° threshold)
+		else if (m_vLegitAimStepInitialDelta.Length2D() > 0.1f)
+		{
+			Vec3 vDeltaChange = vDelta - m_vLegitAimStepInitialDelta;
+			float flAngleChange = fabsf(Math::NormalizeAngle(vDeltaChange.y));
+			if (flAngleChange > 5.0f)
+			{
+				// Full reset when target changes - must reset ALL state including m_bReachedLegitAimStepTarget
+				m_flCurAimTime = 0.0f;
+				m_bInitializedLegitAimStepDirection = false;
+				m_bReachedLegitAimStepTarget = false;  // CRITICAL: Fix camera flicking issue
+				m_vLegitAimStepInitialDelta = vDelta;
+			}
+		}
 
 		// Calculate frame time
 		static float flLastAimStepTime = 0.0f;
@@ -683,7 +707,7 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 		float flFOV = std::max(0.001f, Math::CalcFov(vOldAngles, vToAngle));
 
 		// Calculate smooth time based on speed setting
-		float flSmoothScale = std::max(0.1f, Vars::Aimbot::General::AssistStrength.Value);
+		float flSmoothScale = std::max(0.1f, Vars::Aimbot::General::SmoothStrength.Value);
 		float flSmoothTime = m_flCurAimTime * flSmoothScale + (m_bReachedLegitAimStepTarget ? 0.1f / flFOV : 0.33f / flFOV);
 
 		// Apply velocity-based randomization when target reached
@@ -700,9 +724,9 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 			}
 		}
 
-		// Clamp smooth time
-		if (flSmoothTime > 0.92f)
-			flSmoothTime = 1.0f;
+		// Clamp smooth time to prevent instant flicks (max 90% interpolation)
+		if (flSmoothTime > 0.90f)
+			flSmoothTime = 0.90f;
 
 		// Detect mouse input and reduce smoothing
 		if (G::CurrentUserCmd && (abs(G::CurrentUserCmd->mousedx) > 2 || abs(G::CurrentUserCmd->mousedy) > 2))
@@ -848,19 +872,52 @@ bool CAimbotHitscan::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMethod)
 				m_bReachedLegitAimStepTarget = true;
 			}
 			break;
+		case 3:
+			{
+				// NaturalHuman: Physics-based curve derived from real mouse movement data
+				// Peak velocity at 15-25% of duration, exponential decay
+				const float flTotalDist = vDeltaAngle.Length2D();
+				const float flProgress = std::min(1.0f, flSmoothTime / std::max(0.001f, flFOV * 0.1f));
+				const float flPeakTime = 0.2f;
+				float flVelocityFactor;
+
+				if (flProgress < flPeakTime)
+				{
+					// Acceleration phase: exponential (t/t_peak)^1.5
+					flVelocityFactor = std::pow(flProgress / flPeakTime, 1.5f);
+				}
+				else
+				{
+					// Deceleration phase: exponential decay exp(-2.5 * (t - t_peak) / t_remaining)
+					const float flRemaining = 1.0f - flPeakTime;
+					const float flDecayProgress = (flProgress - flPeakTime) / flRemaining;
+					flVelocityFactor = std::exp(-2.5f * flDecayProgress);
+				}
+
+				// Apply velocity with humanization jitter
+				const float flJitterPercent = Vars::Aimbot::General::HumanizationJitter.Value / 100.0f;
+				const float flOvershootPercent = Vars::Aimbot::General::MicroOvershootAmount.Value / 100.0f;
+				const float flJitter = RandFloatRange(-flJitterPercent, flJitterPercent) * flTotalDist;
+				const float flMicroOvershoot = flProgress > 0.7f ? RandFloatRange(-flOvershootPercent, flOvershootPercent) * flTotalDist : 0.0f;
+				float flPitchAdjustment = flVelocityFactor * flTotalDist * 0.5f + flJitter + flMicroOvershoot;
+
+				if (abs(vDeltaAngle.y) > 0.01f)
+				{
+					vOut.x += (m_vLegitAimStepInitialDelta.x < 0 ? -1.0f : 1.0f) * flPitchAdjustment;
+					vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+				}
+
+				if (abs(vDeltaAngle.y) < 0.1f)
+				{
+					m_bReachedLegitAimStepTarget = true;
+				}
+				break;
+			}
 		}
 
 		bReturn = true;
 		break;
 	}
-	case Vars::Aimbot::General::AimTypeEnum::Assistive:
-		Vec3 vMouseDelta = G::CurrentUserCmd->viewangles.DeltaAngle(G::LastUserCmd->viewangles);
-		Vec3 vTargetDelta = vToAngle.DeltaAngle(G::LastUserCmd->viewangles);
-		float flMouseDelta = vMouseDelta.Length2D(), flTargetDelta = vTargetDelta.Length2D();
-		vTargetDelta = vTargetDelta.Normalized() * std::min(flMouseDelta, flTargetDelta);
-		vOut = vCurAngle - vMouseDelta + vMouseDelta.LerpAngle(vTargetDelta, Vars::Aimbot::General::AssistStrength.Value / 100.f);
-		bReturn = true;
-		break;
 	}
 
 	Math::ClampAngles(vOut);
@@ -878,7 +935,6 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 			break;
 		[[fallthrough]];
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
-	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 		pCmd->viewangles = vAngle;
 		I::EngineClient->SetViewAngles(vAngle);
 		break;
@@ -890,10 +946,6 @@ void CAimbotHitscan::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 			G::SilentAngles = true;
 		}
 		break;
-	case Vars::Aimbot::General::AimTypeEnum::Locking:
-		SDK::FixMovement(pCmd, vAngle);
-		pCmd->viewangles = vAngle;
-		G::SilentAngles = true;
 	}
 }
 
@@ -949,7 +1001,88 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		pCmd->buttons |= IN_ATTACK;
 	if (!Vars::Aimbot::General::AimType.Value
 		|| !F::AimbotGlobal.ShouldAim() && (nWeaponID != TF_WEAPON_MINIGUN || pWeapon->As<CTFMinigun>()->m_iWeaponState() == AC_STATE_FIRING || pWeapon->As<CTFMinigun>()->m_iWeaponState() == AC_STATE_SPINNING))
+	{
+		// Debug visualization: Still run even when aimbot is disabled
+		if (Vars::Debug::AimbotDrawTargets.Value || Vars::Debug::AimbotDrawFOV.Value)
+		{
+			// Use pLocal directly instead of Ticks to get correct position
+			if (!pLocal || !pLocal->IsAlive())
+				return;
+
+			auto vDebugTargets = SortTargets(pLocal, pWeapon);
+			Vec3 vLocalPos = pLocal->GetShootPos();
+			Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
+
+			if (Vars::Debug::AimbotDrawTargets.Value)
+			{
+				const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
+
+				for (const auto& tTarget : vDebugTargets)
+				{
+					Vec3 vScreenPos;
+					if (SDK::W2S(tTarget.m_vPos, vScreenPos))
+					{
+						const Color_t green = { 0, 255, 0, 255 };
+						const Color_t yellow = { 255, 255, 0, 255 };
+						float flFOVDeg = tTarget.m_flFOVTo;
+						Color_t cColor = flFOVDeg < Vars::Aimbot::General::AimFOV.Value ? green : yellow;
+
+						const char* pszType = "Unknown";
+						switch (tTarget.m_iTargetType)
+						{
+						case TargetEnum::Player: pszType = "Player"; break;
+						case TargetEnum::Sentry: pszType = "Sentry"; break;
+						case TargetEnum::Dispenser: pszType = "Dispenser"; break;
+						case TargetEnum::Teleporter: pszType = "Teleporter"; break;
+						case TargetEnum::NPC: pszType = "NPC"; break;
+						case TargetEnum::Sticky: pszType = "Sticky"; break;
+						case TargetEnum::Bomb: pszType = "Bomb"; break;
+						}
+
+						char szDebug[256];
+						sprintf_s(szDebug, "%s [FOV: %.1f°] [Dist: %.0fu]", pszType, flFOVDeg, sqrtf(tTarget.m_flDistTo));
+						H::Draw.StringOutlined(fFont, vScreenPos.x, vScreenPos.y, cColor, { 0, 0, 0, 180 }, ALIGN_CENTER, szDebug);
+
+						Vec3 vLocalScreen;
+						if (SDK::W2S(vLocalPos, vLocalScreen))
+						{
+							G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vLocalPos, tTarget.m_vPos), I::GlobalVars->curtime + 0.03f, cColor, true);
+						}
+					}
+				}
+			}
+
+			if (Vars::Debug::AimbotDrawFOV.Value)
+			{
+				const float flFOV = Vars::Aimbot::General::AimFOV.Value;
+				const Color_t fovColor = { 100, 100, 255, 150 };
+
+				for (float flDist = 100.f; flDist <= 500.f; flDist += 100.f)
+				{
+					const int iSegments = 32;
+					Vec3 vPrevWorld;
+
+					for (int i = 0; i <= iSegments; i++)
+					{
+						const float flAngle = (float)i / (float)iSegments * flFOV - flFOV / 2.f;
+						Vec3 vAngle = vLocalAngles;
+						vAngle.y += flAngle;
+
+						Vec3 vForward;
+						Math::AngleVectors(vAngle, &vForward);
+						Vec3 vWorldPos = vLocalPos + vForward * flDist;
+
+						if (i > 0)
+						{
+							G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vPrevWorld, vWorldPos), I::GlobalVars->curtime + 0.03f, fovColor, false);
+						}
+						vPrevWorld = vWorldPos;
+					}
+				}
+			}
+		}
 		return;
+	}
 
 	switch (nWeaponID)
 	{

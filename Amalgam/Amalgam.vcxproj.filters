@@ -87,6 +87,7 @@
     <ClCompile Include="src\Hooks\Direct3DDevice9.cpp" />
     <ClCompile Include="src\SDK\Events\Events.cpp" />
     <ClCompile Include="src\Utils\CrashLog\CrashLog.cpp" />
+    <ClCompile Include="src\Utils\MouseMovementLogger\MouseMovementLogger.cpp" />
     <ClCompile Include="src\BytePatches\BytePatches.cpp" />
     <ClCompile Include="include\ImGui\imgui_freetype.cpp" />
     <ClCompile Include="src\Features\Misc\AutoVote\AutoVote.cpp" />
@@ -334,6 +335,7 @@
     <ClInclude Include="src\Utils\Interfaces\Interfaces.h" />
     <ClInclude Include="src\Utils\KeyHandler\KeyHandler.h" />
     <ClInclude Include="src\Utils\Math\Math.h" />
+    <ClInclude Include="src\Utils\MouseMovementLogger\MouseMovementLogger.h" />
     <ClInclude Include="src\Utils\Memory\Memory.h" />
     <ClInclude Include="src\Utils\NetVars\NetVars.h" />
     <ClInclude Include="src\Utils\Signatures\Signatures.h" />

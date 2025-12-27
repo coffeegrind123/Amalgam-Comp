@@ -191,6 +191,24 @@ namespace Math
 		return flResult;
 	}
 
+	// Distance-scaled FOV calculation - ONLY considers horizontal (yaw) angle, not pitch
+	// FOV = sin(yaw_angle) × distance
+	// This gives the perpendicular offset distance from your aim line
+	// Targets at same distance but different heights should have same FOV requirement
+	inline float CalcFovScaled(const Vec3& vFromPos, const Vec3& vToPos, const Vec3& vViewAngles)
+	{
+		// Calculate horizontal (yaw) angle difference
+		Vec3 vAngleTo = Math::CalcAngle(vFromPos, vToPos);
+		const float flYawDiff = fabsf(Math::NormalizeAngle(vAngleTo.y - vViewAngles.y));
+
+		const float flDistance = (vToPos - vFromPos).Length();
+
+		// Distance-scaled FOV: sin(yaw_radians) × distance
+		// Returns perpendicular offset distance in world units
+		const float flYawRad = flYawDiff * PIDEG;
+		return sinf(flYawRad) * flDistance;
+	}
+
 	inline Vec3 RotatePoint(Vec3 vPoint, Vec3 vOrigin, Vec3 vAngles)
 	{
 		vPoint -= vOrigin;

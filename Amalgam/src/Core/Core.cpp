@@ -10,6 +10,7 @@
 #include "../Features/Visuals/Visuals.h"
 #include "../SDK/Events/Events.h"
 #include "../Utils/Math/SIMDMath.h"
+#include "../Utils/MouseMovementLogger/MouseMovementLogger.h"
 #include <Psapi.h>
 
 static inline std::string GetProcessName(DWORD dwProcessID)
@@ -253,6 +254,7 @@ void CCore::Load()
 	F::Materials.LoadMaterials();
 	H::ConVars.Unlock();
 	F::Commands.Initialize();
+	U::MouseMovementLogger.Initialize();
 
 	F::Configs.LoadConfig(F::Configs.m_sCurrentConfig, false);
 	F::Configs.m_bConfigLoaded = true;
@@ -309,6 +311,7 @@ void CCore::Unload()
 
 	Sleep(250);
 	F::EnginePrediction.Unload();
+	U::MouseMovementLogger.Unload();
 	H::ConVars.Restore();
 	F::Materials.UnloadMaterials();
 

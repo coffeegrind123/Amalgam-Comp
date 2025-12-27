@@ -15,6 +15,7 @@
 #include "../Features/Spectate/Spectate.h"
 #include "../Features/Misc/SpectateAll/SpectateAll.h"
 #include "../Features/AutoDisguise/AutoDisguise.h"
+#include "../Utils/MouseMovementLogger/MouseMovementLogger.h"
 
 #define MATH_EPSILON (1.f / 16)
 #define PSILENT_EPSILON (1.f - MATH_EPSILON)
@@ -226,6 +227,8 @@ MAKE_HOOK(CClientModeShared_CreateMove, U::Memory.GetVirtual(I::ClientModeShared
 	}
 
 	F::Spectate.CreateMove(pLocal, pCmd);
+
+	U::MouseMovementLogger.Update(pCmd->viewangles);
 
 	FILE* log_file9 = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file9) {

@@ -385,3 +385,7 @@ data/
 packer/
 
 output/
+
+Amalgam/movement_analysis.py
+
+MutinyFixed/

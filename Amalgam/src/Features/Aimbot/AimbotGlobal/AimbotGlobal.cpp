@@ -40,6 +40,7 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 
 		Vec3 vCurPos = pTarget->GetHitboxCenter(aBones, nHitbox);
 		Vec3 vCurAngleTo = Math::CalcAngle(vLocalPos, vCurPos);
+		// Use regular angular FOV to include back-facing targets at all distances
 		float flCurFOVTo = Math::CalcFov(vLocalAngles, vCurAngleTo);
 
 		if (flCurFOVTo < flMinFOV)
@@ -50,7 +51,10 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 		}
 	}
 
-	return flMinFOV < Vars::Aimbot::General::AimFOV.Value;
+	// Mutiny-style: If FOV >= 180, target ANY enemy regardless of FOV
+	bool AllowAnyFOV = Vars::Aimbot::General::AimFOV.Value >= 180.0f;
+	bool bInFOV = AllowAnyFOV || flMinFOV < Vars::Aimbot::General::AimFOV.Value;
+	return bInFOV;
 }
 
 bool CAimbotGlobal::IsHitboxValid(CBaseEntity* pEntity, int nHitbox, int iHitboxes)
@@ -274,8 +278,11 @@ bool CAimbotGlobal::ShouldIgnore(CBaseEntity* pEntity, CTFPlayer* pLocal, CTFWea
 				if (isPlayer && ShouldIgnore(pEntity->As<CTFPlayer>(), pLocal, pWeapon))
 					continue;
 
-				if (!SDK::VisPosCollideable(pEntity, pEntity, vOrigin, isPlayer ? pEntity->m_vecOrigin() + pEntity->As<CTFPlayer>()->GetViewOffset() : pEntity->GetCenter(), MASK_SHOT))
-					continue;
+				// DISABLED: Don't check if target can see back to player - shoot at all valid targets regardless!
+				// This fixes issues where targets facing backwards or below players weren't being targeted
+				// The peek check was preventing these targets from being shot at all
+				//if (!SDK::VisPosCollideable(pEntity, pEntity, vOrigin, isPlayer ? pEntity->m_vecOrigin() + pEntity->As<CTFPlayer>()->GetViewOffset() : pEntity->GetCenter(), MASK_SHOT))
+				//	continue;
 
 				return false;
 			}

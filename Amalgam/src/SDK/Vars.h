@@ -271,8 +271,8 @@ namespace Vars
 	NAMESPACE_BEGIN(Aimbot)
 		SUBNAMESPACE_BEGIN(General, Aimbot)
 			CVarEnum(AimType, "Aim type", 0, NONE, nullptr,
-				VA_LIST("Off", "Plain", "Smooth", "Silent", "Locking", "Assistive"),
-				Off, Plain, Smooth, Silent, Locking, Assistive);
+				VA_LIST("Off", "Plain", "Smooth", "Silent"),
+				Off, Plain, Smooth, Silent);
 			CVarEnum(TargetSelection, "Target selection", 0, NONE, nullptr,
 				VA_LIST("FOV", "Distance"),
 				FOV, Distance);
@@ -286,7 +286,13 @@ namespace Vars
 			CVar(MaxTargets, "Max targets", 2, SLIDER_MIN, 1, 6);
 			CVar(IgnoreCloak, "Ignore cloak", 100.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(IgnoreInvisible, "Ignore invisible", 100.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
-			CVar(AssistStrength, "Assist strength", 25.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 1.f, "%g%%");
+			CVar(SmoothStrength, "Smooth strength", 30.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.1f, 999.f, 1.f, "%g%%");
+			CVar(AssistStrength, "Assist strength", 50.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 1.f, "%g%%");
+			CVarEnum(CurveType, "Curve type", 3, NONE, nullptr,
+				VA_LIST("Curve 0 (Medium)", "Curve 1 (Aggressive)", "Curve 2 (Slow)", "Natural Human"),
+				Curve0, Curve1, Curve2, NaturalHuman);
+			CVar(HumanizationJitter, "Humanization jitter", 5.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 20.f, 0.5f, "%g%%");
+			CVar(MicroOvershootAmount, "Micro overshoot", 2.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 10.f, 0.5f, "%g%%");
 			CVar(TickTolerance, "Tick tolerance", 7, SLIDER_CLAMP, 0, 21);
 			CVar(AutoShoot, "Auto shoot", true);
 			CVar(FOVCircle, "FOV Circle", false);
@@ -1470,6 +1476,12 @@ namespace Vars
 		CVar(DrawHitboxes, "Show hitboxes", false, NOSAVE);
 		CVar(AntiAimLines, "Anti-aim lines", false);
 		CVar(CrashLogging, "Crash logging", true);
+		// Aimbot debugging
+		CVar(AimbotDebug, "Aimbot debug visualization", false);
+		CVar(AimbotDrawFOV, "Draw aimbot FOV cone", false);
+		CVar(AimbotDrawTargets, "Draw all aimbot targets", false);
+		// Mouse movement logger - records to CSV when holding mouse2
+		CVar(MouseMovementLogger, "Mouse movement logger (hold Mouse2)", false);
 #ifdef DEBUG_TRACES
 		CVar(VisualizeTraces, "Visualize traces", false, NOSAVE);
 		CVar(VisualizeTraceHits, "Visualize trace hits", false, NOSAVE);

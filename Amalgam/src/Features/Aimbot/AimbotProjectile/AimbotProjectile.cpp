@@ -42,7 +42,8 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 	std::vector<Target_t> vTargets;
 	const auto iSort = Vars::Aimbot::General::TargetSelection.Value;
 
-	const Vec3 vLocalPos = F::Ticks.GetShootPos();
+	// CRITICAL FIX: Use pLocal->GetShootPos() directly instead of cached Ticks position
+	const Vec3 vLocalPos = pLocal->GetShootPos();
 	const Vec3 vLocalAngles = I::EngineClient->GetViewAngles();
 
 	{
@@ -96,7 +97,7 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
-			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
+			float flFOVTo = Math::CalcFovScaled(vLocalPos, vPos, vLocalAngles);
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
@@ -129,7 +130,7 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 
 				Vec3 vPos = pEntity->GetCenter();
 				Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
-				float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
+				float flFOVTo = Math::CalcFovScaled(vLocalPos, vPos, vLocalAngles);
 				if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 					continue;
 
@@ -145,7 +146,7 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 		{
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
-			float flFOVTo = Math::CalcFov(vLocalAngles, vAngleTo);
+			float flFOVTo = Math::CalcFovScaled(vLocalPos, vPos, vLocalAngles);
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
@@ -1396,8 +1397,7 @@ bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Tar
 
 				// attempted to have a headshot check though this seems more detrimental than useful outside of smooth aimbot
 				if (tTarget.m_nAimedHitbox == HITBOX_HEAD && pProjectilePath &&
-					(Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Smooth
-					|| Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Assistive))
+					Vars::Aimbot::General::AimType.Value == Vars::Aimbot::General::AimTypeEnum::Smooth)
 				{	// loop and see if closest hitbox is head
 					auto pModel = tTarget.m_pEntity->GetModel();
 					if (!pModel) break;
@@ -1633,10 +1633,10 @@ int CAimbotProjectile::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBas
 				else switch (Vars::Aimbot::General::AimType.Value)
 				{
 				case Vars::Aimbot::General::AimTypeEnum::Smooth:
-					if (Vars::Aimbot::General::AssistStrength.Value == 100.f)
+					if (Vars::Aimbot::General::SmoothStrength.Value == 100.f)
 						break;
 					[[fallthrough]];
-				case Vars::Aimbot::General::AimTypeEnum::Assistive:
+				default:
 				{
 					bPriority = bSplash ? iPriority <= iLowestSmoothPriority : iPriority < flLowestSmoothDist;
 					bDist = !bSplash || flDist < flLowestDist;
@@ -1713,8 +1713,7 @@ void CAimbotProjectile::ClearLegitAimStepVars()
 	m_flLegitAimStepIncTimeOverShoot = 0.0f;
 	m_flCurAimTime = 0.0f;
 	m_bInitializedLegitAimStepDirection = false;
-	int nRandom = rand() % 3;
-	m_nLegitAimCurveType = nRandom != m_nLegitAimCurveType ? nRandom : rand() % 3;
+	m_nLegitAimCurveType = Vars::Aimbot::General::CurveType.Value;
 }
 
 static void SmoothAngle(const Vec3& vFrom, Vec3& vTo, float flPercent)
@@ -1746,7 +1745,6 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 	{
 	case Vars::Aimbot::General::AimTypeEnum::Plain:
 	case Vars::Aimbot::General::AimTypeEnum::Silent:
-	case Vars::Aimbot::General::AimTypeEnum::Locking:
 		vOut = vToAngle;
 		break;
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
@@ -1772,6 +1770,19 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 				ClearLegitAimStepVars();
 			}
 		}
+		// Reset smooth time when target changes significantly (5° threshold)
+		else if (m_vLegitAimStepInitialDelta.Length2D() > 0.1f)
+		{
+			Vec3 vDeltaChange = vDelta - m_vLegitAimStepInitialDelta;
+			float flAngleChange = fabsf(Math::NormalizeAngle(vDeltaChange.y));
+			if (flAngleChange > 5.0f)
+			{
+				m_flCurAimTime = 0.0f;
+				m_bInitializedLegitAimStepDirection = false;
+				m_bReachedLegitAimStepTarget = false;  // CRITICAL: Fix camera flicking issue
+				m_vLegitAimStepInitialDelta = vDelta;
+			}
+		}
 
 		static float flLastAimStepTime = 0.0f;
 		if (flLastAimStepTime == 0.0f)
@@ -1784,7 +1795,7 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 
 		float flFOV = std::max(0.001f, Math::CalcFov(vOldAngles, vToAngle));
 
-		float flSmoothScale = std::max(0.1f, Vars::Aimbot::General::AssistStrength.Value);
+		float flSmoothScale = std::max(0.1f, Vars::Aimbot::General::SmoothStrength.Value);
 		float flSmoothTime = m_flCurAimTime * flSmoothScale + (m_bReachedLegitAimStepTarget ? 0.1f / flFOV : 0.33f / flFOV);
 
 		if (m_bReachedLegitAimStepTarget)
@@ -1800,8 +1811,9 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 			}
 		}
 
-		if (flSmoothTime > 0.92f)
-			flSmoothTime = 1.0f;
+		// Clamp smooth time to prevent instant flicks (max 90% interpolation)
+		if (flSmoothTime > 0.90f)
+			flSmoothTime = 0.90f;
 
 		if (G::CurrentUserCmd && (abs(G::CurrentUserCmd->mousedx) > 2 || abs(G::CurrentUserCmd->mousedy) > 2))
 		{
@@ -1944,19 +1956,48 @@ bool CAimbotProjectile::Aim(Vec3 vCurAngle, Vec3 vToAngle, Vec3& vOut, int iMeth
 				m_bReachedLegitAimStepTarget = true;
 			}
 			break;
+		case 3:
+			{
+				// NaturalHuman: Physics-based curve derived from real mouse movement data
+				const float flTotalDist = vDeltaAngle.Length2D();
+				const float flProgress = std::min(1.0f, flSmoothTime / std::max(0.001f, flFOV * 0.1f));
+				const float flPeakTime = 0.2f;
+				float flVelocityFactor;
+
+				if (flProgress < flPeakTime)
+				{
+					flVelocityFactor = std::pow(flProgress / flPeakTime, 1.5f);
+				}
+				else
+				{
+					const float flRemaining = 1.0f - flPeakTime;
+					const float flDecayProgress = (flProgress - flPeakTime) / flRemaining;
+					flVelocityFactor = std::exp(-2.5f * flDecayProgress);
+				}
+
+				const float flJitterPercent = Vars::Aimbot::General::HumanizationJitter.Value / 100.0f;
+				const float flOvershootPercent = Vars::Aimbot::General::MicroOvershootAmount.Value / 100.0f;
+				const float flJitter = RandFloatRange(-flJitterPercent, flJitterPercent) * flTotalDist;
+				const float flMicroOvershoot = flProgress > 0.7f ? RandFloatRange(-flOvershootPercent, flOvershootPercent) * flTotalDist : 0.0f;
+				float flPitchAdjustment = flVelocityFactor * flTotalDist * 0.5f + flJitter + flMicroOvershoot;
+
+				if (abs(vDeltaAngle.y) > 0.01f)
+				{
+					vOut.x += (m_vLegitAimStepInitialDelta.x < 0 ? -1.0f : 1.0f) * flPitchAdjustment;
+					vOut.x = std::clamp(Math::NormalizeAngle(vOut.x), -89.f, 89.f);
+				}
+
+				if (abs(vDeltaAngle.y) < 0.1f)
+				{
+					m_bReachedLegitAimStepTarget = true;
+				}
+				break;
+			}
 		}
 
 		bReturn = true;
 		break;
 	}
-	case Vars::Aimbot::General::AimTypeEnum::Assistive:
-		Vec3 vMouseDelta = G::CurrentUserCmd->viewangles.DeltaAngle(G::LastUserCmd->viewangles);
-		Vec3 vTargetDelta = vToAngle.DeltaAngle(G::LastUserCmd->viewangles);
-		float flMouseDelta = vMouseDelta.Length2D(), flTargetDelta = vTargetDelta.Length2D();
-		vTargetDelta = vTargetDelta.Normalized() * std::min(flMouseDelta, flTargetDelta);
-		vOut = vCurAngle - vMouseDelta + vMouseDelta.LerpAngle(vTargetDelta, Vars::Aimbot::General::AssistStrength.Value / 100.f);
-		bReturn = true;
-		break;
 	}
 
 	Math::ClampAngles(vOut);
@@ -1974,7 +2015,6 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 			break;
 		[[fallthrough]];
 	case Vars::Aimbot::General::AimTypeEnum::Smooth:
-	case Vars::Aimbot::General::AimTypeEnum::Assistive:
 		pCmd->viewangles = vAngle;
 		I::EngineClient->SetViewAngles(vAngle);
 		break;
@@ -1987,10 +2027,6 @@ void CAimbotProjectile::Aim(CUserCmd* pCmd, Vec3& vAngle, int iMethod)
 			G::PSilentAngles = true;
 		}
 		break;
-	case Vars::Aimbot::General::AimTypeEnum::Locking:
-		SDK::FixMovement(pCmd, vAngle);
-		pCmd->viewangles = vAngle;
-		G::SilentAngles = true;
 	}
 }
 

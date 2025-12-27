@@ -164,6 +164,14 @@ void CMenu::MenuAimbot(int iTab)
 					FSlider(Vars::Aimbot::General::AssistStrength, FSliderEnum::Left);
 					PushTransparent(!(Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Unsimulated));
 					{
+						FSlider(Vars::Aimbot::General::SmoothStrength, FSliderEnum::Right);
+					}
+					PopTransparent();
+					FDropdown(Vars::Aimbot::General::CurveType, FDropdownEnum::Left);
+					FSlider(Vars::Aimbot::General::HumanizationJitter, FSliderEnum::Right);
+					FSlider(Vars::Aimbot::General::MicroOvershootAmount, FSliderEnum::Left);
+					PushTransparent(!(Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Unsimulated));
+					{
 						FSlider(Vars::Aimbot::General::TickTolerance, FSliderEnum::Right);
 					}
 					PopTransparent();
@@ -3771,6 +3779,12 @@ void CMenu::MenuSettings(int iTab)
 			FToggle(Vars::Debug::VisualizeTraces, FToggleEnum::Left);
 			FToggle(Vars::Debug::VisualizeTraceHits, FToggleEnum::Right);
 #endif
+			// Aimbot debug visualization
+			FToggle(Vars::Debug::AimbotDebug, FToggleEnum::Left);
+			FToggle(Vars::Debug::AimbotDrawFOV, FToggleEnum::Right);
+			FToggle(Vars::Debug::AimbotDrawTargets, FToggleEnum::Left);
+			// Mouse movement logger
+			FToggle(Vars::Debug::MouseMovementLogger, FToggleEnum::Right);
 		} EndSection();
 		if (Section("Extra"))
 		{
