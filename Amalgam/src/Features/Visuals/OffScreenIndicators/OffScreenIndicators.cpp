@@ -269,7 +269,7 @@ void COffScreenIndicators::Draw()
         if (Vars::Competitive::Features::OffScreenIndicatorsName.Value)
         {
             Vec2 nameSize = H::Draw.GetTextSize(playerName.c_str(), font);
-            H::Draw.String(font, finalX - static_cast<int>(nameSize.x) / 2, currentY, {255, 255, 255, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, playerName.c_str());
+            H::Draw.String(font, finalX - static_cast<int>(nameSize.x) / 2, currentY, {255, 255, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, playerName.c_str());
             currentY += 15;
         }
         
@@ -278,7 +278,7 @@ void COffScreenIndicators::Draw()
         {
             std::string className = GetPlayerClassName(pPlayer->m_iClass());
             Vec2 classSize = H::Draw.GetTextSize(className.c_str(), font);
-            H::Draw.String(font, finalX - static_cast<int>(classSize.x) / 2, currentY, {255, 255, 0, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, className.c_str());
+            H::Draw.String(font, finalX - static_cast<int>(classSize.x) / 2, currentY, {255, 0, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, className.c_str());
             currentY += 15;
         }
         
@@ -286,7 +286,7 @@ void COffScreenIndicators::Draw()
         if (Vars::Competitive::Features::OffScreenIndicatorsHealth.Value)
         {
             Vec2 healthSize = H::Draw.GetTextSize(healthText.c_str(), font);
-            H::Draw.String(font, finalX - static_cast<int>(healthSize.x) / 2, currentY, {0, 255, 0, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, healthText.c_str());
+            H::Draw.String(font, finalX - static_cast<int>(healthSize.x) / 2, currentY, {0, 0, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, healthText.c_str());
             currentY += 15;
         }
         
@@ -295,7 +295,7 @@ void COffScreenIndicators::Draw()
         {
             std::string distanceText = std::to_string(static_cast<int>(distance)) + "u";
             Vec2 distSize = H::Draw.GetTextSize(distanceText.c_str(), font);
-            H::Draw.String(font, finalX - static_cast<int>(distSize.x) / 2, currentY, {200, 200, 200, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, distanceText.c_str());
+            H::Draw.String(font, finalX - static_cast<int>(distSize.x) / 2, currentY, {200, 200, static_cast<byte>(alpha)}, ALIGN_TOPLEFT, distanceText.c_str());
         }
     }
 }

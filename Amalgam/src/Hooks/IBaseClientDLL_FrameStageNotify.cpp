@@ -55,6 +55,10 @@ MAKE_HOOK(IBaseClientDLL_FrameStageNotify, U::Memory.GetVirtual(I::BaseClientDLL
 	}
 	case FRAME_NET_UPDATE_END:
 	{
+		// Adaptive update frequency for performance
+		static int nUpdateCounter = 0;
+		nUpdateCounter++;
+
 		// Update cache statistics for heavy processing functions
 		CCacheManager::ClearBacktrackCache();
 		CCacheManager::ClearMoveSimCache();
@@ -64,25 +68,35 @@ MAKE_HOOK(IBaseClientDLL_FrameStageNotify, U::Memory.GetVirtual(I::BaseClientDLL
 		H::Entities.Store();
 		F::PlayerUtils.UpdatePlayers();
 
+		// Every frame: Critical features
 		F::Backtrack.Store();
 		F::MoveSim.Store();
 		F::CritHack.Store();
 		F::Aimbot.Store();
 
 		auto pLocal = H::Entities.GetLocal();
-		
-		// Update competitive feature chams entities before chams system runs
-		F::SentryESP.UpdateChamsEntities();
-		F::StickyESP.UpdateChamsEntities();
-		F::StickyCam.UpdateChamsEntities();
-		F::FocusFire.UpdateChamsEntities();
-		
-		F::ESP.Store(pLocal);
-		F::Chams.Store(pLocal);
-		F::Glow.Store(pLocal);
-		F::Visuals.Store(pLocal);
 
-		F::CheaterDetection.Run();
+		// Every 2 frames: ESP and visual features (heavy rendering)
+		if (nUpdateCounter % 2 == 0)
+		{
+			// Update competitive feature chams entities before chams system runs
+			F::SentryESP.UpdateChamsEntities();
+			F::StickyESP.UpdateChamsEntities();
+			F::StickyCam.UpdateChamsEntities();
+			F::FocusFire.UpdateChamsEntities();
+
+			F::ESP.Store(pLocal);
+			F::Chams.Store(pLocal);
+			F::Glow.Store(pLocal);
+			F::Visuals.Store(pLocal);
+		}
+
+		// Every 4 frames: Less critical features
+		if (nUpdateCounter % 4 == 0)
+		{
+			F::CheaterDetection.Run();
+		}
+
 		F::Spectate.NetUpdateEnd(pLocal);
 
 		// Disable freezecam feature (instant camera change)

@@ -216,8 +216,8 @@ void CNoSpreadHitscan::Draw(CTFPlayer* pLocal)
 
 	const auto& cColor = m_bSynced ? Vars::Menu::Theme::Active.Value : Vars::Menu::Theme::Inactive.Value;
 
-	H::Draw.StringOutlined(fFont, x, y, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Uptime {}", GetFormat(m_flServerTime)).c_str());
-	H::Draw.StringOutlined(fFont, x, y += nTall, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Mantissa step {}", m_flMantissaStep).c_str());
+	H::Draw.String(fFont, x, y, cColor, align, std::format("Uptime {}", GetFormat(m_flServerTime)).c_str());
+	H::Draw.String(fFont, x, y += nTall, cColor, align, std::format("Mantissa step {}", m_flMantissaStep).c_str());
 	if (Vars::Debug::Info.Value)
-		H::Draw.StringOutlined(fFont, x, y += nTall, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Delta {:.6f}", m_dTimeDelta).c_str());
+		H::Draw.String(fFont, x, y += nTall, cColor, align, std::format("Delta {:.6f}", m_dTimeDelta).c_str());
 }

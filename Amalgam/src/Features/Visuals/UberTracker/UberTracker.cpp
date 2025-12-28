@@ -270,7 +270,7 @@ void CUberTracker::DrawAdvantageText(const std::vector<MedicInfo>& vRedMedics, c
 	
 	if (Vars::Competitive::UberTracker::ShowKritz.Value && enemyMedic.IsAlive && enemyMedic.RealWeaponName == "KRITZ" && !Vars::Competitive::UberTracker::IgnoreKritz.Value)
 	{
-		H::Draw.String(font, iX, iY - 25, { 128, 0, 128, 255 }, ALIGN_CENTER, "KRITZ");
+		H::Draw.String(font, iX, iY - 25, { 128, 128, 255 }, ALIGN_CENTER, "KRITZ");
 	}
 	
 	H::Draw.String(font, iX, iY, textColor, ALIGN_CENTER, sDisplayText.c_str());

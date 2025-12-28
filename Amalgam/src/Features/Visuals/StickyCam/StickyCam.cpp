@@ -582,7 +582,7 @@ void CStickyCam::DrawStickyRangeWarning()
 	H::Draw.FillRect(warningX - 5, warningY - 5, textW + 10, textH + 10, {0, 0, 0, 180});
 	
 	// Draw warning text
-	H::Draw.StringOutlined(H::Fonts.GetFont(FONT_ESP), warningX, warningY, {255, 50, 50, 255}, {0, 0, 0, 255}, ALIGN_TOPLEFT, warningText.c_str());
+	H::Draw.String(H::Fonts.GetFont(FONT_ESP), warningX, warningY, Color_t(255, 50, 255), ALIGN_TOPLEFT, warningText.c_str());
 	
 	// Draw distance bar
 	int barWidth = 200;
@@ -677,18 +677,16 @@ void CStickyCam::DrawOverlay()
 	int titleX = camX + GetCameraWidth() / 2 - titleW / 2;
 	int titleY = camY - 16;
 	
-	H::Draw.StringOutlined(H::Fonts.GetFont(FONT_ESP), titleX, titleY, {255, 255, 255, 255}, {0, 0, 0, 255}, ALIGN_CENTER, title.c_str());
+	H::Draw.String(H::Fonts.GetFont(FONT_ESP), titleX, titleY, Color_t(255, 255, 255), ALIGN_CENTER, title.c_str());
 	
 	// Draw controls (only show TAB in manual mode)
 	if (GetMode() == EStickyMode::MANUAL)
 	{
-		H::Draw.StringOutlined(H::Fonts.GetFont(FONT_ESP), camX + 5, camY + GetCameraHeight() + 5,
-			{255, 255, 255, 200}, {0, 0, 0, 255}, ALIGN_TOPLEFT, "TAB - Cycle stickies");
+		H::Draw.String(H::Fonts.GetFont(FONT_ESP), camX + 5, camY + GetCameraHeight() + 5, Color_t(255, 255, 255, 200), ALIGN_TOPLEFT, "TAB - Cycle stickies");
 	}
 	else
 	{
-		H::Draw.StringOutlined(H::Fonts.GetFont(FONT_ESP), camX + 5, camY + GetCameraHeight() + 5,
-			{255, 255, 255, 200}, {0, 0, 0, 255}, ALIGN_TOPLEFT, "Auto-tracking latest sticky");
+		H::Draw.String(H::Fonts.GetFont(FONT_ESP), camX + 5, camY + GetCameraHeight() + 5, Color_t(255, 255, 255, 200), ALIGN_TOPLEFT, "Auto-tracking latest sticky");
 	}
 	
 	// Get team color for frame

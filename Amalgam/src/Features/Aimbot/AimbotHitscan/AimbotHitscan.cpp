@@ -1041,7 +1041,7 @@ void CAimbotHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 
 						char szDebug[256];
 						sprintf_s(szDebug, "%s [FOV: %.1f°] [Dist: %.0fu]", pszType, flFOVDeg, sqrtf(tTarget.m_flDistTo));
-						H::Draw.StringOutlined(fFont, vScreenPos.x, vScreenPos.y, cColor, { 0, 0, 0, 180 }, ALIGN_CENTER, szDebug);
+						H::Draw.String(fFont, vScreenPos.x, vScreenPos.y, cColor, ALIGN_CENTER, szDebug);
 
 						Vec3 vLocalScreen;
 						if (SDK::W2S(vLocalPos, vLocalScreen))
