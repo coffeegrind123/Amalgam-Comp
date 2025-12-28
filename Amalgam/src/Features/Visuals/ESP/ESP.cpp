@@ -922,8 +922,28 @@ void CESP::DrawPlayers()
 		if (tCache.m_bBones)
 		{
 			auto pPlayer = pEntity->As<CTFPlayer>();
-			matrix3x4 aBones[MAXSTUDIOBONES];
-			if (pPlayer->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+			int nEntIndex = pPlayer->entindex();
+
+			// PERFORMANCE: Cache bones and update every 8 frames instead of every frame
+			// ESP is already updated every 2 frames, bones don't need to be that fresh
+			static int nBoneUpdateCounter = 0;
+			const int nBoneUpdateFreq = 8;  // Update bones every 8 frames
+
+			auto& cachedBones = m_mBoneCache[nEntIndex];
+			bool bNeedUpdate = !cachedBones.bValid ||
+				(I::GlobalVars->framecount - cachedBones.flLastUpdate) >= nBoneUpdateFreq;
+
+			if (bNeedUpdate)
+			{
+				if (pPlayer->SetupBones(cachedBones.aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
+				{
+					cachedBones.bValid = true;
+					cachedBones.flLastUpdate = I::GlobalVars->framecount;
+				}
+			}
+
+			// Use cached bones if available
+			if (cachedBones.bValid)
 			{
 				int iHead = pPlayer->GetBaseToHitbox(HITBOX_HEAD);
 				int iSpine2 = pPlayer->GetBaseToHitbox(HITBOX_SPINE2);
@@ -941,11 +961,11 @@ void CESP::DrawPlayers()
 				int iRightCalf = pPlayer->GetBaseToHitbox(HITBOX_RIGHT_CALF);
 				int iRightFoot = pPlayer->GetBaseToHitbox(HITBOX_RIGHT_FOOT);
 
-				DrawBones(pPlayer, aBones, { iHead, iSpine2, iPelvis }, tCache.m_tColor);
-				DrawBones(pPlayer, aBones, { iSpine2, iLeftUpperarm, iLeftForearm, iLeftHand }, tCache.m_tColor);
-				DrawBones(pPlayer, aBones, { iSpine2, iRightUpperarm, iRightForearm, iRightHand }, tCache.m_tColor);
-				DrawBones(pPlayer, aBones, { iPelvis, iLeftThigh, iLeftCalf, iLeftFoot }, tCache.m_tColor);
-				DrawBones(pPlayer, aBones, { iPelvis, iRightThigh, iRightCalf, iRightFoot }, tCache.m_tColor);
+				DrawBones(pPlayer, cachedBones.aBones, { iHead, iSpine2, iPelvis }, tCache.m_tColor);
+				DrawBones(pPlayer, cachedBones.aBones, { iSpine2, iLeftUpperarm, iLeftForearm, iLeftHand }, tCache.m_tColor);
+				DrawBones(pPlayer, cachedBones.aBones, { iSpine2, iRightUpperarm, iRightForearm, iRightHand }, tCache.m_tColor);
+				DrawBones(pPlayer, cachedBones.aBones, { iPelvis, iLeftThigh, iLeftCalf, iLeftFoot }, tCache.m_tColor);
+				DrawBones(pPlayer, cachedBones.aBones, { iPelvis, iRightThigh, iRightCalf, iRightFoot }, tCache.m_tColor);
 			}
 		}
 

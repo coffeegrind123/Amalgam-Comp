@@ -34,6 +34,10 @@ public:
 
 	bool ShouldAim();
 	bool ShouldHoldAttack(CTFWeaponBase* pWeapon);
+
+private:
+	// Cached hitbox scan list for performance
+	static std::vector<int> GetCachedHitboxList(int iHitboxes);
 };
 
 ADD_FEATURE(CAimbotGlobal, AimbotGlobal);
