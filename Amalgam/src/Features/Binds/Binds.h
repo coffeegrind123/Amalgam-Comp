@@ -14,6 +14,9 @@ Enum(BindVisibility, Always, WhileActive, Hidden)
 struct Bind_t
 {
 	std::string m_sName = "";
+	BaseVar* m_pVar = nullptr;
+	bool m_bValMulti = false;
+
 	int m_iType = 0;
 	int m_iInfo = 0;
 	int m_iKey = 0;

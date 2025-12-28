@@ -12,27 +12,24 @@
 }
 #define SetT(type, cond) if (IsType(type)) SetType(type, cond)
 
-static inline void SetVars(int iBind, std::vector<BaseVar*>& vVars = G::Vars)
+// Optimized version - only processes the specific variable bound to this bind
+static inline void SetVars(int iBind, BaseVar* pVar)
 {
-	const bool bDefault = iBind == DEFAULT_BIND;
-	for (auto pVar : vVars)
-	{
-		if (pVar->m_iFlags & (NOSAVE | NOBIND) && !bDefault)
-			continue;
+	if (!pVar || (pVar->m_iFlags & (NOSAVE | NOBIND) && iBind != DEFAULT_BIND))
+		return;
 
-		SetT(bool, iBind)
-		else SetT(int, iBind)
-		else SetT(float, iBind)
-		else SetT(IntRange_t, iBind)
-		else SetT(FloatRange_t, iBind)
-		else SetT(std::string, iBind)
-		else SetT(VA_LIST(std::vector<std::pair<std::string, Color_t>>), iBind)
-		else SetT(Color_t, iBind)
-		else SetT(Gradient_t, iBind)
-		else SetT(Vec3, iBind)
-		else SetT(DragBox_t, iBind)
-		else SetT(WindowBox_t, iBind)
-	}
+	SetT(bool, iBind)
+	else SetT(int, iBind)
+	else SetT(float, iBind)
+	else SetT(IntRange_t, iBind)
+	else SetT(FloatRange_t, iBind)
+	else SetT(std::string, iBind)
+	else SetT(VA_LIST(std::vector<std::pair<std::string, Color_t>>), iBind)
+	else SetT(Color_t, iBind)
+	else SetT(Gradient_t, iBind)
+	else SetT(Vec3, iBind)
+	else SetT(DragBox_t, iBind)
+	else SetT(WindowBox_t, iBind)
 }
 
 static inline void GetBinds(int iParent, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, std::vector<Bind_t>& vBinds)
@@ -113,7 +110,7 @@ static inline void GetBinds(int iParent, CTFPlayer* pLocal, CTFWeaponBase* pWeap
 
 		if (tBind.m_bActive)
 		{
-			SetVars(iBind, tBind.m_vVars);
+			SetVars(iBind, tBind.m_pVar);
 			GetBinds(iBind, pLocal, pWeapon, vBinds);
 		}
 	}
@@ -145,7 +142,23 @@ void CBinds::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 		tKey.m_bIsReleased = tKey.m_bIsReleased || bOldIsReleased;
 	}
 
-	SetVars(DEFAULT_BIND);
+	// Set default bind values - iterate through all vars once
+	for (auto pVar : G::Vars)
+	{
+		SetT(bool, DEFAULT_BIND)
+		else SetT(int, DEFAULT_BIND)
+		else SetT(float, DEFAULT_BIND)
+		else SetT(IntRange_t, DEFAULT_BIND)
+		else SetT(FloatRange_t, DEFAULT_BIND)
+		else SetT(std::string, DEFAULT_BIND)
+		else SetT(VA_LIST(std::vector<std::pair<std::string, Color_t>>), DEFAULT_BIND)
+		else SetT(Color_t, DEFAULT_BIND)
+		else SetT(Gradient_t, DEFAULT_BIND)
+		else SetT(Vec3, DEFAULT_BIND)
+		else SetT(DragBox_t, DEFAULT_BIND)
+		else SetT(WindowBox_t, DEFAULT_BIND)
+	}
+
 	GetBinds(DEFAULT_BIND, pLocal, pWeapon, m_vBinds);
 
 	for (auto it = m_vBinds.begin(); it < m_vBinds.end(); it++)

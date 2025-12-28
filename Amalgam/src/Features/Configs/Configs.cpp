@@ -639,6 +639,111 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 			}
 		}
 
+		// Populate m_pVar pointers for binds optimization
+		for (int i = 0; i < F::Binds.m_vBinds.size(); i++)
+		{
+			auto& Bind = F::Binds.m_vBinds.at(i);
+			for (auto pVar : G::Vars)
+			{
+				if (pVar->m_iType == typeid(bool).hash_code())
+				{
+					if (pVar->As<bool>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(int).hash_code())
+				{
+					if (pVar->As<int>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(float).hash_code())
+				{
+					if (pVar->As<float>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(IntRange_t).hash_code())
+				{
+					if (pVar->As<IntRange_t>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(FloatRange_t).hash_code())
+				{
+					if (pVar->As<FloatRange_t>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(std::string).hash_code())
+				{
+					if (pVar->As<std::string>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(VA_LIST(std::vector<std::pair<std::string, Color_t>>)).hash_code())
+				{
+					if (pVar->As<VA_LIST(std::vector<std::pair<std::string, Color_t>>)>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(Color_t).hash_code())
+				{
+					if (pVar->As<Color_t>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(Gradient_t).hash_code())
+				{
+					if (pVar->As<Gradient_t>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(Vec3).hash_code())
+				{
+					if (pVar->As<Vec3>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(DragBox_t).hash_code())
+				{
+					if (pVar->As<DragBox_t>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+				else if (pVar->m_iType == typeid(WindowBox_t).hash_code())
+				{
+					if (pVar->As<WindowBox_t>()->Map.contains(i))
+					{
+						Bind.m_pVar = pVar;
+						break;
+					}
+				}
+			}
+		}
+
 		H::Fonts.Reload(Vars::Menu::Scale[DEFAULT_BIND]);
 
 		m_sCurrentConfig = sConfigName; m_sCurrentVisuals = "";
