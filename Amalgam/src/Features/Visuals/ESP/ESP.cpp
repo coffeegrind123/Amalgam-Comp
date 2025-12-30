@@ -41,7 +41,11 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 	auto pResource = H::Entities.GetPR();
 	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
 	{
+		if (!pEntity || pEntity->IsDormant())
+			continue;
 		auto pPlayer = pEntity->As<CTFPlayer>();
+		if (!pPlayer)
+			continue;
 		int iIndex = pPlayer->entindex();
 
 		bool bLocal = iIndex == I::EngineClient->GetLocalPlayer();
@@ -73,7 +77,8 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 		}
 
 		int iClassNum = pPlayer->m_iClass();
-		auto pWeapon = pPlayer->m_hActiveWeapon()->As<CTFWeaponBase>();
+		auto pActiveWeapon = pPlayer->m_hActiveWeapon().Get();
+		auto pWeapon = pActiveWeapon ? pActiveWeapon->As<CTFWeaponBase>() : nullptr;
 
 		PlayerCache& tCache = m_mPlayerCache[pEntity];
 		tCache.m_flAlpha = (pPlayer->IsDormant() ? Vars::ESP::DormantAlpha.Value : Vars::ESP::ActiveAlpha.Value) / 255.f;
@@ -163,10 +168,14 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 			auto pMediGun = pPlayer->GetWeaponFromSlot(SLOT_SECONDARY);
 			if (pMediGun && pMediGun->GetClassID() == ETFClassID::CWeaponMedigun)
 			{
-				tCache.m_flUber = std::clamp(pMediGun->As<CWeaponMedigun>()->m_flChargeLevel(), 0.f, 1.f);
-				tCache.m_bUberBar = Vars::ESP::Player.Value & Vars::ESP::PlayerEnum::UberBar;
-				if (Vars::ESP::Player.Value & Vars::ESP::PlayerEnum::UberText)
-					tCache.m_vText.emplace_back(ESPTextEnum::Uber, std::format("{:.0f}%", tCache.m_flUber * 100.f), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				auto pMediGunTyped = pMediGun->As<CWeaponMedigun>();
+				if (pMediGunTyped)
+				{
+					tCache.m_flUber = std::clamp(pMediGunTyped->m_flChargeLevel(), 0.f, 1.f);
+					tCache.m_bUberBar = Vars::ESP::Player.Value & Vars::ESP::PlayerEnum::UberBar;
+					if (Vars::ESP::Player.Value & Vars::ESP::PlayerEnum::UberText)
+						tCache.m_vText.emplace_back(ESPTextEnum::Uber, std::format("{:.0f}%", tCache.m_flUber * 100.f), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				}
 			}
 		}
 
@@ -412,7 +421,9 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 					{
 						if (bLocal)
 						{
-							tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("Charging {:.0f}%", Math::RemapVal(pWeapon->As<CTFSniperRifle>()->m_flChargedDamage(), 0.f, 150.f, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+							auto pSniperRifle = pWeapon->As<CTFSniperRifle>();
+							if (pSniperRifle)
+								tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("Charging {:.0f}%", Math::RemapVal(pSniperRifle->m_flChargedDamage(), 0.f, 150.f, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 							break;
 						}
 						else
@@ -439,7 +450,9 @@ void CESP::StorePlayers(CTFPlayer* pLocal)
 					case TF_WEAPON_COMPOUND_BOW:
 						if (bLocal)
 						{
-							tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("Charging {:.0f}%", Math::RemapVal(TICKS_TO_TIME(I::ClientState->m_ClockDriftMgr.m_nServerTick) - pWeapon->As<CTFPipebombLauncher>()->m_flChargeBeginTime(), 0.f, 1.f, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+							auto pPipebombLauncher = pWeapon->As<CTFPipebombLauncher>();
+							if (pPipebombLauncher)
+								tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("Charging {:.0f}%", Math::RemapVal(TICKS_TO_TIME(I::ClientState->m_ClockDriftMgr.m_nServerTick) - pPipebombLauncher->m_flChargeBeginTime(), 0.f, 1.f, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 							break;
 						}
 						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Charging", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
@@ -466,7 +479,11 @@ void CESP::StoreBuildings(CTFPlayer* pLocal)
 
 	for (auto pEntity : H::Entities.GetGroup(EGroupType::BUILDINGS_ALL))
 	{
+		if (!pEntity || pEntity->IsDormant())
+			continue;
 		auto pBuilding = pEntity->As<CBaseObject>();
+		if (!pBuilding)
+			continue;
 		auto pOwner = pBuilding->m_hBuilder().Get();
 		int iIndex = pOwner ? pOwner->entindex() : -1;
 
@@ -536,8 +553,12 @@ void CESP::StoreBuildings(CTFPlayer* pLocal)
 			if (flConstructed < 1.f)
 				tCache.m_vText.emplace_back(ESPTextEnum::Right, std::format("{:.0f}%", flConstructed * 100.f), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
-			if (pBuilding->IsSentrygun() && pBuilding->As<CObjectSentrygun>()->m_bPlayerControlled())
-				tCache.m_vText.emplace_back(ESPTextEnum::Right, "Wrangled", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+			if (pBuilding->IsSentrygun())
+			{
+				auto pSentry = pBuilding->As<CObjectSentrygun>();
+				if (pSentry && pSentry->m_bPlayerControlled())
+					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Wrangled", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+			}
 
 			if (pBuilding->m_bHasSapper())
 				tCache.m_vText.emplace_back(ESPTextEnum::Right, "Sapped", Vars::Colors::IndicatorTextGood.Value, Vars::Menu::Theme::Background.Value);
@@ -546,11 +567,16 @@ void CESP::StoreBuildings(CTFPlayer* pLocal)
 
 			if (pBuilding->IsSentrygun() && !pBuilding->m_bBuilding())
 			{
-				int iShells, iMaxShells, iRockets, iMaxRockets; pBuilding->As<CObjectSentrygun>()->GetAmmoCount(iShells, iMaxShells, iRockets, iMaxRockets);
-				if (!iShells)
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "No ammo", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
-				if (!bIsMini && !iRockets)
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "No rockets", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				auto pSentry = pBuilding->As<CObjectSentrygun>();
+				if (pSentry)
+				{
+					int iShells, iMaxShells, iRockets, iMaxRockets;
+					pSentry->GetAmmoCount(iShells, iMaxShells, iRockets, iMaxRockets);
+					if (!iShells)
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "No ammo", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+					if (!bIsMini && !iRockets)
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "No rockets", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				}
 			}
 		}
 	}
@@ -562,7 +588,12 @@ static inline const char* GetProjectileName(CBaseEntity* pProjectile)
 	switch (pProjectile->GetClassID())
 	{
 	case ETFClassID::CTFWeaponBaseMerasmusGrenade: sReturn = "Bomb"; break;
-	case ETFClassID::CTFGrenadePipebombProjectile: sReturn = pProjectile->As<CTFGrenadePipebombProjectile>()->HasStickyEffects() ? "Sticky" : "Pipe"; break;
+	case ETFClassID::CTFGrenadePipebombProjectile:
+	{
+		auto pSticky = pProjectile->As<CTFGrenadePipebombProjectile>();
+		sReturn = (pSticky && pSticky->HasStickyEffects()) ? "Sticky" : "Pipe";
+		break;
+	}
 	case ETFClassID::CTFStunBall: sReturn = "Baseball"; break;
 	case ETFClassID::CTFBall_Ornament: sReturn = "Bauble"; break;
 	case ETFClassID::CTFProjectile_Jar: sReturn = "Jarate"; break;
@@ -579,7 +610,12 @@ static inline const char* GetProjectileName(CBaseEntity* pProjectile)
 	case ETFClassID::CTFProjectile_SpellSpawnHorde:
 	case ETFClassID::CTFProjectile_SpellSpawnZombie: sReturn = "Skeleton"; break;
 	case ETFClassID::CTFProjectile_SpellTransposeTeleport: sReturn = "Teleport"; break;
-	case ETFClassID::CTFProjectile_Arrow: sReturn = pProjectile->As<CTFProjectile_Arrow>()->m_iProjectileType() == TF_PROJECTILE_BUILDING_REPAIR_BOLT ? "Repair" : "Arrow"; break;
+	case ETFClassID::CTFProjectile_Arrow:
+	{
+		auto pArrow = pProjectile->As<CTFProjectile_Arrow>();
+		sReturn = (pArrow && pArrow->m_iProjectileType() == TF_PROJECTILE_BUILDING_REPAIR_BOLT) ? "Repair" : "Arrow";
+		break;
+	}
 	case ETFClassID::CTFProjectile_GrapplingHook: sReturn = "Grapple"; break;
 	case ETFClassID::CTFProjectile_HealingBolt: sReturn = "Heal"; break;
 	case ETFClassID::CTFProjectile_Rocket:
@@ -602,6 +638,8 @@ void CESP::StoreProjectiles(CTFPlayer* pLocal)
 
 	for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
 	{
+		if (!pEntity || pEntity->IsDormant())
+			continue;
 		auto pOwner = F::ProjSim.GetEntities(pEntity).second;
 		int iIndex = pOwner ? pOwner->entindex() : -1;
 
@@ -671,21 +709,31 @@ void CESP::StoreProjectiles(CTFPlayer* pLocal)
 			case ETFClassID::CTFProjectile_ThrowableBreadMonster:
 			case ETFClassID::CTFProjectile_ThrowableBrick:
 			case ETFClassID::CTFProjectile_ThrowableRepel:
-				if (pEntity->As<CTFWeaponBaseGrenadeProj>()->m_bCritical())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				if (pEntity->As<CTFWeaponBaseGrenadeProj>()->m_iDeflected() && (pEntity->GetClassID() != ETFClassID::CTFGrenadePipebombProjectile || !pEntity->GetAbsVelocity().IsZero()))
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				break;
+				{
+					auto pGrenade = pEntity->As<CTFWeaponBaseGrenadeProj>();
+					if (pGrenade)
+					{
+						if (pGrenade->m_bCritical())
+							tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+						if (pGrenade->m_iDeflected() && (pEntity->GetClassID() != ETFClassID::CTFGrenadePipebombProjectile || !pEntity->GetAbsVelocity().IsZero()))
+							tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					}
+					break;
+				}
 			case ETFClassID::CTFProjectile_Arrow:
 			case ETFClassID::CTFProjectile_GrapplingHook:
 			case ETFClassID::CTFProjectile_HealingBolt:
-				if (pEntity->As<CTFProjectile_Arrow>()->m_bCritical())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				if (pEntity->As<CTFBaseRocket>()->m_iDeflected())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				if (pEntity->As<CTFProjectile_Arrow>()->m_bArrowAlight())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Alight", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				break;
+				{
+					auto pArrow = pEntity->As<CTFProjectile_Arrow>();
+					auto pRocket = pEntity->As<CTFBaseRocket>();
+					if (pArrow && pArrow->m_bCritical())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					if (pRocket && pRocket->m_iDeflected())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					if (pArrow && pArrow->m_bArrowAlight())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Alight", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					break;
+				}
 			case ETFClassID::CTFProjectile_Rocket:
 			case ETFClassID::CTFProjectile_BallOfFire:
 			case ETFClassID::CTFProjectile_MechanicalArmOrb:
@@ -693,23 +741,38 @@ void CESP::StoreProjectiles(CTFPlayer* pLocal)
 			case ETFClassID::CTFProjectile_SpellFireball:
 			case ETFClassID::CTFProjectile_SpellLightningOrb:
 			case ETFClassID::CTFProjectile_SpellKartOrb:
-				if (pEntity->As<CTFProjectile_Rocket>()->m_bCritical())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				if (pEntity->As<CTFBaseRocket>()->m_iDeflected())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				break;
+				{
+					auto pRocket = pEntity->As<CTFBaseRocket>();
+					auto pRocketTyped = pEntity->As<CTFProjectile_Rocket>();
+					if (pRocket)
+					{
+						if (pRocketTyped && pRocketTyped->m_bCritical())
+							tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+						if (pRocket->m_iDeflected())
+							tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					}
+					break;
+				}
 			case ETFClassID::CTFProjectile_EnergyBall:
-				if (pEntity->As<CTFProjectile_EnergyBall>()->m_bChargedShot())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Charge", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				if (pEntity->As<CTFBaseRocket>()->m_iDeflected())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				break;
+				{
+					auto pEnergyBall = pEntity->As<CTFProjectile_EnergyBall>();
+					auto pRocket = pEntity->As<CTFBaseRocket>();
+					if (pEnergyBall && pEnergyBall->m_bChargedShot())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Charge", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					if (pRocket && pRocket->m_iDeflected())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					break;
+				}
 			case ETFClassID::CTFProjectile_Flare:
-				if (pEntity->As<CTFProjectile_Flare>()->m_bCritical())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				if (pEntity->As<CTFBaseRocket>()->m_iDeflected())
-					tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
-				break;
+				{
+					auto pFlare = pEntity->As<CTFProjectile_Flare>();
+					auto pRocket = pEntity->As<CTFBaseRocket>();
+					if (pFlare && pFlare->m_bCritical())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Crit", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					if (pRocket && pRocket->m_iDeflected())
+						tCache.m_vText.emplace_back(ESPTextEnum::Right, "Reflected", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+					break;
+				}
 			}
 		}
 	}
@@ -722,6 +785,8 @@ void CESP::StoreObjective(CTFPlayer* pLocal)
 
 	for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_OBJECTIVE))
 	{
+		if (!pEntity || pEntity->IsDormant())
+			continue;
 		if (!(pEntity->m_iTeamNum() != pLocal->m_iTeamNum() ? Vars::ESP::Objective.Value & Vars::ESP::ObjectiveEnum::Enemy : Vars::ESP::Objective.Value & Vars::ESP::ObjectiveEnum::Team))
 			continue;
 
@@ -741,6 +806,8 @@ void CESP::StoreObjective(CTFPlayer* pLocal)
 		case ETFClassID::CCaptureFlag:
 		{
 			auto pIntel = pEntity->As<CCaptureFlag>();
+			if (!pIntel)
+				break;
 
 			if (Vars::ESP::Objective.Value & Vars::ESP::ObjectiveEnum::Name)
 				tCache.m_vText.emplace_back(ESPTextEnum::Top, "Intel", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
@@ -778,7 +845,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_NPC))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::NPC.Value;
 
 			const char* szName = "NPC";
 			switch (pEntity->GetClassID())
@@ -799,8 +870,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::PICKUPS_HEALTH))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
-
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Health.Value;
 			tCache.m_vText.emplace_back(ESPTextEnum::Top, "Health", Vars::Colors::Health.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
@@ -809,8 +883,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::PICKUPS_AMMO))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
-
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Ammo.Value;
 			tCache.m_vText.emplace_back(ESPTextEnum::Top, "Ammo", Vars::Colors::Ammo.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
@@ -819,8 +896,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::PICKUPS_MONEY))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
-
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Money.Value;
 			tCache.m_vText.emplace_back(ESPTextEnum::Top, "Money", Vars::Colors::Money.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
@@ -829,7 +909,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::PICKUPS_POWERUP))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Powerup.Value;
 
 			const char* szName = "Powerup";
 			switch (FNV1A::Hash32(I::ModelInfoClient->GetModelName(pEntity->GetModel())))
@@ -860,8 +944,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_BOMBS))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
-
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Halloween.Value;
 			tCache.m_vText.emplace_back(ESPTextEnum::Top, pEntity->GetClassID() == ETFClassID::CTFPumpkinBomb ? "Pumpkin Bomb" : "Bomb", Vars::Colors::Halloween.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
@@ -870,8 +957,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::PICKUPS_SPELLBOOK))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
-
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Halloween.Value;
 			tCache.m_vText.emplace_back(ESPTextEnum::Top, "Spellbook", Vars::Colors::Halloween.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
@@ -880,8 +970,11 @@ void CESP::StoreWorld()
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_GARGOYLE))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			WorldCache& tCache = m_mWorldCache[pEntity];
-
+			tCache.m_flAlpha = Vars::ESP::ActiveAlpha.Value / 255.f;
+			tCache.m_tColor = Vars::Colors::Halloween.Value;
 			tCache.m_vText.emplace_back(ESPTextEnum::Top, "Gargoyle", Vars::Colors::Halloween.Value, Vars::Menu::Theme::Background.Value);
 		}
 	}
@@ -904,10 +997,42 @@ void CESP::DrawPlayers()
 
 	const auto& fFont = H::Fonts.GetFont(FONT_ESP);
 	const int nTall = fFont.m_nTall + H::Draw.Scale(2);
-	for (auto& [pEntity, tCache] : m_mPlayerCache)
+
+	// Use index-based iteration to avoid dangling pointer issues
+	int maxEntities = I::ClientEntityList->GetMaxEntities();
+	for (int i = 0; i < maxEntities; i++)
 	{
+		auto pEntity = I::ClientEntityList->GetClientEntity(i);
+		if (!pEntity)
+			continue;
+
+		// Convert to CBaseEntity for cache lookup
+		auto pBaseEntity = pEntity->As<CBaseEntity>();
+		if (!pBaseEntity)
+			continue;
+
+		// Skip if this entity isn't in our cache
+		auto it = m_mPlayerCache.find(pBaseEntity);
+		if (it == m_mPlayerCache.end())
+			continue;
+
+		auto& tCache = it->second;
+
+		// Double-check entity is still valid after cache lookup
+		if (pEntity->IsDormant())
+			continue;
+
+		auto pPlayer = pEntity->As<CTFPlayer>();
+		if (!pPlayer || !pPlayer->IsAlive())
+			continue;
+
+		// Ensure entity index is still valid
+		int iIndex = pPlayer->entindex();
+		if (iIndex <= 0 || i != iIndex)
+			continue;
+
 		float x, y, w, h;
-		if (!GetDrawBounds(pEntity, x, y, w, h))
+		if (!GetDrawBounds(pBaseEntity, x, y, w, h))
 			continue;
 
 		int l = x - H::Draw.Scale(6), r = x + w + H::Draw.Scale(6), m = x + w / 2;
@@ -921,29 +1046,15 @@ void CESP::DrawPlayers()
 
 		if (tCache.m_bBones)
 		{
-			auto pPlayer = pEntity->As<CTFPlayer>();
+			// Skip bones if model is not ready or player is invalid
+			if (!pPlayer->GetModel() || pPlayer->IsDormant())
+				goto skip_bones;
+
 			int nEntIndex = pPlayer->entindex();
 
-			// PERFORMANCE: Cache bones and update every 8 frames instead of every frame
-			// ESP is already updated every 2 frames, bones don't need to be that fresh
-			static int nBoneUpdateCounter = 0;
-			const int nBoneUpdateFreq = 8;  // Update bones every 8 frames
-
-			auto& cachedBones = m_mBoneCache[nEntIndex];
-			bool bNeedUpdate = !cachedBones.bValid ||
-				(I::GlobalVars->framecount - cachedBones.flLastUpdate) >= nBoneUpdateFreq;
-
-			if (bNeedUpdate)
-			{
-				if (pPlayer->SetupBones(cachedBones.aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
-				{
-					cachedBones.bValid = true;
-					cachedBones.flLastUpdate = I::GlobalVars->framecount;
-				}
-			}
-
-			// Use cached bones if available
-			if (cachedBones.bValid)
+			// Draw skeleton bones with safety checks
+			matrix3x4 aBones[MAXSTUDIOBONES];
+			if (pPlayer->SetupBones(aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, I::GlobalVars->curtime))
 			{
 				int iHead = pPlayer->GetBaseToHitbox(HITBOX_HEAD);
 				int iSpine2 = pPlayer->GetBaseToHitbox(HITBOX_SPINE2);
@@ -961,13 +1072,30 @@ void CESP::DrawPlayers()
 				int iRightCalf = pPlayer->GetBaseToHitbox(HITBOX_RIGHT_CALF);
 				int iRightFoot = pPlayer->GetBaseToHitbox(HITBOX_RIGHT_FOOT);
 
-				DrawBones(pPlayer, cachedBones.aBones, { iHead, iSpine2, iPelvis }, tCache.m_tColor);
-				DrawBones(pPlayer, cachedBones.aBones, { iSpine2, iLeftUpperarm, iLeftForearm, iLeftHand }, tCache.m_tColor);
-				DrawBones(pPlayer, cachedBones.aBones, { iSpine2, iRightUpperarm, iRightForearm, iRightHand }, tCache.m_tColor);
-				DrawBones(pPlayer, cachedBones.aBones, { iPelvis, iLeftThigh, iLeftCalf, iLeftFoot }, tCache.m_tColor);
-				DrawBones(pPlayer, cachedBones.aBones, { iPelvis, iRightThigh, iRightCalf, iRightFoot }, tCache.m_tColor);
+				// Validate hitbox indices before drawing
+				if (iHead >= 0 && iSpine2 >= 0 && iPelvis >= 0)
+				{
+					DrawBones(pPlayer, aBones, std::vector<int>{ iHead, iSpine2, iPelvis }, tCache.m_tColor);
+				}
+				if (iSpine2 >= 0 && iLeftUpperarm >= 0 && iLeftForearm >= 0 && iLeftHand >= 0)
+				{
+					DrawBones(pPlayer, aBones, std::vector<int>{ iSpine2, iLeftUpperarm, iLeftForearm, iLeftHand }, tCache.m_tColor);
+				}
+				if (iSpine2 >= 0 && iRightUpperarm >= 0 && iRightForearm >= 0 && iRightHand >= 0)
+				{
+					DrawBones(pPlayer, aBones, std::vector<int>{ iSpine2, iRightUpperarm, iRightForearm, iRightHand }, tCache.m_tColor);
+				}
+				if (iPelvis >= 0 && iLeftThigh >= 0 && iLeftCalf >= 0 && iLeftFoot >= 0)
+				{
+					DrawBones(pPlayer, aBones, std::vector<int>{ iPelvis, iLeftThigh, iLeftCalf, iLeftFoot }, tCache.m_tColor);
+				}
+				if (iPelvis >= 0 && iRightThigh >= 0 && iRightCalf >= 0 && iRightFoot >= 0)
+				{
+					DrawBones(pPlayer, aBones, std::vector<int>{ iPelvis, iRightThigh, iRightCalf, iRightFoot }, tCache.m_tColor);
+				}
 			}
 		}
+		skip_bones:
 
 		if (tCache.m_bHealthBar)
 		{
@@ -1042,10 +1170,42 @@ void CESP::DrawBuildings()
 
 	const auto& fFont = H::Fonts.GetFont(FONT_ESP);
 	const int nTall = fFont.m_nTall + H::Draw.Scale(2);
-	for (auto& [pEntity, tCache] : m_mBuildingCache)
+
+	// Use index-based iteration to avoid dangling pointer issues
+	int maxEntities = I::ClientEntityList->GetMaxEntities();
+	for (int i = 0; i < maxEntities; i++)
 	{
+		auto pEntity = I::ClientEntityList->GetClientEntity(i);
+		if (!pEntity)
+			continue;
+
+		// Convert to CBaseEntity for cache lookup
+		auto pBaseEntity = pEntity->As<CBaseEntity>();
+		if (!pBaseEntity)
+			continue;
+
+		// Skip if this entity isn't in our cache
+		auto it = m_mBuildingCache.find(pBaseEntity);
+		if (it == m_mBuildingCache.end())
+			continue;
+
+		auto& tCache = it->second;
+
+		// Double-check entity is still valid after cache lookup
+		if (pEntity->IsDormant())
+			continue;
+
+		auto pBuilding = pEntity->As<CBaseObject>();
+		if (!pBuilding)
+			continue;
+
+		// Ensure entity index is still valid
+		int iIndex = pBuilding->entindex();
+		if (iIndex <= 0 || i != iIndex)
+			continue;
+
 		float x, y, w, h;
-		if (!GetDrawBounds(pEntity, x, y, w, h))
+		if (!GetDrawBounds(pBaseEntity, x, y, w, h))
 			continue;
 
 		int l = x - H::Draw.Scale(6), r = x + w + H::Draw.Scale(6), m = x + w / 2;
@@ -1093,12 +1253,44 @@ void CESP::DrawBuildings()
 
 void CESP::DrawWorld()
 {
+	// Early return if no world ESP options are enabled
+	if (!(Vars::ESP::Draw.Value & (Vars::ESP::DrawEnum::NPCs | Vars::ESP::DrawEnum::Health | Vars::ESP::DrawEnum::Ammo | Vars::ESP::DrawEnum::Money | Vars::ESP::DrawEnum::Powerups | Vars::ESP::DrawEnum::Bombs | Vars::ESP::DrawEnum::Spellbook | Vars::ESP::DrawEnum::Gargoyle)))
+		return;
+
 	const auto& fFont = H::Fonts.GetFont(FONT_ESP);
 	const int nTall = fFont.m_nTall + H::Draw.Scale(2);
-	for (auto& [pEntity, tCache] : m_mWorldCache)
+
+	// Use index-based iteration to avoid dangling pointer issues
+	int maxEntities = I::ClientEntityList->GetMaxEntities();
+	for (int i = 0; i < maxEntities; i++)
 	{
+		auto pEntity = I::ClientEntityList->GetClientEntity(i);
+		if (!pEntity)
+			continue;
+
+		// Convert to CBaseEntity for cache lookup
+		auto pBaseEntity = pEntity->As<CBaseEntity>();
+		if (!pBaseEntity)
+			continue;
+
+		// Skip if this entity isn't in our cache
+		auto it = m_mWorldCache.find(pBaseEntity);
+		if (it == m_mWorldCache.end())
+			continue;
+
+		auto& tCache = it->second;
+
+		// Double-check entity is still valid after cache lookup
+		if (pEntity->IsDormant())
+			continue;
+
+		// Ensure entity index is still valid
+		int iIndex = pBaseEntity->entindex();
+		if (iIndex <= 0 || i != iIndex)
+			continue;
+
 		float x, y, w, h;
-		if (!GetDrawBounds(pEntity, x, y, w, h))
+		if (!GetDrawBounds(pBaseEntity, x, y, w, h))
 			continue;
 
 		int l = x - H::Draw.Scale(6), r = x + w + H::Draw.Scale(6), m = x + w / 2;
@@ -1135,16 +1327,40 @@ void CESP::DrawWorld()
 
 Color_t CESP::GetColor(CTFPlayer* pLocal, CBaseEntity* pEntity)
 {
-	if (pEntity->entindex() == I::EngineClient->GetLocalPlayer())
-		return Vars::Colors::Local.Value;
-	if (pEntity->entindex() == G::AimTarget.m_iEntIndex)
-		return Vars::Colors::Target.Value;
+	if (!pEntity || !pLocal)
+		return Vars::Colors::Enemy.Value;
+
+	// Validate entity indices before using
+	int iEntityIndex = pEntity->entindex();
+	if (iEntityIndex <= 0)
+		return Vars::Colors::Enemy.Value;
+
+	// Only do player-specific checks if this is actually a player
+	if (pEntity->As<CTFPlayer>())
+	{
+		if (iEntityIndex == I::EngineClient->GetLocalPlayer())
+			return Vars::Colors::Local.Value;
+		if (iEntityIndex == G::AimTarget.m_iEntIndex)
+			return Vars::Colors::Target.Value;
+	}
 	return H::Color.GetTeamColor(pLocal->m_iTeamNum(), pEntity->m_iTeamNum(), Vars::Colors::Relative.Value);
 }
 
 bool CESP::GetDrawBounds(CBaseEntity* pEntity, float& x, float& y, float& w, float& h)
 {
+	if (!pEntity)
+		return false;
+
+	// Ensure entity has a valid model and is not being destroyed
+	if (!pEntity->GetModel() || pEntity->IsDormant())
+		return false;
+
 	Vec3 vOrigin = pEntity->GetAbsOrigin();
+
+	// Check for valid origin
+	if (vOrigin.IsZero())
+		return false;
+
 	matrix3x4 mTransform = { { 1, 0, 0, vOrigin.x }, { 0, 1, 0, vOrigin.y }, { 0, 0, 1, vOrigin.z } };
 	//if (pEntity->entindex() == I::EngineClient->GetLocalPlayer())
 		Math::AngleMatrix({ 0.f, I::EngineClient->GetViewAngles().y, 0.f }, mTransform, false);
@@ -1157,6 +1373,10 @@ bool CESP::GetDrawBounds(CBaseEntity* pEntity, float& x, float& y, float& w, flo
 	y = flBottom;
 	w = flRight - flLeft;
 	h = flTop - flBottom;
+
+	// Validate computed bounds
+	if (w <= 0 || h <= 0 || w > 4096.f || h > 4096.f)
+		return false;
 
 	switch (pEntity->GetClassID())
 	{
@@ -1173,10 +1393,21 @@ bool CESP::GetDrawBounds(CBaseEntity* pEntity, float& x, float& y, float& w, flo
 
 void CESP::DrawBones(CTFPlayer* pPlayer, matrix3x4* aBones, std::vector<int> vecBones, Color_t clr)
 {
+	if (!pPlayer || !aBones || vecBones.empty())
+		return;
+
 	for (size_t n = 1; n < vecBones.size(); n++)
 	{
+		// Validate hitbox indices before using them
+		if (vecBones[n] < 0 || vecBones[n - 1] < 0)
+			continue;
+
 		auto vBone1 = pPlayer->GetHitboxCenter(aBones, vecBones[n]);
 		auto vBone2 = pPlayer->GetHitboxCenter(aBones, vecBones[n - 1]);
+
+		// Check for valid hitbox positions
+		if (vBone1.IsZero() || vBone2.IsZero())
+			continue;
 
 		Vec3 vScreen1, vScreen2;
 		if (SDK::W2S(vBone1, vScreen1) && SDK::W2S(vBone2, vScreen2))

@@ -30,6 +30,9 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 
 			for (auto pEntity : H::Entities.GetGroup(eGroupType))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
+
 			bool bTeammate = pEntity->m_iTeamNum() == pLocal->m_iTeamNum();
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -75,6 +78,8 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::BUILDINGS_ENEMIES))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
 
@@ -95,6 +100,8 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
 
@@ -113,6 +120,8 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_NPC))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
 
@@ -133,6 +142,8 @@ std::vector<Target_t> CAimbotHitscan::GetTargets(CTFPlayer* pLocal, CTFWeaponBas
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_BOMBS))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
 			// Mutiny-style: AllowAnyFOV check for FOV >= 180

@@ -55,14 +55,7 @@ private:
 	bool GetDrawBounds(CBaseEntity* pEntity, float& x, float& y, float& w, float& h);
 	void DrawBones(CTFPlayer* pPlayer, matrix3x4* aBones, std::vector<int> vecBones, Color_t clr);
 
-	// PERFORMANCE: Bone caching for ESP skeleton rendering
-	struct CachedBones {
-		float flLastUpdate = 0.f;
-		matrix3x4 aBones[MAXSTUDIOBONES];
-		bool bValid = false;
-	};
-	std::unordered_map<int, CachedBones> m_mBoneCache;  // Key: entity index
-
+	// Per-frame ESP data cache (cleared every frame in Store)
 	std::unordered_map<CBaseEntity*, PlayerCache> m_mPlayerCache = {};
 	std::unordered_map<CBaseEntity*, BuildingCache> m_mBuildingCache = {};
 	std::unordered_map<CBaseEntity*, WorldCache> m_mWorldCache = {};

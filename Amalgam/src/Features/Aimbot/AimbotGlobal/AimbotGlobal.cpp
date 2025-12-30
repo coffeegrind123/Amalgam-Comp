@@ -348,63 +348,51 @@ bool CAimbotGlobal::ShouldHoldAttack(CTFWeaponBase* pWeapon)
 	}
 	return false;
 }
-// Cached hitbox scan lists for performance optimization
+// Build hitbox scan list (no cache to avoid thread safety issues)
 std::vector<int> CAimbotGlobal::GetCachedHitboxList(int iHitboxes)
 {
-	// Cache key based on enabled hitboxes
-	static std::unordered_map<int, std::vector<int>> m_mHitboxCache;
-	static int nLastEnabledHitboxes = -1;
+	std::vector<int> vHitboxes;
+	vHitboxes.reserve(18);  // Pre-allocate for performance
 
-	// Check if we need to rebuild the cache
-	if (nLastEnabledHitboxes != iHitboxes)
+	// Build hitbox list based on enabled types
+	// Using the same mapping as IsHitboxValid
+	if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Head)
 	{
-		nLastEnabledHitboxes = iHitboxes;
-		m_mHitboxCache.clear();
-
-		// Build hitbox list based on enabled types
-		// Using the same mapping as IsHitboxValid
-		std::vector<int> vHitboxes;
-
-		if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Head)
-		{
-			vHitboxes.push_back(HITBOX_HEAD);
-		}
-
-		if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Body)
-		{
-			vHitboxes.push_back(HITBOX_SPINE0);
-			vHitboxes.push_back(HITBOX_SPINE1);
-			vHitboxes.push_back(HITBOX_SPINE2);
-			vHitboxes.push_back(HITBOX_SPINE3);
-		}
-
-		if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Pelvis)
-		{
-			vHitboxes.push_back(HITBOX_PELVIS);
-		}
-
-		if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Arms)
-		{
-			vHitboxes.push_back(HITBOX_LEFT_UPPERARM);
-			vHitboxes.push_back(HITBOX_LEFT_FOREARM);
-			vHitboxes.push_back(HITBOX_LEFT_HAND);
-			vHitboxes.push_back(HITBOX_RIGHT_UPPERARM);
-			vHitboxes.push_back(HITBOX_RIGHT_FOREARM);
-			vHitboxes.push_back(HITBOX_RIGHT_HAND);
-		}
-
-		if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Legs)
-		{
-			vHitboxes.push_back(HITBOX_LEFT_THIGH);
-			vHitboxes.push_back(HITBOX_LEFT_CALF);
-			vHitboxes.push_back(HITBOX_LEFT_FOOT);
-			vHitboxes.push_back(HITBOX_RIGHT_THIGH);
-			vHitboxes.push_back(HITBOX_RIGHT_CALF);
-			vHitboxes.push_back(HITBOX_RIGHT_FOOT);
-		}
-
-		m_mHitboxCache[iHitboxes] = vHitboxes;
+		vHitboxes.push_back(HITBOX_HEAD);
 	}
 
-	return m_mHitboxCache[iHitboxes];
+	if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Body)
+	{
+		vHitboxes.push_back(HITBOX_SPINE0);
+		vHitboxes.push_back(HITBOX_SPINE1);
+		vHitboxes.push_back(HITBOX_SPINE2);
+		vHitboxes.push_back(HITBOX_SPINE3);
+	}
+
+	if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Pelvis)
+	{
+		vHitboxes.push_back(HITBOX_PELVIS);
+	}
+
+	if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Arms)
+	{
+		vHitboxes.push_back(HITBOX_LEFT_UPPERARM);
+		vHitboxes.push_back(HITBOX_LEFT_FOREARM);
+		vHitboxes.push_back(HITBOX_LEFT_HAND);
+		vHitboxes.push_back(HITBOX_RIGHT_UPPERARM);
+		vHitboxes.push_back(HITBOX_RIGHT_FOREARM);
+		vHitboxes.push_back(HITBOX_RIGHT_HAND);
+	}
+
+	if (iHitboxes & Vars::Aimbot::Hitscan::HitboxesEnum::Legs)
+	{
+		vHitboxes.push_back(HITBOX_LEFT_THIGH);
+		vHitboxes.push_back(HITBOX_LEFT_CALF);
+		vHitboxes.push_back(HITBOX_LEFT_FOOT);
+		vHitboxes.push_back(HITBOX_RIGHT_THIGH);
+		vHitboxes.push_back(HITBOX_RIGHT_CALF);
+		vHitboxes.push_back(HITBOX_RIGHT_FOOT);
+	}
+
+	return vHitboxes;
 }

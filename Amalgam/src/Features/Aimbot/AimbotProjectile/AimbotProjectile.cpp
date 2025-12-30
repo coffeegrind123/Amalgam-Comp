@@ -61,6 +61,8 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 
 		for (auto pEntity : H::Entities.GetGroup(eGroupType))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			bool bTeammate = pEntity->m_iTeamNum() == pLocal->m_iTeamNum();
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
@@ -89,6 +91,8 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 		bool bIsRescueRanger = pWeapon->GetWeaponID() == TF_WEAPON_SHOTGUN_BUILDING_RESCUE;
 		for (auto pEntity : H::Entities.GetGroup(bIsRescueRanger ? EGroupType::BUILDINGS_ALL : EGroupType::BUILDINGS_ENEMIES))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
 
@@ -125,6 +129,8 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 		{
 			for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
 			{
+				if (!pEntity || pEntity->IsDormant())
+					continue;
 				if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 					continue;
 
@@ -144,6 +150,8 @@ std::vector<Target_t> CAimbotProjectile::GetTargets(CTFPlayer* pLocal, CTFWeapon
 	{
 		for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_NPC))
 		{
+			if (!pEntity || pEntity->IsDormant())
+				continue;
 			Vec3 vPos = pEntity->GetCenter();
 			Vec3 vAngleTo = Math::CalcAngle(vLocalPos, vPos);
 			float flFOVTo = Math::CalcFovScaled(vLocalPos, vPos, vLocalAngles);
