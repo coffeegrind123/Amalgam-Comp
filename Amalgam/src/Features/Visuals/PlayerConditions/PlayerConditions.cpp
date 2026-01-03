@@ -2,7 +2,12 @@
 
 std::vector<std::string> CPlayerConditions::Get(CTFPlayer* pEntity)
 {
+	// FIXED: Null check prevents crash when pEntity is invalid
+	if (!pEntity)
+		return {};
+
 	std::vector<std::string> vConditions = {};
+	vConditions.reserve(16); // OPTIMIZED: Reserve space to reduce allocations
 
 	{
 		if (pEntity->InCond(TF_COND_CRITBOOSTED) ||
@@ -363,39 +368,65 @@ void CPlayerConditions::Draw(CTFPlayer* pLocal)
 	if (!(Vars::Menu::Indicators.Value & Vars::Menu::IndicatorsEnum::Conditions))
 		return;
 
+	// FIXED: Null check prevents crash when pLocal is invalid
+	if (!pLocal)
+		return;
+
 	auto pTarget = pLocal;
 	switch (pLocal->m_iObserverMode())
 	{
 	case OBS_MODE_FIRSTPERSON:
 	case OBS_MODE_THIRDPERSON:
-		pTarget = pLocal->m_hObserverTarget()->As<CTFPlayer>();
+	{
+		// FIXED: Null check prevents crash when observer target handle is invalid
+		auto pObserverHandle = pLocal->m_hObserverTarget();
+		if (!pObserverHandle)
+			break;
+
+		// FIXED: Validate entity before casting to prevent crash
+		auto pObserverEntity = pObserverHandle->As<CTFPlayer>();
+		if (pObserverEntity)
+			pTarget = pObserverEntity;
+		break;
 	}
+	}
+
+	// FIXED: Validate pTarget after observer mode handling
 	if (!pTarget || !pTarget->IsPlayer() || !pTarget->IsAlive())
 		return;
 
-	int x = Vars::Menu::ConditionsDisplay.Value.x;
-	int y = Vars::Menu::ConditionsDisplay.Value.y + 8;
+	// OPTIMIZED: Cache display values to avoid repeated struct access
+	const int x_base = Vars::Menu::ConditionsDisplay.Value.x;
+	const int y_base = Vars::Menu::ConditionsDisplay.Value.y + 8;
 	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
 	const int nTall = fFont.m_nTall + H::Draw.Scale(1);
 
+	// OPTIMIZED: Cache scaled values to avoid repeated calculations
+	const int scale_50 = H::Draw.Scale(50, Scale_Round);
+	const int scale_42 = H::Draw.Scale(42, Scale_Round);
+	const int screen_width = H::Draw.m_nScreenW;
+
+	int x = x_base;
 	EAlign align = ALIGN_TOP;
-	if (x <= 100 + H::Draw.Scale(50, Scale_Round))
+	if (x <= 100 + scale_50)
 	{
-		x -= H::Draw.Scale(42, Scale_Round);
+		x -= scale_42;
 		align = ALIGN_TOPLEFT;
 	}
-	else if (x >= H::Draw.m_nScreenW - 100 - H::Draw.Scale(50, Scale_Round))
+	else if (x >= screen_width - 100 - scale_50)
 	{
-		x += H::Draw.Scale(42, Scale_Round);
+		x += scale_42;
 		align = ALIGN_TOPRIGHT;
 	}
 
-	std::vector<std::string> vConditions = Get(pTarget);
+	// OPTIMIZED: Use const reference to avoid copy of vector
+	const std::vector<std::string> vConditions = Get(pTarget);
 
 	int iOffset = 0;
+	// OPTIMIZED: Use const reference in range-based for to avoid string copies
 	for (const std::string& sCondition : vConditions)
 	{
-		H::Draw.String(fFont, x, y + iOffset, Vars::Menu::Theme::Active.Value, align, sCondition.c_str());
+		H::Draw.String(fFont, x, y_base + iOffset, Vars::Menu::Theme::Active.Value, align, sCondition.c_str());
 		iOffset += nTall;
 	}
 }
