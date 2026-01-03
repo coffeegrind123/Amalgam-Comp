@@ -32,7 +32,9 @@ LONG __stdcall WndProc::Func(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		if ((ImGui::GetIO().WantTextInput || F::Menu.m_bInKeybind) && WM_KEYFIRST <= uMsg && uMsg <= WM_KEYLAST)
 		{
-			I::InputSystem->ResetInputState();
+			// FIXED: Null check prevents crash when InputSystem is invalid
+			if (I::InputSystem)
+				I::InputSystem->ResetInputState();
 			return 1;
 		}
 
@@ -46,7 +48,8 @@ LONG __stdcall WndProc::Func(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 MAKE_HOOK(VGuiSurface_LockCursor, U::Memory.GetVirtual(I::MatSystemSurface, 62), void,
 	void* rcx)
 {
-	if (F::Menu.m_bIsOpen)
+	// FIXED: Null check prevents crash when MatSystemSurface is invalid
+	if (F::Menu.m_bIsOpen && I::MatSystemSurface)
 		return I::MatSystemSurface->UnlockCursor();
 
 	CALL_ORIGINAL(rcx);
@@ -57,18 +60,11 @@ MAKE_HOOK(VGuiSurface_SetCursor, U::Memory.GetVirtual(I::MatSystemSurface, 51), 
 {
 	if (F::Menu.m_bIsOpen)
 	{
-		switch (F::Render.Cursor)
-		{
-		case 0: cursor = 2; break;
-		case 1: cursor = 3; break;
-		case 2: cursor = 12; break;
-		case 3: cursor = 11; break;
-		case 4: cursor = 10; break;
-		case 5: cursor = 9; break;
-		case 6: cursor = 8; break;
-		case 7: cursor = 14; break;
-		case 8: cursor = 13; break;
-		}
+		// OPTIMIZED: Lookup table avoids switch statement overhead
+		static constexpr HCursor cursorMap[9] = { 2, 3, 12, 11, 10, 9, 8, 14, 13 };
+		// SAFETY: Bounds check prevents out-of-range access
+		if (F::Render.Cursor >= 0 && F::Render.Cursor < 9)
+			cursor = cursorMap[F::Render.Cursor];
 	}
 
 	CALL_ORIGINAL(rcx, cursor);
@@ -78,10 +74,14 @@ void WndProc::Initialize()
 {
 	hwWindow = SDK::GetTeamFortressWindow();
 
-	Original = reinterpret_cast<WNDPROC>(SetWindowLongPtr(hwWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(Func)));
+	// FIXED: Validate window handle before setting window procedure
+	if (hwWindow)
+		Original = reinterpret_cast<WNDPROC>(SetWindowLongPtr(hwWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(Func)));
 }
 
 void WndProc::Unload()
 {
-	SetWindowLongPtr(hwWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(Original));
+	// FIXED: Validate handles before restoring original window procedure
+	if (hwWindow && Original)
+		SetWindowLongPtr(hwWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(Original));
 }
