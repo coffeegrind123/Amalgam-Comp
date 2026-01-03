@@ -23,6 +23,22 @@ public:
 
 MAKE_INTERFACE_VERSION(IClientEntityList, ClientEntityList, "client.dll", "VClientEntityList003");
 
+// Include IClientEntity to get GetDummyEntity
+#include "../Main/IClientEntity.h"
+
+// Safe wrappers that never return nullptr
+namespace SafeEntityAccess {
+	inline IClientEntity* GetEntity(int index) {
+		auto entity = I::ClientEntityList->GetClientEntity(index);
+		return entity ? entity : GetDummyEntity();
+	}
+
+	inline IClientEntity* GetEntityFromHandle(CBaseHandle handle) {
+		auto entity = I::ClientEntityList->GetClientEntityFromHandle(handle);
+		return entity ? entity : GetDummyEntity();
+	}
+}
+
 inline IHandleEntity* CBaseHandle::Get() const
 {
 	return reinterpret_cast<IHandleEntity*>(I::ClientEntityList->GetClientEntityFromHandle(m_Index));

@@ -11,6 +11,7 @@
 #include "../SDK/Events/Events.h"
 #include "../Utils/Math/SIMDMath.h"
 #include "../Utils/MouseMovementLogger/MouseMovementLogger.h"
+#include "../Utils/SafeAccess/SafeAccess.h"
 #include <Psapi.h>
 
 static inline std::string GetProcessName(DWORD dwProcessID)
@@ -79,6 +80,9 @@ void CCore::Load()
 
 	try
 	{
+		// Initialize safe access handler FIRST - this catches null pointer crashes
+		U::SafeAccess.Initialize();
+
 		if (m_bUnload = m_bFailed = FNV1A::Hash32(GetProcessName(GetCurrentProcessId()).c_str()) != FNV1A::Hash32Const("tf_win64.exe"))
 		{
 			AppendFailText("Invalid process");
@@ -286,6 +290,7 @@ void CCore::Unload()
 	if (m_bFailed)
 	{
 		LogFailText();
+		U::SafeAccess.Shutdown();
 		return;
 	}
 
@@ -297,6 +302,9 @@ void CCore::Unload()
 	if (F::Menu.m_bIsOpen)
 		I::MatSystemSurface->SetCursorAlwaysVisible(false);
 	F::Visuals.RestoreWorldModulation();
+
+	// Shutdown safe access handler last
+	U::SafeAccess.Shutdown();
 	if (I::Input->CAM_IsThirdPerson())
 	{
 		if (auto pLocal = H::Entities.GetLocal())

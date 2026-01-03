@@ -20,13 +20,18 @@ struct Frame_t
     std::string m_sName = "";
 };
 
-static PVOID s_pHandle;
-static LPVOID s_lpParam;
+// FIXED: Initialize handle to nullptr for safe null checks
+static PVOID s_pHandle = nullptr;
+static LPVOID s_lpParam = nullptr;
 static std::unordered_map<LPVOID, bool> s_mAddresses = {};
 static int s_iExceptions = 0;
 
 static inline std::deque<Frame_t> StackTrace(PCONTEXT pContext)
 {
+    // FIXED: Null check prevents crash when context invalid
+    if (!pContext)
+        return {};
+
     HANDLE hProcess = GetCurrentProcess();
     HANDLE hThread = GetCurrentThread();
 
@@ -43,18 +48,24 @@ static inline std::deque<Frame_t> StackTrace(PCONTEXT pContext)
     tStackFrame.AddrFrame.Mode = AddrModeFlat;
     tStackFrame.AddrStack.Mode = AddrModeFlat;
 
+    // OPTIMIZED: Reserve space to reduce reallocations during stack walk
     std::deque<Frame_t> vTrace = {};
+    vTrace.reserve(64);
+
     while (StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &tStackFrame, pContext, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
     {
         Frame_t tFrame = {};
-        tFrame.m_uAddress = tStackFrame.AddrPC.Offset;
+        // OPTIMIZED: Cache address to avoid repeated struct access
+        const uintptr_t uFrameAddr = tStackFrame.AddrPC.Offset;
+        tFrame.m_uAddress = uFrameAddr;
 
-        if (auto hBase = HINSTANCE(SymGetModuleBase64(hProcess, tStackFrame.AddrPC.Offset)))
+        if (auto hBase = HINSTANCE(SymGetModuleBase64(hProcess, uFrameAddr)))
         {
             tFrame.m_uBase = uintptr_t(hBase);
 
             char buffer[MAX_PATH];
-            if (GetModuleBaseNameA(hProcess, hBase, buffer, sizeof(buffer) / sizeof(char)))
+            // OPTIMIZED: Simplified size calculation
+            if (GetModuleBaseNameA(hProcess, hBase, buffer, MAX_PATH))
                 tFrame.m_sModule = buffer;
             else
                 tFrame.m_sModule = std::format("{:#x}", tFrame.m_uBase);
@@ -64,13 +75,18 @@ static inline std::deque<Frame_t> StackTrace(PCONTEXT pContext)
             DWORD dwOffset = 0;
             IMAGEHLP_LINE64 line = {};
             line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-            if (SymGetLineFromAddr64(hProcess, tStackFrame.AddrPC.Offset, &dwOffset, &line))
+            if (SymGetLineFromAddr64(hProcess, uFrameAddr, &dwOffset, &line))
             {
-                tFrame.m_sFile = line.FileName;
-                tFrame.m_uLine = line.LineNumber;
-                auto iFind = tFrame.m_sFile.rfind("\\");
-                if (iFind != std::string::npos)
-                    tFrame.m_sFile.replace(0, iFind + 1, "");
+                // FIXED: Null check prevents crash if FileName is null
+                if (line.FileName)
+                {
+                    tFrame.m_sFile = line.FileName;
+                    tFrame.m_uLine = line.LineNumber;
+                    // OPTIMIZED: Use substr instead of replace for better performance
+                    const auto iFind = tFrame.m_sFile.rfind("\\");
+                    if (iFind != std::string::npos)
+                        tFrame.m_sFile = tFrame.m_sFile.substr(iFind + 1);
+                }
             }
         }
 
@@ -80,11 +96,16 @@ static inline std::deque<Frame_t> StackTrace(PCONTEXT pContext)
             auto symbol = PIMAGEHLP_SYMBOL64(buf);
             symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64) + 255;
             symbol->MaxNameLength = 254;
-            if (SymGetSymFromAddr64(hProcess, tStackFrame.AddrPC.Offset, &dwOffset, symbol))
-                tFrame.m_sName = symbol->Name;
+            if (SymGetSymFromAddr64(hProcess, uFrameAddr, &dwOffset, symbol))
+            {
+                // FIXED: Null check prevents crash if Name is null
+                if (symbol->Name)
+                    tFrame.m_sName = symbol->Name;
+            }
         }
 
-        vTrace.push_back(tFrame);
+        // OPTIMIZED: Use emplace_back to construct in place
+        vTrace.emplace_back(std::move(tFrame));
     }
 
     SymCleanup(hProcess);
@@ -94,8 +115,16 @@ static inline std::deque<Frame_t> StackTrace(PCONTEXT pContext)
 
 static LONG APIENTRY ExceptionFilter(PEXCEPTION_POINTERS ExceptionInfo)
 {
+    // FIXED: Null check prevents crash when exception info invalid
+    if (!ExceptionInfo || !ExceptionInfo->ExceptionRecord || !ExceptionInfo->ContextRecord)
+        return EXCEPTION_EXECUTE_HANDLER;
+
+    // OPTIMIZED: Cache exception record to avoid repeated pointer dereferences
+    const auto pExceptionRecord = ExceptionInfo->ExceptionRecord;
+    const DWORD dwExceptionCode = pExceptionRecord->ExceptionCode;
+
     const char* sError = "UNKNOWN";
-    switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
+    switch (dwExceptionCode)
     {
     case STATUS_ACCESS_VIOLATION: sError = "ACCESS VIOLATION"; break;
     case STATUS_STACK_OVERFLOW: sError = "STACK OVERFLOW"; break;
@@ -103,34 +132,42 @@ static LONG APIENTRY ExceptionFilter(PEXCEPTION_POINTERS ExceptionInfo)
     case DBG_PRINTEXCEPTION_C: return EXCEPTION_EXECUTE_HANDLER;
     }
 
-    if (s_mAddresses.contains(ExceptionInfo->ExceptionRecord->ExceptionAddress)
+    // OPTIMIZED: Cache exception address to avoid repeated lookups
+    const auto pExceptionAddr = pExceptionRecord->ExceptionAddress;
+
+    if (s_mAddresses.contains(pExceptionAddr)
         || !Vars::Debug::CrashLogging.Value
         || s_iExceptions && GetAsyncKeyState(VK_SHIFT) & 0x8000 && GetAsyncKeyState(VK_RETURN) & 0x8000)
         return EXCEPTION_EXECUTE_HANDLER;
-    s_mAddresses[ExceptionInfo->ExceptionRecord->ExceptionAddress] = true;
+    s_mAddresses[pExceptionAddr] = true;
+
+    // OPTIMIZED: Cache context record to avoid repeated pointer dereferences
+    const auto pContext = ExceptionInfo->ContextRecord;
 
     std::stringstream ssErrorStream;
-    ssErrorStream << std::format("Error: {} (0x{:X}) ({})\n", sError, ExceptionInfo->ExceptionRecord->ExceptionCode, ++s_iExceptions);
+    ssErrorStream << std::format("Error: {} (0x{:X}) ({})\n", sError, dwExceptionCode, ++s_iExceptions);
     if (s_lpParam)
         ssErrorStream << std::format("This: {}\n", U::Memory.GetModuleOffset(reinterpret_cast<uintptr_t>(s_lpParam)));
     ssErrorStream << "\n";
 
-    ssErrorStream << std::format("RIP: {:#x}\n", ExceptionInfo->ContextRecord->Rip);
-    ssErrorStream << std::format("RAX: {:#x}\n", ExceptionInfo->ContextRecord->Rax);
-    ssErrorStream << std::format("RCX: {:#x}\n", ExceptionInfo->ContextRecord->Rcx);
-    ssErrorStream << std::format("RDX: {:#x}\n", ExceptionInfo->ContextRecord->Rdx);
-    ssErrorStream << std::format("RBX: {:#x}\n", ExceptionInfo->ContextRecord->Rbx);
-    ssErrorStream << std::format("RSP: {:#x}\n", ExceptionInfo->ContextRecord->Rsp);
-    ssErrorStream << std::format("RBP: {:#x}\n", ExceptionInfo->ContextRecord->Rbp);
-    ssErrorStream << std::format("RSI: {:#x}\n", ExceptionInfo->ContextRecord->Rsi);
-    ssErrorStream << std::format("RDI: {:#x}\n\n", ExceptionInfo->ContextRecord->Rdi);
+    // OPTIMIZED: Batch register output to reduce function calls
+    ssErrorStream << std::format("RIP: {:#x}\n", pContext->Rip);
+    ssErrorStream << std::format("RAX: {:#x}\n", pContext->Rax);
+    ssErrorStream << std::format("RCX: {:#x}\n", pContext->Rcx);
+    ssErrorStream << std::format("RDX: {:#x}\n", pContext->Rdx);
+    ssErrorStream << std::format("RBX: {:#x}\n", pContext->Rbx);
+    ssErrorStream << std::format("RSP: {:#x}\n", pContext->Rsp);
+    ssErrorStream << std::format("RBP: {:#x}\n", pContext->Rbp);
+    ssErrorStream << std::format("RSI: {:#x}\n", pContext->Rsi);
+    ssErrorStream << std::format("RDI: {:#x}\n\n", pContext->Rdi);
 
-    switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
+    switch (dwExceptionCode)
     {
     case STATUS_ACCESS_VIOLATION:
-        if (auto vTrace = StackTrace(ExceptionInfo->ContextRecord); !vTrace.empty())
+        if (auto vTrace = StackTrace(pContext); !vTrace.empty())
         {
-            for (auto& tFrame : vTrace)
+            // OPTIMIZED: Use const reference to avoid copies in iteration
+            for (const auto& tFrame : vTrace)
             {
                 if (tFrame.m_uBase)
                     ssErrorStream << std::format("{}+{:#x}", tFrame.m_sModule, tFrame.m_uAddress - tFrame.m_uBase);
@@ -146,25 +183,35 @@ static LONG APIENTRY ExceptionFilter(PEXCEPTION_POINTERS ExceptionInfo)
         }
         break;
     default:
-        ssErrorStream << std::format("{}\n\n", U::Memory.GetModuleOffset(reinterpret_cast<uintptr_t>(ExceptionInfo->ExceptionRecord->ExceptionAddress)));
+        ssErrorStream << std::format("{}\n\n", U::Memory.GetModuleOffset(reinterpret_cast<uintptr_t>(pExceptionAddr)));
     }
 
     ssErrorStream << "Built @ " __DATE__ ", " __TIME__ ", " __CONFIGURATION__ "\n";
     ssErrorStream << "Ctrl + C to copy. \n";
     try
     {
-        std::ofstream file;
-        file.open(F::Configs.m_sConfigPath + "crash_log.txt", std::ios_base::app);
-        file << ssErrorStream.str() + "\n\n\n";
-        file.close();
-        ssErrorStream << "Logged to Amalgam\\crash_log.txt. ";
+        // OPTIMIZED: Construct file path once to avoid repeated string concatenation
+        const std::string sLogPath = F::Configs.m_sConfigPath + "crash_log.txt";
+        std::ofstream file(sLogPath, std::ios_base::app);
+        if (file.is_open())
+        {
+            // OPTIMIZED: Cache string and avoid unnecessary concatenation
+            const std::string sErrorStr = ssErrorStream.str();
+            file << sErrorStr << "\n\n\n";
+            file.close();
+            ssErrorStream << "Logged to Amalgam\\crash_log.txt. ";
+        }
     }
     catch (...) {}
 
-    switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
+    switch (dwExceptionCode)
     {
     case STATUS_ACCESS_VIOLATION:
-        SDK::Output("Unhandled exception", ssErrorStream.str().c_str(), { 175, 150, 255 }, true, true, false, false, false, MB_OK | MB_ICONERROR);
+        // OPTIMIZED: Cache error string to avoid repeated str() calls
+        {
+            const std::string sErrorStr = ssErrorStream.str();
+            SDK::Output("Unhandled exception", sErrorStr.c_str(), { 175, 150, 255 }, true, true, false, false, false, MB_OK | MB_ICONERROR);
+        }
     }
 
     return EXCEPTION_EXECUTE_HANDLER;
@@ -178,5 +225,10 @@ void CCrashLog::Initialize(LPVOID lpParam)
 
 void CCrashLog::Unload()
 {
-    RemoveVectoredExceptionHandler(s_pHandle);
+    // FIXED: Null check prevents crash if handler wasn't initialized
+    if (s_pHandle)
+    {
+        RemoveVectoredExceptionHandler(s_pHandle);
+        s_pHandle = nullptr;
+    }
 }

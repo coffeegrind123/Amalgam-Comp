@@ -1085,6 +1085,7 @@
     <ClCompile Include="src\Utils\Memory\Memory.cpp" />
     <ClCompile Include="src\Utils\MouseMovementLogger\MouseMovementLogger.cpp" />
     <ClCompile Include="src\Utils\NetVars\NetVars.cpp" />
+    <ClCompile Include="src\Utils\SafeAccess\SafeAccess.cpp" />
     <ClCompile Include="src\Utils\Signatures\Signatures.cpp" />
     <ClCompile Include="src\Utils\Timer\Timer.cpp" />
     <ClCompile Include="src\Utils\Math\SIMDMath.cpp" />
@@ -1500,6 +1501,7 @@
     <ClInclude Include="src\Utils\Math\SIMDMath.h" />
     <ClInclude Include="src\Utils\Memory\Memory.h" />
     <ClInclude Include="src\Utils\NetVars\NetVars.h" />
+    <ClInclude Include="src\Utils\SafeAccess\SafeAccess.h" />
     <ClInclude Include="src\Utils\Signatures\Signatures.h" />
     <ClInclude Include="src\Utils\Timer\Timer.h" />
     <ClInclude Include="src\Utils\UtlVector\UtlVector.h" />

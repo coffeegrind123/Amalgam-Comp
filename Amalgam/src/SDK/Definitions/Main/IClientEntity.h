@@ -148,3 +148,11 @@ public:
 
 	template <typename T> inline T* As() { return reinterpret_cast<T*>(this); }
 };
+
+// Global dummy entity - used when GetClientEntity would return null
+inline IClientEntity* GetDummyEntity()
+{
+	// Static buffer large enough for any entity type (64KB)
+	static char dummyBuffer[65536] = {0};
+	return reinterpret_cast<IClientEntity*>(dummyBuffer);
+}
