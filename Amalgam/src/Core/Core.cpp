@@ -20,15 +20,14 @@ static inline std::string GetProcessName(DWORD dwProcessID)
 	if (!hProcess)
 		return "";
 
-	char buffer[MAX_PATH];
-	if (!GetModuleBaseName(hProcess, nullptr, buffer, sizeof(buffer) / sizeof(char)))
+	if (char buffer[MAX_PATH]; GetModuleBaseName(hProcess, nullptr, buffer, sizeof(buffer) / sizeof(char)))
 	{
 		CloseHandle(hProcess);
-		return "";
+		return buffer;
 	}
 
 	CloseHandle(hProcess);
-	return buffer;
+	return "";
 }
 
 static inline bool CheckDXLevel()
@@ -36,11 +35,15 @@ static inline bool CheckDXLevel()
 	auto mat_dxlevel = H::ConVars.FindVar("mat_dxlevel");
 	if (mat_dxlevel->GetInt() < 90)
 	{
-		//const char* sMessage = "You are running with graphics options that Amalgam does not support.\n-dxlevel must be at least 90.";
-		const char* sMessage = "You are running with graphics options that Amalgam does not support.\nIt is recommended for -dxlevel to be at least 90.";
+		/*
+		const char* sMessage = "You are running with graphics options that Amalgam does not support. -dxlevel must be at least 90.";
 		U::Core.AppendFailText(sMessage);
-		SDK::Output("Amalgam", sMessage, { 175, 150, 255 }, true, true);
-		//return false;
+		SDK::Output("Amalgam", sMessage, DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
+		return false;
+		*/
+
+		const char* sMessage = "You are running with graphics options that Amalgam does not support. It is recommended for -dxlevel to be at least 90.";
+		SDK::Output("Amalgam", sMessage, DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 
 	return true;
@@ -69,11 +72,14 @@ void CCore::LogFailText()
 		file.open(F::Configs.m_sConfigPath + "fail_log.txt", std::ios_base::app);
 		file << m_ssFailStream.str() + "\n\n\n";
 		file.close();
+
+		m_ssFailStream << "\n";
+		m_ssFailStream << "Ctrl + C to copy. \n";
 		m_ssFailStream << "Logged to Amalgam\\fail_log.txt. ";
 	}
 	catch (...) {}
 
-	SDK::Output("Failed to load", m_ssFailStream.str().c_str(), {}, false, true, false, false, false, false, MB_OK | MB_ICONERROR);
+	SDK::Output("Failed to load", m_ssFailStream.str().c_str(), {}, OUTPUT_DEBUG, MB_OK | MB_ICONERROR);
 }
 
 void CCore::Load()
@@ -278,7 +284,17 @@ void CCore::Load()
 		AppendFailText("Exception during initialization");
 		m_bUnload = m_bFailed = true;
 		return;
+<<<<<<< HEAD
 	}
+=======
+	if (m_bUnload = m_bFailed2 = !U::Hooks.Initialize() || !U::BytePatches.Initialize() || !H::Events.Initialize())
+		return;
+	F::Materials.LoadMaterials();
+	H::Fonts.Reload(Vars::Menu::Scale[DEFAULT_BIND]);
+	F::Configs.LoadConfig(F::Configs.m_sCurrentConfig, false);
+
+	SDK::Output("Amalgam", "Loaded", DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
+>>>>>>> upstream/master
 }
 
 void CCore::Loop()
@@ -319,13 +335,15 @@ void CCore::Unload()
 			pLocal->ThirdPersonSwitch();
 		}
 	}
-
 	H::ConVars.FindVar("cl_wpn_sway_interp")->SetValue(0.f);
 	H::ConVars.FindVar("cl_wpn_sway_scale")->SetValue(0.f);
 
 	Sleep(250);
 	F::EnginePrediction.Unload();
+<<<<<<< HEAD
 	U::MouseMovementLogger.Unload(); // OUR ENHANCEMENT
+=======
+>>>>>>> upstream/master
 	H::ConVars.Restore();
 	F::Materials.UnloadMaterials();
 
@@ -338,5 +356,5 @@ void CCore::Unload()
 		return;
 	}
 
-	SDK::Output("Amalgam", "Unloaded", { 175, 150, 255 }, true, true);
+	SDK::Output("Amalgam", "Unloaded", DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_DEBUG);
 }

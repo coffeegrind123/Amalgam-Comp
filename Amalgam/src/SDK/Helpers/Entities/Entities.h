@@ -1,19 +1,21 @@
 #pragma once
-#include "../../../Utils/Feature/Feature.h"
+#include "../../../Utils/Macros/Macros.h"
 #include "../../Definitions/Classes.h"
+<<<<<<< HEAD
 #include "../Cache/CacheManager.h"
 #include <unordered_map>
 #include <vector>
+=======
+#include "../../Vars.h"
+>>>>>>> upstream/master
 
-enum struct EGroupType
-{
-	GROUP_INVALID = -1,
-	PLAYERS_ALL, PLAYERS_ENEMIES, PLAYERS_TEAMMATES,
-	BUILDINGS_ALL, BUILDINGS_ENEMIES, BUILDINGS_TEAMMATES,
-	PICKUPS_HEALTH, PICKUPS_AMMO, PICKUPS_MONEY, PICKUPS_POWERUP, PICKUPS_SPELLBOOK,
-	WORLD_PROJECTILES, WORLD_OBJECTIVE, WORLD_NPC, WORLD_BOMBS, WORLD_GARGOYLE,
-	MISC_LOCAL_STICKIES, MISC_LOCAL_FLARES, MISC_DOTS
-};
+Enum(Entity, Invalid = -1,
+	PlayerAll, PlayerEnemy, PlayerTeam,
+	BuildingAll, BuildingEnemy, BuildingTeam,
+	PickupHealth, PickupAmmo, PickupMoney, PickupPowerup, PickupSpellbook, PickupGargoyle,
+	WorldProjectile, WorldObjective, WorldNPC, WorldBomb,
+	LocalStickies, LocalFlares, SniperDots
+)
 
 // Entity storage constants for MSVC compatibility
 #ifndef MAX_PLAYERS
@@ -148,10 +150,14 @@ struct VelFixRecord
 
 class CEntities
 {
+private:
+	bool ManageDormancy(CBaseEntity* pEntity);
+
 	CTFPlayer* m_pLocal = nullptr;
 	CTFWeaponBase* m_pLocalWeapon = nullptr;
 	CTFPlayerResource* m_pPlayerResource = nullptr;
 
+<<<<<<< HEAD
 	// Legacy group system (kept for compatibility)
 	std::unordered_map<EGroupType, std::vector<CBaseEntity*>> m_mGroups = {};
 
@@ -164,8 +170,12 @@ class CEntities
 	mutable uint32_t m_nOptimizationMisses = 0;
 
 	std::unordered_map<int, float> m_mSimTimes = {}, m_mOldSimTimes = {}, m_mDeltaTimes = {}, m_mLagTimes = {};
+=======
+	std::unordered_map<EntityEnum::EntityEnum, std::vector<CBaseEntity*>> m_mGroups = {};
+
+	std::unordered_map<int, float> m_mDeltaTimes = {}, m_mLagTimes = {};
+>>>>>>> upstream/master
 	std::unordered_map<int, int> m_mChokes = {}, m_mSetTicks = {};
-	std::unordered_map<int, std::pair<bool, matrix3x4[MAXSTUDIOBONES]>> m_mBones = {};
 	std::unordered_map<int, Vec3> m_mOldAngles = {}, m_mEyeAngles = {};
 	std::unordered_map<int, bool> m_mLagCompensation = {};
 	std::unordered_map<int, DormantData> m_mDormancy = {};
@@ -177,15 +187,14 @@ class CEntities
 	std::unordered_map<uint32_t, int> m_mUPriorities = {};
 	std::unordered_map<int, bool> m_mIFriends = {};
 	std::unordered_map<uint32_t, bool> m_mUFriends = {};
-	std::unordered_map<int, uint64_t> m_mIParty = {};
-	std::unordered_map<uint32_t, uint64_t> m_mUParty = {};
+	std::unordered_map<int, int> m_mIParty = {};
+	std::unordered_map<uint32_t, int> m_mUParty = {};
 	std::unordered_map<int, bool> m_mIF2P = {};
 	std::unordered_map<uint32_t, bool> m_mUF2P = {};
 	std::unordered_map<int, int> m_mILevels = {};
 	std::unordered_map<uint32_t, int> m_mULevels = {};
-	uint32_t m_uFriendsID;
-
-	bool m_bSettingUpBones = false;
+	uint32_t m_uAccountID;
+	int m_iPartyCount = 0;
 
 public:
 	void Store();
@@ -199,10 +208,11 @@ public:
 
 	CTFPlayer* GetLocal();
 	CTFWeaponBase* GetWeapon();
-	CTFPlayerResource* GetPR();
+	CTFPlayerResource* GetResource();
 
-	const std::vector<CBaseEntity*>& GetGroup(const EGroupType& Group);
+	const std::vector<CBaseEntity*>& GetGroup(const EntityEnum::EntityEnum iGroup);
 
+<<<<<<< HEAD
 	// Optimized hot-path access methods (use these for performance)
 	const std::vector<CBaseEntity*>& GetPlayersAll() const;
 	const std::vector<CBaseEntity*>& GetPlayersEnemies() const;
@@ -216,12 +226,13 @@ public:
 
 	float GetSimTime(int iIndex);
 	float GetOldSimTime(int iIndex);
+=======
+>>>>>>> upstream/master
 	float GetDeltaTime(int iIndex);
 	float GetLagTime(int iIndex);
 	int GetChoke(int iIndex);
-	matrix3x4* GetBones(int iIndex);
 	Vec3 GetEyeAngles(int iIndex);
-	Vec3 GetPingAngles(int iIndex);
+	Vec3 GetDeltaAngles(int iIndex);
 	bool GetLagCompensation(int iIndex);
 	void SetLagCompensation(int iIndex, bool bLagComp);
 	bool GetDormancy(int iIndex);
@@ -231,19 +242,18 @@ public:
 	std::deque<VelFixRecord>* GetOrigins(int iIndex);
 
 	int GetPriority(int iIndex);
-	int GetPriority(uint32_t uFriendsID);
+	int GetPriority(uint32_t uAccountID);
 	bool IsFriend(int iIndex);
-	bool IsFriend(uint32_t uFriendsID);
+	bool IsFriend(uint32_t uAccountID);
 	bool InParty(int iIndex);
-	bool InParty(uint32_t uFriendsID);
+	bool InParty(uint32_t uAccountID);
 	bool IsF2P(int iIndex);
-	bool IsF2P(uint32_t uFriendsID);
+	bool IsF2P(uint32_t uAccountID);
 	int GetLevel(int iIndex);
-	int GetLevel(uint32_t uFriendsID);
-	uint64_t GetParty(int iIndex);
-	uint64_t GetParty(uint32_t uFriendsID);
-
-	bool IsSettingUpBones();
+	int GetLevel(uint32_t uAccountID);
+	int GetParty(int iIndex);
+	int GetParty(uint32_t uAccountID);
+	int GetPartyCount();
 };
 
 ADD_FEATURE_CUSTOM(CEntities, Entities, H);

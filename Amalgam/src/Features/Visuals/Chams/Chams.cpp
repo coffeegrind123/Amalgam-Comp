@@ -1,65 +1,41 @@
 #include "Chams.h"
 
+#include "../Groups/Groups.h"
 #include "../Materials/Materials.h"
 #include "../FakeAngle/FakeAngle.h"
 #include "../../Backtrack/Backtrack.h"
+<<<<<<< HEAD
 #include "../../Players/PlayerUtils.h"
 #include "../../Simulation/ProjectileSimulation/ProjectileSimulation.h"
 #include "../StickyESP/StickyESP.h"
 #include "../SentryESP/SentryESP.h"
 #include "../StickyCam/StickyCam.h"
 #include "../FocusFire/FocusFire.h"
+=======
+>>>>>>> upstream/master
 
-static inline bool GetPlayerChams(CBaseEntity* pPlayer, CBaseEntity* pEntity, CTFPlayer* pLocal, Chams_t* pChams, bool bEnemy, bool bTeam)
+void CChams::Begin()
 {
-	if (Vars::Chams::Player::Local.Value && pPlayer == pLocal
-		|| Vars::Chams::Player::Priority.Value && F::PlayerUtils.IsPrioritized(pPlayer->entindex())
-		|| Vars::Chams::Player::Friend.Value && H::Entities.IsFriend(pPlayer->entindex())
-		|| Vars::Chams::Player::Party.Value && H::Entities.InParty(pPlayer->entindex())
-		|| Vars::Chams::Player::Target.Value && pEntity->entindex() == G::AimTarget.m_iEntIndex)
-	{
-		*pChams = Chams_t(Vars::Chams::Player::Visible.Value, Vars::Chams::Player::Occluded.Value);
-		return true;
-	}
-
-	if (!Vars::Chams::Relative.Value)
-	{
-		if (pEntity->m_iTeamNum() != pLocal->m_iTeamNum() ? !Vars::Chams::EnemyChams.Value : !Vars::Chams::TeamChams.Value)
-			return false;
-
-		switch (pEntity->m_iTeamNum())
-		{
-		case TF_TEAM_BLUE:
-			*pChams = Chams_t(Vars::Chams::Enemy::Visible.Value, Vars::Chams::Enemy::Occluded.Value);
-			return bEnemy;
-		case TF_TEAM_RED:
-			*pChams = Chams_t(Vars::Chams::Team::Visible.Value, Vars::Chams::Team::Occluded.Value);
-			return bTeam;
-		}
-	}
-	else
-	{
-		if (pEntity->m_iTeamNum() != pLocal->m_iTeamNum())
-		{
-			*pChams = Chams_t(Vars::Chams::Enemy::Visible.Value, Vars::Chams::Enemy::Occluded.Value);
-			return bEnemy;
-		}
-		else
-		{
-			*pChams = Chams_t(Vars::Chams::Team::Visible.Value, Vars::Chams::Team::Occluded.Value);
-			return bTeam;
-		}
-	}
-	return false;
+	m_tOriginalColor = I::RenderView->GetColorModulation();
+	m_flOriginalBlend = I::RenderView->GetBlend();
+	I::ModelRender->GetMaterialOverride(&m_pOriginalMaterial, &m_iOriginalOverride);
+}
+void CChams::End()
+{
+	I::RenderView->SetColorModulation(m_tOriginalColor);
+	I::RenderView->SetBlend(m_flOriginalBlend);
+	I::ModelRender->ForcedMaterialOverride(m_pOriginalMaterial, m_iOriginalOverride);
 }
 
-bool CChams::GetChams(CTFPlayer* pLocal, CBaseEntity* pEntity, Chams_t* pChams)
+void CChams::DrawModel(CBaseEntity* pEntity, Chams_t& tChams, IMatRenderContext* pRenderContext, bool bTwoModels)
 {
-	if (pEntity->IsDormant() || !pEntity->ShouldDraw())
-		return false;
+	const auto& vVisibleMaterials = !tChams.Visible.empty() ? tChams.Visible : std::vector<std::pair<std::string, Color_t>> { { "None", {} } };
+	const auto& vOccludedMaterials = !tChams.Occluded.empty() ? tChams.Occluded : std::vector<std::pair<std::string, Color_t>> { { "None", {} } };
 
-	switch (pEntity->GetClassID())
+	Begin();
+	if (bTwoModels)
 	{
+<<<<<<< HEAD
 	// player chams
 	case ETFClassID::CTFPlayer:
 	{
@@ -293,13 +269,25 @@ void CChams::DrawModel(CBaseEntity* pEntity, Chams_t& tChams, IMatRenderContext*
 	StencilBegin(pRenderContext, !bExtra);
 
 	StencilVisible(pRenderContext, !bExtra);
+=======
+		pRenderContext->SetStencilEnable(true);
+
+		pRenderContext->ClearBuffers(false, false, false);
+		pRenderContext->SetStencilCompareFunction(STENCILCOMPARISONFUNCTION_ALWAYS);
+		pRenderContext->SetStencilPassOperation(STENCILOPERATION_REPLACE);
+		pRenderContext->SetStencilFailOperation(STENCILOPERATION_KEEP);
+		pRenderContext->SetStencilZFailOperation(STENCILOPERATION_KEEP);
+		pRenderContext->SetStencilReferenceValue(1);
+		pRenderContext->SetStencilWriteMask(0xFF);
+		pRenderContext->SetStencilTestMask(0x0);
+	}
+>>>>>>> upstream/master
 	for (auto& [sName, tColor] : vVisibleMaterials)
 	{
 		auto pMaterial = F::Materials.GetMaterial(FNV1A::Hash32(sName.c_str()));
 
 		F::Materials.SetColor(pMaterial, tColor);
 		I::ModelRender->ForcedMaterialOverride(pMaterial ? pMaterial->m_pMaterial : nullptr);
-
 		if (pMaterial && pMaterial->m_bInvertCull)
 			pRenderContext->CullMode(MATERIAL_CULLMODE_CW);
 
@@ -310,16 +298,24 @@ void CChams::DrawModel(CBaseEntity* pEntity, Chams_t& tChams, IMatRenderContext*
 		if (pMaterial && pMaterial->m_bInvertCull)
 			pRenderContext->CullMode(MATERIAL_CULLMODE_CCW);
 	}
-	if (!bExtra)
+	if (bTwoModels)
 	{
-		StencilOccluded(pRenderContext);
+		pRenderContext->ClearBuffers(false, false, false);
+		pRenderContext->SetStencilCompareFunction(STENCILCOMPARISONFUNCTION_EQUAL);
+		pRenderContext->SetStencilPassOperation(STENCILOPERATION_KEEP);
+		pRenderContext->SetStencilFailOperation(STENCILOPERATION_KEEP);
+		pRenderContext->SetStencilZFailOperation(STENCILOPERATION_KEEP);
+		pRenderContext->SetStencilReferenceValue(0);
+		pRenderContext->SetStencilWriteMask(0x0);
+		pRenderContext->SetStencilTestMask(0xFF);
+		pRenderContext->DepthRange(0.f, 0.2f);
+
 		for (auto& [sName, tColor] : vOccludedMaterials)
 		{
 			auto pMaterial = F::Materials.GetMaterial(FNV1A::Hash32(sName.c_str()));
 
 			F::Materials.SetColor(pMaterial, tColor);
 			I::ModelRender->ForcedMaterialOverride(pMaterial ? pMaterial->m_pMaterial : nullptr);
-
 			if (pMaterial && pMaterial->m_bInvertCull)
 				pRenderContext->CullMode(MATERIAL_CULLMODE_CW);
 
@@ -330,15 +326,13 @@ void CChams::DrawModel(CBaseEntity* pEntity, Chams_t& tChams, IMatRenderContext*
 			if (pMaterial && pMaterial->m_bInvertCull)
 				pRenderContext->CullMode(MATERIAL_CULLMODE_CCW);
 		}
+
+		pRenderContext->SetStencilEnable(false);
+		pRenderContext->DepthRange(0.f, 1.f);
+
+		m_mEntities[pEntity->entindex()];
 	}
-
-	StencilEnd(pRenderContext, !bExtra);
-	I::RenderView->SetColorModulation(1.f, 1.f, 1.f);
-	I::RenderView->SetBlend(1.f);
-	I::ModelRender->ForcedMaterialOverride(nullptr);
-
-	if (!bExtra)
-		m_mEntities[pEntity->entindex()] = true;
+	End();
 }
 
 
@@ -346,55 +340,41 @@ void CChams::DrawModel(CBaseEntity* pEntity, Chams_t& tChams, IMatRenderContext*
 void CChams::Store(CTFPlayer* pLocal)
 {
 	m_vEntities.clear();
-	if (!pLocal)
+	if (!pLocal || !F::Groups.GroupsActive())
 		return;
 
-	for (int n = 1; n <= I::ClientEntityList->GetHighestEntityIndex(); n++)
+	for (auto& [pEntity, pGroup] : F::Groups.GetGroup())
 	{
-		auto pEntity = I::ClientEntityList->GetClientEntity(n)->As<CBaseEntity>();
-		if (!pEntity)
+		if (pEntity->IsDormant() || !pEntity->ShouldDraw())
 			continue;
 
-		Chams_t tChams = {};
-		if (GetChams(pLocal, pEntity, &tChams)
-			&& SDK::IsOnScreen(pEntity, !pEntity->IsProjectile() /*&& pEntity->GetClassID() != ETFClassID::CTFMedigunShield*/))
-			m_vEntities.emplace_back(pEntity, tChams);
+		if (pGroup->m_tChams()
+			&& SDK::IsOnScreen(pEntity, pEntity->IsBaseCombatWeapon() || pEntity->IsWearable()))
+			m_vEntities.emplace_back(pEntity, pGroup->m_tChams);
 
-		if (pEntity->IsPlayer() && !pEntity->IsDormant())
-		{
-			// backtrack
-			if (Vars::Chams::Backtrack::Enabled.Value && pEntity != pLocal
-				&& (F::Backtrack.GetFakeLatency() || F::Backtrack.GetFakeInterp() > G::Lerp || F::Backtrack.GetWindow()))
+		if (pEntity->IsPlayer() && pEntity != pLocal && pGroup->m_iBacktrack & BacktrackEnum::Enabled && !pGroup->m_vBacktrackChams.empty()
+			&& (F::Backtrack.GetFakeLatency() || F::Backtrack.GetFakeInterp() > G::Lerp || F::Backtrack.GetWindow()))
+		{	// backtrack
+			auto pWeapon = H::Entities.GetWeapon();
+			if (pWeapon && (pGroup->m_iBacktrack & BacktrackEnum::Always || G::PrimaryWeaponType != EWeaponType::PROJECTILE))
 			{
-				auto pWeapon = H::Entities.GetWeapon();
-				if (pWeapon && (G::PrimaryWeaponType != EWeaponType::PROJECTILE || Vars::Chams::Backtrack::Draw.Value & Vars::Chams::Backtrack::DrawEnum::Always))
-				{
-					bool bShowFriendly = false, bShowEnemy = true;
-					if (!(Vars::Chams::Backtrack::Draw.Value & Vars::Chams::Backtrack::DrawEnum::IgnoreTeam))
-					{
-						if (G::PrimaryWeaponType == EWeaponType::MELEE && SDK::AttribHookValue(0, "speed_buff_ally", pWeapon) > 0)
-							bShowFriendly = true;
-						else if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
-							bShowFriendly = true, bShowEnemy = false;
-					}
-					else if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
-							bShowEnemy = false;
+				bool bShowFriendly = false, bShowEnemy = true;
+				if (G::PrimaryWeaponType == EWeaponType::MELEE && SDK::AttribHookValue(0, "speed_buff_ally", pWeapon) > 0)
+					bShowFriendly = true;
+				else if (pWeapon->GetWeaponID() == TF_WEAPON_MEDIGUN)
+					bShowFriendly = true, bShowEnemy = false;
 
-					if (bShowEnemy && pEntity->m_iTeamNum() != pLocal->m_iTeamNum() || bShowFriendly && pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
-					{
-						tChams = Chams_t(Vars::Chams::Backtrack::Visible.Value, {});
-						m_vEntities.emplace_back(pEntity, tChams, true);
-					}
-				}
-			}
-
-			// fakeangle
-			if (Vars::Chams::FakeAngle::Enabled.Value && pEntity == pLocal && F::FakeAngle.bDrawChams && F::FakeAngle.bBonesSetup)
-			{
-				tChams = Chams_t(Vars::Chams::FakeAngle::Visible.Value, {});
-				m_vEntities.emplace_back(pEntity, tChams, true);
+				if (bShowEnemy && pEntity->m_iTeamNum() != pLocal->m_iTeamNum() || bShowFriendly && pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
+					m_vEntities.emplace_back(pEntity, Chams_t(pGroup->m_vBacktrackChams, {}), pGroup->m_iBacktrack);
 			}
 		}
+	}
+
+	Group_t* pGroup = nullptr;
+	if (F::FakeAngle.bDrawChams && F::FakeAngle.bBonesSetup
+		&& F::Groups.GetGroup(TargetsEnum::FakeAngle, pGroup) && pGroup->m_tChams(true))
+	{	// fakeangle
+		m_vEntities.emplace_back(pLocal, pGroup->m_tChams, 1);
 	}
 }
 
@@ -406,48 +386,32 @@ void CChams::RenderMain()
 
 	for (auto& tInfo : m_vEntities)
 	{
-		if (!tInfo.m_bExtra)
-			DrawModel(tInfo.m_pEntity, tInfo.m_tChams, pRenderContext, tInfo.m_bExtra);
+		if (!tInfo.m_iFlags)
+			DrawModel(tInfo.m_pEntity, tInfo.m_tChams, pRenderContext);
 		else
 		{
-			m_bExtra = true;
+			m_iFlags = tInfo.m_iFlags;
 
-			//auto pPlayer = tInfo.m_pEntity->As<CTFPlayer>();
-			//const float flOldInvisibility = pPlayer->m_flInvisibility();
-			//pPlayer->m_flInvisibility() = 0.f;
-			DrawModel(tInfo.m_pEntity, tInfo.m_tChams, pRenderContext, true);
-			//pPlayer->m_flInvisibility() = flOldInvisibility;
+			auto pPlayer = tInfo.m_pEntity->As<CTFPlayer>();
+			const float flOldInvisibility = pPlayer->m_flInvisibility();
+			pPlayer->m_flInvisibility() = 0.f;
+			DrawModel(tInfo.m_pEntity, tInfo.m_tChams, pRenderContext, false);
+			pPlayer->m_flInvisibility() = flOldInvisibility;
 
-			m_bExtra = false;
+			m_iFlags = false;
 		}
 	}
 }
 
 void CChams::RenderBacktrack(const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo)
 {
-	static auto ModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
 	auto pRenderContext = I::MaterialSystem->GetRenderContext();
-	if (!ModelRender_DrawModelExecute || !pRenderContext)
+	if (!pRenderContext)
 		return;
 
 	auto pEntity = I::ClientEntityList->GetClientEntity(pInfo.entity_index)->As<CTFPlayer>();
 	if (!pEntity || !pEntity->IsPlayer())
 		return;
-
-
-
-	pRenderContext->DepthRange(0.f, Vars::Chams::Backtrack::IgnoreZ.Value ? 0.2f : 1.f);
-
-	auto drawModel = [&](Vec3& vOrigin, const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo, matrix3x4* pBoneToWorld, float flBlend)
-		{
-			if (!SDK::IsOnScreen(pEntity, vOrigin))
-				return;
-
-			float flOriginalBlend = I::RenderView->GetBlend();
-			I::RenderView->SetBlend(flBlend * flOriginalBlend);
-			ModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, pBoneToWorld);
-			I::RenderView->SetBlend(flOriginalBlend);
-		};
 
 	std::vector<TickRecord*> vRecords = {};
 	if (!F::Backtrack.GetRecords(pEntity, vRecords))
@@ -456,15 +420,28 @@ void CChams::RenderBacktrack(const DrawModelState_t& pState, const ModelRenderIn
 	if (!vRecords.size())
 		return;
 
-	bool bDrawLast = Vars::Chams::Backtrack::Draw.Value & Vars::Chams::Backtrack::DrawEnum::Last;
-	bool bDrawFirst = Vars::Chams::Backtrack::Draw.Value & Vars::Chams::Backtrack::DrawEnum::First;
+	bool bDrawLast = m_iFlags & BacktrackEnum::Last;
+	bool bDrawFirst = m_iFlags & BacktrackEnum::First;
 
+	pRenderContext->DepthRange(0.f, m_iFlags & BacktrackEnum::IgnoreZ ? 0.2f : 1.f);
+
+	auto drawModel = [&](Vec3& vOrigin, const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo, matrix3x4* pBoneToWorld, float flBlend)
+		{
+			if (!SDK::IsOnScreen(pEntity, vOrigin))
+				return;
+
+			float flOriginalBlend = I::RenderView->GetBlend();
+			I::RenderView->SetBlend(flBlend * flOriginalBlend);
+			static auto IVModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
+			IVModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, pBoneToWorld);
+			I::RenderView->SetBlend(flOriginalBlend);
+		};
 	if (!bDrawLast && !bDrawFirst)
 	{
 		for (auto pRecord : vRecords)
 		{
 			if (float flBlend = Math::RemapVal(pEntity->GetAbsOrigin().DistTo(pRecord->m_vOrigin), 1.f, 24.f, 0.f, 1.f))
-				drawModel(pRecord->m_vOrigin, pState, pInfo, pRecord->m_BoneMatrix.m_aBones, flBlend);
+				drawModel(pRecord->m_vOrigin, pState, pInfo, pRecord->m_aBones, flBlend);
 		}
 	}
 	else
@@ -473,13 +450,13 @@ void CChams::RenderBacktrack(const DrawModelState_t& pState, const ModelRenderIn
 		{
 			auto pRecord = vRecords.back();
 			if (float flBlend = Math::RemapVal(pEntity->GetAbsOrigin().DistTo(pRecord->m_vOrigin), 1.f, 24.f, 0.f, 1.f))
-				drawModel(pRecord->m_vOrigin, pState, pInfo, pRecord->m_BoneMatrix.m_aBones, flBlend);
+				drawModel(pRecord->m_vOrigin, pState, pInfo, pRecord->m_aBones, flBlend);
 		}
 		if (bDrawFirst)
 		{
 			auto pRecord = vRecords.front();
 			if (float flBlend = Math::RemapVal(pEntity->GetAbsOrigin().DistTo(pRecord->m_vOrigin), 1.f, 24.f, 0.f, 1.f))
-				drawModel(pRecord->m_vOrigin, pState, pInfo, pRecord->m_BoneMatrix.m_aBones, flBlend);
+				drawModel(pRecord->m_vOrigin, pState, pInfo, pRecord->m_aBones, flBlend);
 		}
 	}
 
@@ -487,26 +464,23 @@ void CChams::RenderBacktrack(const DrawModelState_t& pState, const ModelRenderIn
 }
 void CChams::RenderFakeAngle(const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo)
 {
-	static auto ModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
-	auto pRenderContext = I::MaterialSystem->GetRenderContext();
-	if (!ModelRender_DrawModelExecute || !pRenderContext)
-		return;
+	//auto pRenderContext = I::MaterialSystem->GetRenderContext();
+	//if (!pRenderContext)
+	//	return;
 
+	//pRenderContext->DepthRange(0.f, Vars::Chams::FakeAngle::IgnoreZ.Value ? 0.2f : 1.f);
 
+	static auto IVModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
+	IVModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, F::FakeAngle.aBones);
 
-	pRenderContext->DepthRange(0.f, Vars::Chams::FakeAngle::IgnoreZ.Value ? 0.2f : 1.f);
-
-	ModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, F::FakeAngle.aBones);
-
-	pRenderContext->DepthRange(0.f, 1.f);
+	//pRenderContext->DepthRange(0.f, 1.f);
 }
 void CChams::RenderHandler(const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo, matrix3x4* pBoneToWorld)
 {
-	if (!m_bExtra)
+	if (!m_iFlags)
 	{
-		static auto ModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
-		if (ModelRender_DrawModelExecute)
-			ModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, pBoneToWorld);
+		static auto IVModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
+		IVModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, pBoneToWorld);
 	}
 	else
 	{
@@ -519,19 +493,19 @@ void CChams::RenderHandler(const DrawModelState_t& pState, const ModelRenderInfo
 
 bool CChams::RenderViewmodel(void* ecx, int flags, int* iReturn)
 {
-	if (!Vars::Chams::Viewmodel::Weapon.Value)
+	if (!F::Groups.GroupsActive())
 		return false;
 
-	static auto CBaseAnimating_InternalDrawModel = U::Hooks.m_mHooks["CBaseAnimating_InternalDrawModel"];
 	auto pRenderContext = I::MaterialSystem->GetRenderContext();
-	if (!CBaseAnimating_InternalDrawModel || !pRenderContext)
+	if (!pRenderContext)
 		return false;
 
+	Group_t* pGroup = nullptr;
+	if (!F::Groups.GetGroup(TargetsEnum::ViewmodelWeapon, pGroup) || !pGroup->m_tChams(true))
+		return false;
 
-
-	auto& vMaterials = Vars::Chams::Viewmodel::WeaponMaterial.Value;
-
-	for (auto& [sName, tColor] : vMaterials)
+	Begin();
+	for (auto& [sName, tColor] : pGroup->m_tChams.Visible)
 	{
 		auto pMaterial = F::Materials.GetMaterial(FNV1A::Hash32(sName.c_str()));
 
@@ -541,33 +515,31 @@ bool CChams::RenderViewmodel(void* ecx, int flags, int* iReturn)
 		if (pMaterial && pMaterial->m_bInvertCull)
 			pRenderContext->CullMode(G::FlipViewmodels ? MATERIAL_CULLMODE_CCW : MATERIAL_CULLMODE_CW);
 
+		static auto CBaseAnimating_InternalDrawModel = U::Hooks.m_mHooks["CBaseAnimating_InternalDrawModel"];
 		*iReturn = CBaseAnimating_InternalDrawModel->Call<int>(ecx, flags);
 
 		if (pMaterial && pMaterial->m_bInvertCull)
 			pRenderContext->CullMode(G::FlipViewmodels ? MATERIAL_CULLMODE_CW : MATERIAL_CULLMODE_CCW);
 	}
-
-	I::RenderView->SetColorModulation(1.f, 1.f, 1.f);
-	I::RenderView->SetBlend(1.f);
-	I::ModelRender->ForcedMaterialOverride(nullptr);
+	End();
 
 	return true;
 }
 bool CChams::RenderViewmodel(const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo, matrix3x4* pBoneToWorld)
 {
-	if (!Vars::Chams::Viewmodel::Hands.Value)
+	if (!F::Groups.GroupsActive())
 		return false;
 
-	static auto ModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
 	auto pRenderContext = I::MaterialSystem->GetRenderContext();
-	if (!ModelRender_DrawModelExecute || !pRenderContext)
+	if (!pRenderContext)
 		return false;
 
+	Group_t* pGroup = nullptr;
+	if (!F::Groups.GetGroup(TargetsEnum::ViewmodelHands, pGroup) || !pGroup->m_tChams(true))
+		return false;
 
-
-	auto& vMaterials = Vars::Chams::Viewmodel::HandsMaterial.Value;
-
-	for (auto& [sName, tColor] : vMaterials)
+	Begin();
+	for (auto& [sName, tColor] : pGroup->m_tChams.Visible)
 	{
 		auto pMaterial = F::Materials.GetMaterial(FNV1A::Hash32(sName.c_str()));
 
@@ -577,15 +549,13 @@ bool CChams::RenderViewmodel(const DrawModelState_t& pState, const ModelRenderIn
 		if (pMaterial && pMaterial->m_bInvertCull)
 			pRenderContext->CullMode(G::FlipViewmodels ? MATERIAL_CULLMODE_CCW : MATERIAL_CULLMODE_CW);
 
-		ModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, pBoneToWorld);
+		static auto IVModelRender_DrawModelExecute = U::Hooks.m_mHooks["IVModelRender_DrawModelExecute"];
+		IVModelRender_DrawModelExecute->Call<void>(I::ModelRender, pState, pInfo, pBoneToWorld);
 
 		if (pMaterial && pMaterial->m_bInvertCull)
 			pRenderContext->CullMode(G::FlipViewmodels ? MATERIAL_CULLMODE_CW : MATERIAL_CULLMODE_CCW);
 	}
-
-	I::RenderView->SetColorModulation(1.f, 1.f, 1.f);
-	I::RenderView->SetBlend(1.f);
-	I::ModelRender->ForcedMaterialOverride(nullptr);
+	End();
 
 	return true;
 }

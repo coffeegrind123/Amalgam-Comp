@@ -1,8 +1,8 @@
 #include "SDK.h"
 
-#include "../Features/EnginePrediction/EnginePrediction.h"
 #include "../Features/Visuals/Notifications/Notifications.h"
 #include "../Features/ImGui/Menu/Menu.h"
+#include "../Features/EnginePrediction/EnginePrediction.h"
 #include <random>
 
 #pragma warning (disable : 6385)
@@ -11,64 +11,72 @@ MAKE_SIGNATURE(CAttributeManager_AttribHookFloat, "client.dll", "4C 8B DC 49 89 
 
 static BOOL CALLBACK TeamFortressWindow(HWND hWindow, LPARAM lParam)
 {
-	char windowTitle[1024];
-	GetWindowTextA(hWindow, windowTitle, sizeof(windowTitle));
-	switch (FNV1A::Hash32(windowTitle))
+	DWORD iProcess1 = GetCurrentProcessId();
+	DWORD iProcess2; GetWindowThreadProcessId(hWindow, &iProcess2);
+	if (iProcess1 != iProcess2)
+		return TRUE;
+
+	char sWindowTitle[64];
+	GetWindowText(hWindow, sWindowTitle, sizeof(sWindowTitle));
+	switch (FNV1A::Hash32(sWindowTitle))
 	{
 	case FNV1A::Hash32Const("Team Fortress 2 - Direct3D 9 - 64 Bit"):
 	case FNV1A::Hash32Const("Team Fortress 2 - Vulkan - 64 Bit"):
-		*reinterpret_cast<HWND*>(lParam) = hWindow;
+		break;
+	default:
+		return TRUE;
 	}
 
-	return TRUE;
+	*reinterpret_cast<HWND*>(lParam) = hWindow;
+	return FALSE;
 }
 
 
 
-void SDK::Output(const char* cFunction, const char* cLog, Color_t tColor,
-	bool bConsole, bool bDebug, bool bToast, bool bMenu, bool bChat, bool bParty, int iMessageBox,
+void SDK::Output(const char* sFunction, const char* sLog, Color_t tColor,
+	int iTo, int iMessageBox,
 	const char* sLeft, const char* sRight)
 {
-	if (cLog)
+	if (sLog)
 	{
-		if (bConsole)
+		if (iTo & OUTPUT_CONSOLE)
 		{
-			I::CVar->ConsoleColorPrintf(tColor, "%s%s%s ", sLeft, cFunction, sRight);
-			I::CVar->ConsoleColorPrintf({}, "%s\n", cLog);
+			I::CVar->ConsoleColorPrintf(tColor, "%s%s%s ", sLeft, sFunction, sRight);
+			I::CVar->ConsoleColorPrintf({}, "%s\n", sLog);
 		}
-		if (bDebug)
-			OutputDebugString(std::format("{}{}{} {}\n", sLeft, cFunction, sRight, cLog).c_str());
-		if (bToast)
-			F::Notifications.Add(cLog, Vars::Logging::Lifetime.Value, 0.2f, tColor);
-		if (bMenu)
-			F::Menu.AddOutput(std::format("{}{}{}", sLeft, cFunction, sRight).c_str(), cLog, tColor);
-		if (bChat)
-			I::ClientModeShared->m_pChatElement->ChatPrintf(0, std::format("{}{}{}{}\x1 {}", tColor.ToHex(), sLeft, cFunction, sRight, cLog).c_str());
-		if (bParty)
-			I::TFPartyClient->SendPartyChat(cLog);
+		if (iTo & OUTPUT_DEBUG)
+			OutputDebugString(std::format("{}{}{} {}\n", sLeft, sFunction, sRight, sLog).c_str());
+		if (iTo & OUTPUT_TOAST)
+			F::Notifications.Add(sLog, tColor);
+		if (iTo & OUTPUT_MENU)
+			F::Menu.AddOutput(std::format("{}{}{}", sLeft, sFunction, sRight).c_str(), sLog, tColor);
+		if (iTo & OUTPUT_CHAT)
+			I::ClientModeShared->m_pChatElement->ChatPrintf(0, std::format("{}{}{}{}\x1 {}", tColor.ToHex(), sLeft, sFunction, sRight, sLog).c_str());
+		if (iTo & OUTPUT_PARTY)
+			I::TFPartyClient->SendPartyChat(sLog);
 		if (iMessageBox != -1)
-			MessageBox(nullptr, cLog, cFunction, iMessageBox);
+			MessageBox(nullptr, sLog, sFunction, iMessageBox);
 	}
 	else
 	{
-		if (bConsole)
-			I::CVar->ConsoleColorPrintf(tColor, "%s\n", cFunction);
-		if (bDebug)
-			OutputDebugString(std::format("{}\n", cFunction).c_str());
-		if (bToast)
-			F::Notifications.Add(cFunction, Vars::Logging::Lifetime.Value, 0.2f, tColor);
-		if (bMenu)
-			F::Menu.AddOutput("", cFunction, tColor);
-		if (bChat)
-			I::ClientModeShared->m_pChatElement->ChatPrintf(0, std::format("{}{}\x1", tColor.ToHex(), cFunction).c_str());
-		if (bParty)
-			I::TFPartyClient->SendPartyChat(cFunction);
+		if (iTo & OUTPUT_CONSOLE)
+			I::CVar->ConsoleColorPrintf(tColor, "%s\n", sFunction);
+		if (iTo & OUTPUT_DEBUG)
+			OutputDebugString(std::format("{}\n", sFunction).c_str());
+		if (iTo & OUTPUT_TOAST)
+			F::Notifications.Add(sFunction, tColor);
+		if (iTo & OUTPUT_MENU)
+			F::Menu.AddOutput("", sFunction, tColor);
+		if (iTo & OUTPUT_CHAT)
+			I::ClientModeShared->m_pChatElement->ChatPrintf(0, std::format("{}{}\x1", tColor.ToHex(), sFunction).c_str());
+		if (iTo & OUTPUT_PARTY)
+			I::TFPartyClient->SendPartyChat(sFunction);
 		if (iMessageBox != -1)
-			MessageBox(nullptr, "", cFunction, iMessageBox);
+			MessageBox(nullptr, "", sFunction, iMessageBox);
 	}
 }
 
-void SDK::SetClipboard(std::string sString)
+void SDK::SetClipboard(const std::string& sString)
 {
 	if (OpenClipboard(nullptr))
 	{
@@ -103,6 +111,7 @@ std::string SDK::GetClipboard()
 }
 
 std::string SDK::GetDate()
+<<<<<<< HEAD
 {
 	time_t tTime = time(nullptr);
 	tm timeinfo;
@@ -123,17 +132,21 @@ std::string SDK::GetTime()
 }
 
 HWND SDK::GetTeamFortressWindow()
+=======
+>>>>>>> upstream/master
 {
-	static HWND hWindow = nullptr;
-	if (!hWindow)
-		EnumWindows(TeamFortressWindow, reinterpret_cast<LPARAM>(&hWindow));
-	return hWindow;
+	time_t tTime = time(nullptr);
+	tm timeinfo; localtime_s(&timeinfo, &tTime);
+	char buffer[16]; strftime(buffer, sizeof(buffer), "%b %e %Y", &timeinfo);
+	return buffer;
 }
 
-bool SDK::IsGameWindowInFocus()
+std::string SDK::GetTime()
 {
-	HWND hWindow = GetTeamFortressWindow();
-	return hWindow == GetForegroundWindow() || !hWindow;
+	time_t tTime = time(nullptr);
+	tm timeinfo; localtime_s(&timeinfo, &tTime);
+	char buffer[16]; strftime(buffer, sizeof(buffer), "%T", &timeinfo);
+	return buffer;
 }
 
 std::wstring SDK::ConvertUtf8ToWide(const std::string& source)
@@ -150,6 +163,20 @@ std::string SDK::ConvertWideToUTF8(const std::wstring& source)
 	std::string result(size, 0);
 	WideCharToMultiByte(CP_UTF8, 0, source.data(), -1, result.data(), size, nullptr, nullptr);
 	return result;
+}
+
+HWND SDK::GetTeamFortressWindow()
+{
+	static HWND hWindow = nullptr;
+	if (!hWindow)
+		EnumWindows(TeamFortressWindow, reinterpret_cast<LPARAM>(&hWindow));
+	return hWindow;
+}
+
+bool SDK::IsGameWindowInFocus()
+{
+	HWND hWindow = GetTeamFortressWindow();
+	return hWindow == GetForegroundWindow() || !hWindow;
 }
 
 double SDK::PlatFloatTime()
@@ -230,11 +257,9 @@ bool SDK::W2S(const Vec3& vOrigin, Vec3& vScreen, bool bAlways)
 
 bool SDK::IsOnScreen(CBaseEntity* pEntity, const matrix3x4& mTransform, float* pLeft, float* pRight, float* pTop, float* pBottom, bool bAll)
 {
-	Vec3 vMins = pEntity->m_vecMins(), vMaxs = pEntity->m_vecMaxs();
-
-	bool bInit = false;
 	float flLeft = 0.f, flRight = 0.f, flTop = 0.f, flBottom = 0.f;
 
+	Vec3 vMins = pEntity->m_vecMins(), vMaxs = pEntity->m_vecMaxs();
 	const Vec3 vPoints[] = {
 		Vec3(0.f, 0.f, vMins.z),
 		Vec3(0.f, 0.f, vMaxs.z),
@@ -243,25 +268,35 @@ bool SDK::IsOnScreen(CBaseEntity* pEntity, const matrix3x4& mTransform, float* p
 		Vec3(vMaxs.x, vMins.y, (vMins.z + vMaxs.z) * 0.5f),
 		Vec3(vMaxs.x, vMaxs.y, (vMins.z + vMaxs.z) * 0.5f)
 	};
+
+	bool bInit = false;
 	for (int n = 0; n < 6; n++)
 	{
 		Vec3 vPoint; Math::VectorTransform(vPoints[n], mTransform, vPoint);
 
+<<<<<<< HEAD
 		Vec3 vScreenPos;
 		if (!W2S(vPoint, vScreenPos))
 		{
 			if (!bAll)
 				continue;
 			return false;
+=======
+		Vec3 vScreen;
+		if (!W2S(vPoint, vScreen))
+		{
+			if (bAll)
+				return false;
+			continue;
+>>>>>>> upstream/master
 		}
 
-		flLeft = bInit ? std::min(flLeft, vScreenPos.x) : vScreenPos.x;
-		flRight = bInit ? std::max(flRight, vScreenPos.x) : vScreenPos.x;
-		flTop = bInit ? std::max(flTop, vScreenPos.y) : vScreenPos.y;
-		flBottom = bInit ? std::min(flBottom, vScreenPos.y) : vScreenPos.y;
+		flLeft = bInit ? std::min(flLeft, vScreen.x) : vScreen.x;
+		flRight = bInit ? std::max(flRight, vScreen.x) : vScreen.x;
+		flTop = bInit ? std::max(flTop, vScreen.y) : vScreen.y;
+		flBottom = bInit ? std::min(flBottom, vScreen.y) : vScreen.y;
 		bInit = true;
 	}
-
 	if (!bInit)
 		return false;
 
@@ -273,13 +308,15 @@ bool SDK::IsOnScreen(CBaseEntity* pEntity, const matrix3x4& mTransform, float* p
 	return !(flRight < 0 || flLeft > H::Draw.m_nScreenW || flTop < 0 || flBottom > H::Draw.m_nScreenH);
 }
 
+<<<<<<< HEAD
 bool SDK::IsOnScreen(CBaseEntity* pEntity, Vec3 vOrigin, bool bAll)
+=======
+bool SDK::IsOnScreen(CBaseEntity* pEntity, const Vec3& vOrigin, bool bAll)
+>>>>>>> upstream/master
 {
-	Vec3 vMins = pEntity->m_vecMins(), vMaxs = pEntity->m_vecMaxs();
-
-	bool bInit = false;
 	float flLeft = 0.f, flRight = 0.f, flTop = 0.f, flBottom = 0.f;
 
+	Vec3 vMins = pEntity->m_vecMins(), vMaxs = pEntity->m_vecMaxs();
 	const Vec3 vPoints[] = {
 		Vec3(0.f, 0.f, vMins.z),
 		Vec3(0.f, 0.f, vMaxs.z),
@@ -288,25 +325,35 @@ bool SDK::IsOnScreen(CBaseEntity* pEntity, Vec3 vOrigin, bool bAll)
 		Vec3(vMaxs.x, vMins.y, (vMins.z + vMaxs.z) * 0.5f),
 		Vec3(vMaxs.x, vMaxs.y, (vMins.z + vMaxs.z) * 0.5f)
 	};
+
+	bool bInit = false;
 	for (int n = 0; n < 6; n++)
 	{
 		Vec3 vPoint = vOrigin + vPoints[n];
 
+<<<<<<< HEAD
 		Vec3 vScreenPos;
 		if (!W2S(vPoint, vScreenPos))
 		{
 			if (!bAll)
 				continue;
 			return false;
+=======
+		Vec3 vScreen;
+		if (!W2S(vPoint, vScreen))
+		{
+			if (bAll)
+				return false;
+			continue;
+>>>>>>> upstream/master
 		}
 
-		flLeft = bInit ? std::min(flLeft, vScreenPos.x) : vScreenPos.x;
-		flRight = bInit ? std::max(flRight, vScreenPos.x) : vScreenPos.x;
-		flTop = bInit ? std::max(flTop, vScreenPos.y) : vScreenPos.y;
-		flBottom = bInit ? std::min(flBottom, vScreenPos.y) : vScreenPos.y;
+		flLeft = bInit ? std::min(flLeft, vScreen.x) : vScreen.x;
+		flRight = bInit ? std::max(flRight, vScreen.x) : vScreen.x;
+		flTop = bInit ? std::max(flTop, vScreen.y) : vScreen.y;
+		flBottom = bInit ? std::min(flBottom, vScreen.y) : vScreen.y;
 		bInit = true;
 	}
-
 	if (!bInit)
 		return false;
 
@@ -324,32 +371,32 @@ bool SDK::IsOnScreen(CBaseEntity* pEntity, bool bShouldGetOwner)
 	return IsOnScreen(pEntity, pEntity->entindex() == I::EngineClient->GetLocalPlayer() && !I::EngineClient->IsPlayingDemo() ? F::EnginePrediction.m_vOrigin : pEntity->GetAbsOrigin());
 }
 
-void SDK::Trace(const Vec3& vecStart, const Vec3& vecEnd, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
+void SDK::Trace(const Vec3& vStart, const Vec3& vEnd, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
 {
 	Ray_t ray;
-	ray.Init(vecStart, vecEnd);
+	ray.Init(vStart, vEnd);
 	I::EngineTrace->TraceRay(ray, nMask, pFilter, pTrace);
 
 #ifdef DEBUG_TRACES
 	if (Vars::Debug::VisualizeTraces.Value)
-		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vecStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vecEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
 #endif
 }
 
-void SDK::TraceHull(const Vec3& vecStart, const Vec3& vecEnd, const Vec3& vecHullMin, const Vec3& vecHullMax, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
+void SDK::TraceHull(const Vec3& vStart, const Vec3& vEnd, const Vec3& vHullMin, const Vec3& vHullMax, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace)
 {
 	Ray_t ray;
-	ray.Init(vecStart, vecEnd, vecHullMin, vecHullMax);
+	ray.Init(vStart, vEnd, vHullMin, vHullMax);
 	I::EngineTrace->TraceRay(ray, nMask, pFilter, pTrace);
 
 #ifdef DEBUG_TRACES
 	if (Vars::Debug::VisualizeTraces.Value)
 	{
-		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vecStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vecEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
-		if (!(vecHullMax - vecHullMin).IsZero())
+		G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(vStart, Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vEnd), I::GlobalVars->curtime + 0.015f, Color_t(), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+		if (!(vHullMax - vHullMin).IsZero())
 		{
-			G::BoxStorage.emplace_back(vecStart, vecHullMin, vecHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
-			G::BoxStorage.emplace_back(Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vecEnd, vecHullMin, vecHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+			G::BoxStorage.emplace_back(vStart, vHullMin, vHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
+			G::BoxStorage.emplace_back(Vars::Debug::VisualizeTraceHits.Value ? pTrace->endpos : vEnd, vHullMin, vHullMax, Vec3(), I::GlobalVars->curtime + 0.015f, Color_t(), Color_t(0, 0, 0, 0), bool(GetAsyncKeyState(VK_MENU) & 0x8000));
 		}
 	}
 #endif
@@ -358,7 +405,8 @@ void SDK::TraceHull(const Vec3& vecStart, const Vec3& vecEnd, const Vec3& vecHul
 bool SDK::VisPos(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFrom, const Vec3& vTo, unsigned int nMask)
 {
 	CGameTrace trace = {};
-	CTraceFilterHitscan filter = {}; filter.pSkip = pSkip;
+	CTraceFilterHitscan filter = {};
+	filter.pSkip = pSkip;
 	Trace(vFrom, vTo, nMask, &filter, &trace);
 	if (trace.DidHit())
 		return trace.m_pEnt && trace.m_pEnt == pEntity;
@@ -367,7 +415,9 @@ bool SDK::VisPos(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFr
 bool SDK::VisPosCollideable(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFrom, const Vec3& vTo, unsigned int nMask)
 {
 	CGameTrace trace = {};
-	CTraceFilterCollideable filter = {}; filter.pSkip = pSkip; filter.iType = SKIP_CHECK;
+	CTraceFilterCollideable filter = {};
+	filter.pSkip = pSkip;
+	filter.iType = SKIP_CHECK;
 	Trace(vFrom, vTo, nMask, &filter, &trace);
 	if (trace.DidHit())
 		return trace.m_pEnt && trace.m_pEnt == pEntity;
@@ -376,14 +426,15 @@ bool SDK::VisPosCollideable(CBaseEntity* pSkip, const CBaseEntity* pEntity, cons
 bool SDK::VisPosWorld(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFrom, const Vec3& vTo, unsigned int nMask)
 {
 	CGameTrace trace = {};
-	CTraceFilterWorldAndPropsOnly filter = {}; filter.pSkip = pSkip;
+	CTraceFilterWorldAndPropsOnly filter = {};
+	filter.pSkip = pSkip;
 	Trace(vFrom, vTo, nMask, &filter, &trace);
 	if (trace.DidHit())
 		return trace.m_pEnt && trace.m_pEnt == pEntity;
 	return true;
 }
 
-Vec3 SDK::PredictOrigin(Vec3& vOrigin, Vec3 vVelocity, float flLatency, bool bTrace, Vec3 vMins, Vec3 vMaxs, unsigned int nMask, float flNormal)
+Vec3 SDK::PredictOrigin(const Vec3& vOrigin, const Vec3& vVelocity, float flLatency, bool bTrace, const Vec3& vMins, const Vec3& vMaxs, unsigned int nMask, float flNormal)
 {
 	if (vVelocity.IsZero() || !flLatency)
 		return vOrigin;
@@ -399,7 +450,7 @@ Vec3 SDK::PredictOrigin(Vec3& vOrigin, Vec3 vVelocity, float flLatency, bool bTr
 	return trace.endpos + (flNormal ? trace.plane.normal * flNormal : Vec3());
 }
 
-bool SDK::PredictOrigin(Vec3& vOut, Vec3& vOrigin, Vec3 vVelocity, float flLatency, bool bTrace, Vec3 vMins, Vec3 vMaxs, unsigned int nMask, float flNormal)
+bool SDK::PredictOrigin(Vec3& vOut, const Vec3& vOrigin, const Vec3& vVelocity, float flLatency, bool bTrace, const Vec3& vMins, const Vec3& vMaxs, unsigned int nMask, float flNormal)
 {
 	vOut = vOrigin;
 	if (vVelocity.IsZero() || !flLatency)
@@ -627,7 +678,12 @@ int SDK::IsAttacking(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, const CUserCmd* 
 		Vec3 vForward; Math::AngleVectors(vAngle, &vForward);
 
 		CGameTrace trace = {};
+<<<<<<< HEAD
 		CTraceFilterHitscan filter = {}; filter.pSkip = pLocal;
+=======
+		CTraceFilterHitscan filter = {};
+		filter.pSkip = pLocal;
+>>>>>>> upstream/master
 		static auto tf_grapplinghook_max_distance = H::ConVars.FindVar("tf_grapplinghook_max_distance");
 		const float flGrappleDistance = tf_grapplinghook_max_distance->GetFloat();
 		Trace(vPos, vPos + vForward * flGrappleDistance, MASK_SOLID, &filter, &trace);
@@ -757,13 +813,13 @@ bool SDK::StopMovement(CTFPlayer* pLocal, CUserCmd* pCmd)
 	}
 }
 
-Vec3 SDK::ComputeMove(const CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vFrom, Vec3& vTo)
+Vec3 SDK::ComputeMove(const CUserCmd* pCmd, CTFPlayer* pLocal, const Vec3& vFrom, const Vec3& vTo)
 {
 	const Vec3 vDiff = vTo - vFrom;
-	if (!vDiff.Length())
+	if (!vDiff.Length2D())
 		return {};
 
-	Vec3 vSilent = { vDiff.x, vDiff.y, 0 };
+	Vec3 vSilent = vDiff.To2D();
 	Vec3 vAngle = Math::VectorAngles(vSilent);
 	const float flYaw = DEG2RAD(vAngle.y - pCmd->viewangles.y);
 	const float flPitch = DEG2RAD(vAngle.x - pCmd->viewangles.x);
@@ -775,7 +831,7 @@ Vec3 SDK::ComputeMove(const CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vFrom, Vec3
 	return vMove;
 }
 
-void SDK::WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vFrom, Vec3& vTo, float flScale)
+void SDK::WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, const Vec3& vFrom, const Vec3& vTo, float flScale)
 {
 	const auto vResult = ComputeMove(pCmd, pLocal, vFrom, vTo);
 
@@ -784,7 +840,7 @@ void SDK::WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vFrom, Vec3& vTo, floa
 	pCmd->upmove = vResult.z * flScale;
 }
 
-void SDK::WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vTo, float flScale)
+void SDK::WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, const Vec3& vTo, float flScale)
 {
 	Vec3 vLocalPos = pLocal->m_vecOrigin();
 	WalkTo(pCmd, pLocal, vLocalPos, vTo, flScale);
@@ -810,7 +866,13 @@ void SDK::GetProjectileFireSetup(CTFPlayer* pPlayer, const Vec3& vAngIn, Vec3 vO
 		if (flCutoff < 1.f)
 		{
 			CGameTrace trace = {};
+<<<<<<< HEAD
 			CTraceFilterCollideable filter = {}; filter.pSkip = pPlayer; filter.iType = SKIP_CHECK;
+=======
+			CTraceFilterCollideable filter = {};
+			filter.pSkip = pPlayer;
+			filter.iType = SKIP_CHECK;
+>>>>>>> upstream/master
 			Trace(vShootPos, vEndPos, MASK_SOLID, &filter, &trace);
 			if (trace.DidHit() && trace.fraction > flCutoff)
 				vEndPos = trace.endpos;

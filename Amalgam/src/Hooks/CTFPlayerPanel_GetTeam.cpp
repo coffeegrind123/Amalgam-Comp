@@ -3,30 +3,58 @@
 #include "../Features/Players/PlayerUtils.h"
 
 MAKE_SIGNATURE(CTFPlayerPanel_GetTeam, "client.dll", "8B 91 ? ? ? ? 83 FA ? 74 ? 48 8B 05", 0x0);
-MAKE_SIGNATURE(CTFTeamStatusPlayerPanel_Update, "client.dll", "40 56 57 48 83 EC ? 48 83 3D", 0x0);
 MAKE_SIGNATURE(vgui_Panel_SetBgColor, "client.dll", "89 91 ? ? ? ? C3 CC CC CC CC CC CC CC CC CC 48 8B 41", 0x0);
 MAKE_SIGNATURE(CTFTeamStatusPlayerPanel_Update_GetTeam_Call, "client.dll", "8B 9F ? ? ? ? 40 32 F6", 0x0);
 MAKE_SIGNATURE(CTFTeamStatusPlayerPanel_Update_SetBgColor_Call, "client.dll", "48 8B 8F ? ? ? ? 4C 8B 6C 24 ? 48 85 C9 0F 84 ? ? ? ? 40 38 B7", 0x0);
+MAKE_SIGNATURE(CTFTeamStatus_OnTick, "client.dll", "48 89 5C 24 ? 57 48 83 EC ? 48 8B 01 48 8B F9 FF 90 ? ? ? ? 48 8B CF 0F B6 D8", 0x0);
+MAKE_SIGNATURE(CVGui_RunFrame, "vgui2.dll", "48 8B C4 53 48 81 EC", 0x0);
 
-static int iPlayerIndex;
+static int s_iPlayerIndex;
+static void* s_pTeamStatus;
+
+static inline void SetScoreboardColor(int iIndex, Color_t& tColor)
+{
+	if (iIndex == I::EngineClient->GetLocalPlayer())
+		tColor = Vars::Colors::Local.Value;
+	else if (H::Entities.IsFriend(iIndex))
+		tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(FRIEND_TAG)].m_tColor;
+	else if (H::Entities.InParty(iIndex))
+		tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)].m_tColor;
+	else if (auto pTag = F::PlayerUtils.GetSignificantTag(iIndex))
+		tColor = pTag->m_tColor;
+	else
+		return;
+
+	auto pResource = H::Entities.GetResource();
+	if (pResource && !pResource->m_bAlive(iIndex))
+		tColor = tColor.Lerp({ 127, 127, 127, tColor.a }, 0.5f);
+}
 
 MAKE_HOOK(CTFPlayerPanel_GetTeam, S::CTFPlayerPanel_GetTeam(), int,
 	void* rcx)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CTFPlayerPanel_GetTeam[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx);
-#endif
+	DEBUG_RETURN(CTFPlayerPanel_GetTeam, rcx);
 
-	static const auto dwDesired = S::CTFTeamStatusPlayerPanel_Update_GetTeam_Call();
 	const auto dwRetAddr = uintptr_t(_ReturnAddress());
+	const auto dwDesired = S::CTFTeamStatusPlayerPanel_Update_GetTeam_Call();
 
-	if (Vars::Visuals::UI::RevealScoreboard.Value && dwRetAddr == dwDesired)
+	int iReturn = CALL_ORIGINAL(rcx);
+
+	if (auto pResource = H::Entities.GetResource(); dwRetAddr == dwDesired && pResource)
 	{
-		if (auto pLocal = H::Entities.GetLocal())
-			return pLocal->m_iTeamNum();
+		s_iPlayerIndex = *reinterpret_cast<int*>(uintptr_t(rcx) + 580);
+
+		int iLocalTeam = pResource->m_iTeam(I::EngineClient->GetLocalPlayer());
+
+		if (Vars::Visuals::UI::RevealScoreboard.Value && !SDK::CleanScreenshot())
+			iReturn = iLocalTeam;
+		
+		if (auto pHealthBar = *reinterpret_cast<void**>(uintptr_t(rcx) + 688);
+			pHealthBar && U::Memory.CallVirtual<34, bool>(pHealthBar) != (iReturn == iLocalTeam))
+			*reinterpret_cast<int*>(uintptr_t(rcx) + 624) = -1;
 	}
 
+<<<<<<< HEAD
 	// Match HUD Enhancement - enemy health/class display (credits to Pixy)
 	if (Vars::Competitive::Features::MatchHUD.Value && dwRetAddr == dwDesired)
 	{
@@ -63,31 +91,49 @@ MAKE_HOOK(CTFTeamStatusPlayerPanel_Update, S::CTFTeamStatusPlayerPanel_Update(),
 
 	iPlayerIndex = *reinterpret_cast<int*>(uintptr_t(rcx) + 580);
 	return CALL_ORIGINAL(rcx);
+=======
+	return iReturn;
+>>>>>>> upstream/master
 }
 
 MAKE_HOOK(vgui_Panel_SetBgColor, S::vgui_Panel_SetBgColor(), void,
 	void* rcx, Color_t color)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CTFPlayerPanel_GetTeam[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx, color);
-#endif
+	DEBUG_RETURN(CTFPlayerPanel_GetTeam, rcx, color);
 
-	static const auto dwDesired = S::CTFTeamStatusPlayerPanel_Update_SetBgColor_Call();
 	const auto dwRetAddr = uintptr_t(_ReturnAddress());
+	const auto dwDesired = S::CTFTeamStatusPlayerPanel_Update_SetBgColor_Call();
 
-	if (dwRetAddr == dwDesired && Vars::Visuals::UI::ScoreboardColors.Value)
-	{
-		Color_t tColor = H::Color.GetScoreboardColor(iPlayerIndex);
-		if (tColor.a)
-		{
-			auto pResource = H::Entities.GetPR();
-			if (pResource && !pResource->m_bAlive(iPlayerIndex))
-				tColor = tColor.Lerp({ 127, 127, 127, tColor.a }, 0.5f);
-
-			color = tColor;
-		}
-	}
+	if (dwRetAddr == dwDesired && Vars::Visuals::UI::ScoreboardColors.Value && !SDK::CleanScreenshot())
+		SetScoreboardColor(s_iPlayerIndex, color);
 
 	CALL_ORIGINAL(rcx, color);
+}
+
+MAKE_HOOK(CTFTeamStatus_OnTick, S::CTFTeamStatus_OnTick(), void,
+	void* rcx)
+{
+	DEBUG_RETURN(CTFTeamStatus_OnTick, rcx);
+
+	s_pTeamStatus = rcx;
+
+	CALL_ORIGINAL(rcx);
+}
+
+MAKE_HOOK(CVGui_RunFrame, S::CVGui_RunFrame(), void,
+	void* rcx)
+{
+	DEBUG_RETURN(CVGui_RunFrame, rcx);
+
+	if (!s_pTeamStatus)
+		return CALL_ORIGINAL(rcx);
+
+	static bool bStaticMod = false;
+	const bool bLastMod = bStaticMod;
+	const bool bCurrMod = bStaticMod = (Vars::Visuals::UI::RevealScoreboard.Value || Vars::Visuals::UI::ScoreboardColors.Value) && !SDK::CleanScreenshot();
+
+	if (bCurrMod != bLastMod)
+		S::CTFTeamStatus_OnTick.Call<void>(s_pTeamStatus);
+
+	CALL_ORIGINAL(rcx);
 }

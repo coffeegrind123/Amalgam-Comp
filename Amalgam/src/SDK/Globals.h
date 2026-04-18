@@ -58,13 +58,6 @@ struct DrawSwept_t
 	bool m_bZBuffer = false;
 };
 
-struct MoveData_t
-{
-	Vec3 m_vMove = {};
-	Vec3 m_vView = {};
-	int m_iButtons = 0;
-};
-
 struct AimTarget_t
 {
 	int m_iEntIndex = 0;
@@ -96,7 +89,7 @@ namespace G
 
 	inline CUserCmd* CurrentUserCmd = nullptr;
 	inline CUserCmd* LastUserCmd = nullptr;
-	inline MoveData_t OriginalMove = {};
+	inline CUserCmd OriginalCmd = {};
 
 	inline AimTarget_t AimTarget = {};
 	inline AimPoint_t AimPoint = {};
@@ -108,7 +101,6 @@ namespace G
 	inline bool Choking = false;
 
 	inline bool UpdatingAnims = false;
-	inline bool DrawingProps = false;
 	inline bool FlipViewmodels = false;
 
 	inline std::vector<DrawLine_t> LineStorage = {};
@@ -117,9 +109,9 @@ namespace G
 	inline std::vector<DrawSphere_t> SphereStorage = {};
 	inline std::vector<DrawSwept_t> SweptStorage = {};
 
-	inline int* RandomSeed()
+	inline int& RandomSeed()
 	{
-		static auto pRandomSeed = reinterpret_cast<int*>(U::Memory.RelToAbs(S::RandomSeed()));
+		static auto& pRandomSeed = *reinterpret_cast<int*>(U::Memory.RelToAbs(S::RandomSeed()));
 		return pRandomSeed;
 	}
 };

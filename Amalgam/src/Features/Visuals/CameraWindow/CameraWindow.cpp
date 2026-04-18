@@ -12,6 +12,7 @@ void CCameraWindow::Draw()
 	auto& tWindowBox = Vars::Visuals::Simulation::ProjectileWindow.Value;
 
 	// Draw to screen
+<<<<<<< HEAD
 	const auto renderCtx = I::MaterialSystem->GetRenderContext();
 	if (!renderCtx)
 		return;
@@ -32,6 +33,17 @@ void CCameraWindow::Draw()
 		if (renderCtx)
 			renderCtx->Release();
 	}
+=======
+	auto pRenderContext = I::MaterialSystem->GetRenderContext();
+	pRenderContext->DrawScreenSpaceRectangle(
+		m_pCameraMaterial,
+		tWindowBox.x - tWindowBox.w / 2, tWindowBox.y, tWindowBox.w, tWindowBox.h,
+		0, 0, tWindowBox.w, tWindowBox.h,
+		m_pCameraTexture->GetActualWidth(), m_pCameraTexture->GetActualHeight(),
+		nullptr, 1, 1
+	);
+	pRenderContext->Release();
+>>>>>>> upstream/master
 }
 
 // Renders another view onto a texture
@@ -44,25 +56,26 @@ void CCameraWindow::RenderView(void* ecx, const CViewSetup& pViewSetup)
 
 	auto& tWindowBox = Vars::Visuals::Simulation::ProjectileWindow.Value;
 
-	CViewSetup viewSetup = pViewSetup;
-	viewSetup.x = 0;
-	viewSetup.y = 0;
+	CViewSetup tViewSetup = pViewSetup;
+	tViewSetup.x = 0;
+	tViewSetup.y = 0;
 
-	viewSetup.origin = m_vCameraOrigin;
-	viewSetup.angles = m_vCameraAngles;
+	tViewSetup.origin = m_vCameraOrigin;
+	tViewSetup.angles = m_vCameraAngles;
 
-	viewSetup.width = tWindowBox.w + 1;
-	viewSetup.height = tWindowBox.h + 1;
-	viewSetup.m_flAspectRatio = static_cast<float>(viewSetup.width) / static_cast<float>(viewSetup.height);
-	viewSetup.fov = 90;
+	tViewSetup.width = tWindowBox.w + 1;
+	tViewSetup.height = tWindowBox.h + 1;
+	tViewSetup.m_flAspectRatio = float(tViewSetup.width) / float(tViewSetup.height);
+	tViewSetup.fov = 90;
 
-	RenderCustomView(ecx, viewSetup, m_pCameraTexture);
+	RenderCustomView(ecx, tViewSetup, m_pCameraTexture);
 
 	m_bDrawing = false;
 }
 
 void CCameraWindow::RenderCustomView(void* ecx, const CViewSetup& pViewSetup, ITexture* pTexture)
 {
+<<<<<<< HEAD
 	if (!I::MaterialSystem || !pTexture)
 		return;
 
@@ -90,6 +103,18 @@ void CCameraWindow::RenderCustomView(void* ecx, const CViewSetup& pViewSetup, IT
 			renderCtx->Release();
 		}
 	}
+=======
+	auto pRenderContext = I::MaterialSystem->GetRenderContext();
+
+	pRenderContext->PushRenderTargetAndViewport();
+	pRenderContext->SetRenderTarget(pTexture);
+
+	static auto CViewRender_RenderView = U::Hooks.m_mHooks["CViewRender_RenderView"];
+	CViewRender_RenderView->Call<void>(ecx, pViewSetup, VIEW_CLEAR_COLOR | VIEW_CLEAR_DEPTH, RENDERVIEW_UNSPECIFIED);
+
+	pRenderContext->PopRenderTargetAndViewport();
+	pRenderContext->Release();
+>>>>>>> upstream/master
 }
 
 void CCameraWindow::Initialize()

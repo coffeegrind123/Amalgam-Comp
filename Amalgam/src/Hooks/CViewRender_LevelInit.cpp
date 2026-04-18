@@ -13,10 +13,7 @@
 MAKE_HOOK(CViewRender_LevelInit, U::Memory.GetVirtual(I::ViewRender, 1), void,
 	void* rcx)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CViewRender_LevelInit[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx);
-#endif
+	DEBUG_RETURN(CViewRender_LevelInit, rcx);
 
 	F::Materials.ReloadMaterials();
 	F::Visuals.OverrideWorldTextures();
@@ -29,7 +26,7 @@ MAKE_HOOK(CViewRender_LevelInit, U::Memory.GetVirtual(I::ViewRender, 1), void,
 	F::NoSpreadHitscan.Reset();
 	F::CheaterDetection.Reset();
 	F::Resolver.Reset();
-	F::Spectate.m_iIntendedTarget = -1;
+	F::Spectate.Reset();
 
 	CALL_ORIGINAL(rcx);
 	

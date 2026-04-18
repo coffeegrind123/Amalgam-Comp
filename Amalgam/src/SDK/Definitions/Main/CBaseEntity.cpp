@@ -7,6 +7,14 @@ int CBaseEntity::GetIntermediateDataSize()
 	return std::max(GetPredDescMap()->packed_size, 4);
 }
 
+<<<<<<< HEAD
+=======
+Vec3 CBaseEntity::GetOrigin(float flCompression)
+{
+	return m_vecOrigin() + Vec3(flCompression / 2 * sign(m_vecOrigin().x), flCompression / 2 * sign(m_vecOrigin().y), flCompression / 2 * sign(m_vecOrigin().z));
+}
+
+>>>>>>> upstream/master
 Vec3 CBaseEntity::GetSize()
 {
 	return m_vecMaxs() - m_vecMins();
@@ -60,18 +68,51 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 {
 	switch (H::Entities.GetModel(entindex()))
 	{
+<<<<<<< HEAD
+=======
+	case FNV1A::Hash32Const("models/bots/engineer/bot_engineer.mdl"):
+		switch (nHitbox)
+		{
+		case HITBOX_BOT6_HEAD: return HITBOX_HEAD;
+		case HITBOX_BOT6_SPINE0: return HITBOX_SPINE0;
+		case HITBOX_BOT6_SPINE1: return HITBOX_SPINE1;
+		case HITBOX_BOT6_SPINE2: return HITBOX_SPINE2;
+		case HITBOX_BOT6_SPINE3: return HITBOX_SPINE3;
+		case HITBOX_BOT6_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
+		case HITBOX_BOT6_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
+		case HITBOX_BOT6_LEFT_HAND: return HITBOX_LEFT_HAND;
+		case HITBOX_BOT6_RIGHT_UPPERARM: return HITBOX_RIGHT_UPPERARM;
+		case HITBOX_BOT6_RIGHT_FOREARM: return HITBOX_RIGHT_FOREARM;
+		case HITBOX_BOT6_RIGHT_HAND: return HITBOX_RIGHT_HAND;
+		case HITBOX_BOT6_LEFT_THIGH: return HITBOX_LEFT_THIGH;
+		case HITBOX_BOT6_LEFT_CALF: return HITBOX_LEFT_CALF;
+		case HITBOX_BOT6_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+		case HITBOX_BOT6_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
+		case HITBOX_BOT6_RIGHT_CALF: return HITBOX_RIGHT_CALF;
+		case HITBOX_BOT6_RIGHT_FOOT: return HITBOX_RIGHT_FOOT;
+		}
+		break;
+>>>>>>> upstream/master
 	case FNV1A::Hash32Const("models/vsh/player/saxton_hale.mdl"):
 	case FNV1A::Hash32Const("models/vsh/player/hell_hale.mdl"):
 	case FNV1A::Hash32Const("models/vsh/player/santa_hale.mdl"):
 		switch (nHitbox)
 		{
 		case HITBOX_SAXTON_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_SAXTON_NECK:
+		case HITBOX_SAXTON_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SAXTON_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_SAXTON_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_SAXTON_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_SAXTON_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_SAXTON_NECK:
 		case HITBOX_SAXTON_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_SAXTON_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_SAXTON_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
 		case HITBOX_SAXTON_LEFT_HAND: return HITBOX_LEFT_HAND;
@@ -92,12 +133,20 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_ZOMBIE128_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_ZOMBIE128_NECK:
+		case HITBOX_ZOMBIE128_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE128_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_ZOMBIE128_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_ZOMBIE128_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_ZOMBIE128_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE128_NECK:
 		case HITBOX_ZOMBIE128_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE128_LEFT_COLLAR:
 		case HITBOX_ZOMBIE128_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_ZOMBIE128_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
@@ -144,12 +193,20 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_ZOMBIE4_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_ZOMBIE4_NECK:
+		case HITBOX_ZOMBIE4_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE4_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_ZOMBIE4_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_ZOMBIE4_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_ZOMBIE4_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE4_NECK:
 		case HITBOX_ZOMBIE4_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE4_LEFT_COLLAR:
 		case HITBOX_ZOMBIE4_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_ZOMBIE4_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
@@ -170,12 +227,20 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_ZOMBIE5_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_ZOMBIE5_NECK:
+		case HITBOX_ZOMBIE5_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE5_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_ZOMBIE5_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_ZOMBIE5_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_ZOMBIE5_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE5_NECK:
 		case HITBOX_ZOMBIE5_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE5_LEFT_COLLAR:
 		case HITBOX_ZOMBIE5_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_ZOMBIE5_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
@@ -185,10 +250,17 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		case HITBOX_ZOMBIE5_RIGHT_FOREARM: return HITBOX_RIGHT_FOREARM;
 		case HITBOX_ZOMBIE5_RIGHT_HAND: return HITBOX_RIGHT_HAND;
 		case HITBOX_ZOMBIE5_LEFT_THIGH: return HITBOX_LEFT_THIGH;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE5_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
 		case HITBOX_ZOMBIE5_LEFT_CALF: return HITBOX_LEFT_CALF;
 		case HITBOX_ZOMBIE5_RIGHT_CALF: return HITBOX_RIGHT_CALF;
 		case HITBOX_ZOMBIE5_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+=======
+		case HITBOX_ZOMBIE5_LEFT_CALF: return HITBOX_LEFT_CALF;
+		case HITBOX_ZOMBIE5_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+		case HITBOX_ZOMBIE5_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
+		case HITBOX_ZOMBIE5_RIGHT_CALF: return HITBOX_RIGHT_CALF;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE5_RIGHT_FOOT: return HITBOX_RIGHT_FOOT;
 		}
 		break;
@@ -196,12 +268,20 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_ZOMBIE6_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_ZOMBIE6_NECK:
+		case HITBOX_ZOMBIE6_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE6_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_ZOMBIE6_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_ZOMBIE6_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_ZOMBIE6_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE6_NECK:
 		case HITBOX_ZOMBIE6_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE6_LEFT_COLLAR:
 		case HITBOX_ZOMBIE6_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_ZOMBIE6_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
@@ -222,12 +302,20 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_ZOMBIE7_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_ZOMBIE7_NECK:
+		case HITBOX_ZOMBIE7_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE7_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_ZOMBIE7_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_ZOMBIE7_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_ZOMBIE7_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE7_NECK:
 		case HITBOX_ZOMBIE7_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE7_LEFT_COLLAR:
 		case HITBOX_ZOMBIE7_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_ZOMBIE7_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
@@ -237,10 +325,17 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		case HITBOX_ZOMBIE7_RIGHT_FOREARM: return HITBOX_RIGHT_FOREARM;
 		case HITBOX_ZOMBIE7_RIGHT_HAND: return HITBOX_RIGHT_HAND;
 		case HITBOX_ZOMBIE7_LEFT_THIGH: return HITBOX_LEFT_THIGH;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE7_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
 		case HITBOX_ZOMBIE7_LEFT_CALF: return HITBOX_LEFT_CALF;
 		case HITBOX_ZOMBIE7_RIGHT_CALF: return HITBOX_RIGHT_CALF;
 		case HITBOX_ZOMBIE7_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+=======
+		case HITBOX_ZOMBIE7_LEFT_CALF: return HITBOX_LEFT_CALF;
+		case HITBOX_ZOMBIE7_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+		case HITBOX_ZOMBIE7_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
+		case HITBOX_ZOMBIE7_RIGHT_CALF: return HITBOX_RIGHT_CALF;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE7_RIGHT_FOOT: return HITBOX_RIGHT_FOOT;
 		}
 		break;
@@ -248,12 +343,20 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_ZOMBIE9_HEAD: return HITBOX_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_ZOMBIE9_NECK:
+		case HITBOX_ZOMBIE9_PELVIS: return HITBOX_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE9_SPINE0: return HITBOX_SPINE0;
 		case HITBOX_ZOMBIE9_SPINE1: return HITBOX_SPINE1;
 		case HITBOX_ZOMBIE9_SPINE2: return HITBOX_SPINE2;
 		case HITBOX_ZOMBIE9_SPINE3: return HITBOX_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE9_NECK:
 		case HITBOX_ZOMBIE9_PELVIS: return HITBOX_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE9_LEFT_COLLAR:
 		case HITBOX_ZOMBIE9_LEFT_UPPERARM: return HITBOX_LEFT_UPPERARM;
 		case HITBOX_ZOMBIE9_LEFT_FOREARM: return HITBOX_LEFT_FOREARM;
@@ -263,10 +366,17 @@ int CBaseEntity::GetHitboxToBase(int nHitbox)
 		case HITBOX_ZOMBIE9_RIGHT_FOREARM: return HITBOX_RIGHT_FOREARM;
 		case HITBOX_ZOMBIE9_RIGHT_HAND: return HITBOX_RIGHT_HAND;
 		case HITBOX_ZOMBIE9_LEFT_THIGH: return HITBOX_LEFT_THIGH;
+<<<<<<< HEAD
 		case HITBOX_ZOMBIE9_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
 		case HITBOX_ZOMBIE9_LEFT_CALF: return HITBOX_LEFT_CALF;
 		case HITBOX_ZOMBIE9_RIGHT_CALF: return HITBOX_RIGHT_CALF;
 		case HITBOX_ZOMBIE9_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+=======
+		case HITBOX_ZOMBIE9_LEFT_CALF: return HITBOX_LEFT_CALF;
+		case HITBOX_ZOMBIE9_LEFT_FOOT: return HITBOX_LEFT_FOOT;
+		case HITBOX_ZOMBIE9_RIGHT_THIGH: return HITBOX_RIGHT_THIGH;
+		case HITBOX_ZOMBIE9_RIGHT_CALF: return HITBOX_RIGHT_CALF;
+>>>>>>> upstream/master
 		case HITBOX_ZOMBIE9_RIGHT_FOOT: return HITBOX_RIGHT_FOOT;
 		}
 		break;
@@ -278,17 +388,50 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 {
 	switch (H::Entities.GetModel(entindex()))
 	{
+<<<<<<< HEAD
+=======
+	case FNV1A::Hash32Const("models/bots/engineer/bot_engineer.mdl"):
+		switch (nHitbox)
+		{
+		case HITBOX_HEAD: return HITBOX_BOT6_HEAD;
+		case HITBOX_PELVIS:
+		case HITBOX_SPINE0: return HITBOX_BOT6_SPINE0;
+		case HITBOX_SPINE1: return HITBOX_BOT6_SPINE1;
+		case HITBOX_SPINE2: return HITBOX_BOT6_SPINE2;
+		case HITBOX_SPINE3: return HITBOX_BOT6_SPINE3;
+		case HITBOX_LEFT_UPPERARM: return HITBOX_BOT6_LEFT_UPPERARM;
+		case HITBOX_LEFT_FOREARM: return HITBOX_BOT6_LEFT_FOREARM;
+		case HITBOX_LEFT_HAND: return HITBOX_BOT6_LEFT_HAND;
+		case HITBOX_RIGHT_UPPERARM: return HITBOX_BOT6_RIGHT_UPPERARM;
+		case HITBOX_RIGHT_FOREARM: return HITBOX_BOT6_RIGHT_FOREARM;
+		case HITBOX_RIGHT_HAND: return HITBOX_BOT6_RIGHT_HAND;
+		case HITBOX_LEFT_THIGH: return HITBOX_BOT6_LEFT_THIGH;
+		case HITBOX_LEFT_CALF: return HITBOX_BOT6_LEFT_CALF;
+		case HITBOX_LEFT_FOOT: return HITBOX_BOT6_LEFT_FOOT;
+		case HITBOX_RIGHT_THIGH: return HITBOX_BOT6_RIGHT_THIGH;
+		case HITBOX_RIGHT_CALF: return HITBOX_BOT6_RIGHT_CALF;
+		case HITBOX_RIGHT_FOOT: return HITBOX_BOT6_RIGHT_FOOT;
+		}
+		break;
+>>>>>>> upstream/master
 	case FNV1A::Hash32Const("models/vsh/player/saxton_hale.mdl"):
 	case FNV1A::Hash32Const("models/vsh/player/hell_hale.mdl"):
 	case FNV1A::Hash32Const("models/vsh/player/santa_hale.mdl"):
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_SAXTON_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_SAXTON_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_SAXTON_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_SAXTON_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_SAXTON_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_SAXTON_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_SAXTON_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_SAXTON_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_SAXTON_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_SAXTON_LEFT_HAND;
@@ -309,11 +452,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE128_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE128_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE128_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE128_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE128_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE128_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE128_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE128_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE128_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE128_LEFT_HAND;
@@ -332,11 +482,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE3_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE3_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE3_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE3_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE3_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE3_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE3_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE3_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE3_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE3_LEFT_HAND;
@@ -355,11 +512,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE4_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE4_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE4_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE4_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE4_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE4_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE4_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE4_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE4_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE4_LEFT_HAND;
@@ -378,11 +542,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE5_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE5_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE5_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE5_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE5_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE5_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE5_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE5_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE5_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE5_LEFT_HAND;
@@ -390,10 +561,17 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		case HITBOX_RIGHT_FOREARM: return HITBOX_ZOMBIE5_RIGHT_FOREARM;
 		case HITBOX_RIGHT_HAND: return HITBOX_ZOMBIE5_RIGHT_HAND;
 		case HITBOX_LEFT_THIGH: return HITBOX_ZOMBIE5_LEFT_THIGH;
+<<<<<<< HEAD
 		case HITBOX_RIGHT_THIGH: return HITBOX_ZOMBIE5_RIGHT_THIGH;
 		case HITBOX_LEFT_CALF: return HITBOX_ZOMBIE5_LEFT_CALF;
 		case HITBOX_RIGHT_CALF: return HITBOX_ZOMBIE5_RIGHT_CALF;
 		case HITBOX_LEFT_FOOT: return HITBOX_ZOMBIE5_LEFT_FOOT;
+=======
+		case HITBOX_LEFT_CALF: return HITBOX_ZOMBIE5_LEFT_CALF;
+		case HITBOX_LEFT_FOOT: return HITBOX_ZOMBIE5_LEFT_FOOT;
+		case HITBOX_RIGHT_THIGH: return HITBOX_ZOMBIE5_RIGHT_THIGH;
+		case HITBOX_RIGHT_CALF: return HITBOX_ZOMBIE5_RIGHT_CALF;
+>>>>>>> upstream/master
 		case HITBOX_RIGHT_FOOT: return HITBOX_ZOMBIE5_RIGHT_FOOT;
 		}
 		break;
@@ -401,11 +579,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE6_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE6_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE6_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE6_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE6_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE6_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE6_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE6_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE6_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE6_LEFT_HAND;
@@ -424,11 +609,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE7_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE7_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE7_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE7_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE7_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE7_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE7_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE7_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE7_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE7_LEFT_HAND;
@@ -436,10 +628,17 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		case HITBOX_RIGHT_FOREARM: return HITBOX_ZOMBIE7_RIGHT_FOREARM;
 		case HITBOX_RIGHT_HAND: return HITBOX_ZOMBIE7_RIGHT_HAND;
 		case HITBOX_LEFT_THIGH: return HITBOX_ZOMBIE7_LEFT_THIGH;
+<<<<<<< HEAD
 		case HITBOX_RIGHT_THIGH: return HITBOX_ZOMBIE7_RIGHT_THIGH;
 		case HITBOX_LEFT_CALF: return HITBOX_ZOMBIE7_LEFT_CALF;
 		case HITBOX_RIGHT_CALF: return HITBOX_ZOMBIE7_RIGHT_CALF;
 		case HITBOX_LEFT_FOOT: return HITBOX_ZOMBIE7_LEFT_FOOT;
+=======
+		case HITBOX_LEFT_CALF: return HITBOX_ZOMBIE7_LEFT_CALF;
+		case HITBOX_LEFT_FOOT: return HITBOX_ZOMBIE7_LEFT_FOOT;
+		case HITBOX_RIGHT_THIGH: return HITBOX_ZOMBIE7_RIGHT_THIGH;
+		case HITBOX_RIGHT_CALF: return HITBOX_ZOMBIE7_RIGHT_CALF;
+>>>>>>> upstream/master
 		case HITBOX_RIGHT_FOOT: return HITBOX_ZOMBIE7_RIGHT_FOOT;
 		}
 		break;
@@ -447,11 +646,18 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		switch (nHitbox)
 		{
 		case HITBOX_HEAD: return HITBOX_ZOMBIE9_HEAD;
+<<<<<<< HEAD
+=======
+		case HITBOX_PELVIS: return HITBOX_ZOMBIE9_PELVIS;
+>>>>>>> upstream/master
 		case HITBOX_SPINE0: return HITBOX_ZOMBIE9_SPINE0;
 		case HITBOX_SPINE1: return HITBOX_ZOMBIE9_SPINE1;
 		case HITBOX_SPINE2: return HITBOX_ZOMBIE9_SPINE2;
 		case HITBOX_SPINE3: return HITBOX_ZOMBIE9_SPINE3;
+<<<<<<< HEAD
 		case HITBOX_PELVIS: return HITBOX_ZOMBIE9_PELVIS;
+=======
+>>>>>>> upstream/master
 		case HITBOX_LEFT_UPPERARM: return HITBOX_ZOMBIE9_LEFT_UPPERARM;
 		case HITBOX_LEFT_FOREARM: return HITBOX_ZOMBIE9_LEFT_FOREARM;
 		case HITBOX_LEFT_HAND: return HITBOX_ZOMBIE9_LEFT_HAND;
@@ -459,10 +665,17 @@ int CBaseEntity::GetBaseToHitbox(int nHitbox)
 		case HITBOX_RIGHT_FOREARM: return HITBOX_ZOMBIE9_RIGHT_FOREARM;
 		case HITBOX_RIGHT_HAND: return HITBOX_ZOMBIE9_RIGHT_HAND;
 		case HITBOX_LEFT_THIGH: return HITBOX_ZOMBIE9_LEFT_THIGH;
+<<<<<<< HEAD
 		case HITBOX_RIGHT_THIGH: return HITBOX_ZOMBIE9_RIGHT_THIGH;
 		case HITBOX_LEFT_CALF: return HITBOX_ZOMBIE9_LEFT_CALF;
 		case HITBOX_RIGHT_CALF: return HITBOX_ZOMBIE9_RIGHT_CALF;
 		case HITBOX_LEFT_FOOT: return HITBOX_ZOMBIE9_LEFT_FOOT;
+=======
+		case HITBOX_LEFT_CALF: return HITBOX_ZOMBIE9_LEFT_CALF;
+		case HITBOX_LEFT_FOOT: return HITBOX_ZOMBIE9_LEFT_FOOT;
+		case HITBOX_RIGHT_THIGH: return HITBOX_ZOMBIE9_RIGHT_THIGH;
+		case HITBOX_RIGHT_CALF: return HITBOX_ZOMBIE9_RIGHT_CALF;
+>>>>>>> upstream/master
 		case HITBOX_RIGHT_FOOT: return HITBOX_ZOMBIE9_RIGHT_FOOT;
 		}
 		break;

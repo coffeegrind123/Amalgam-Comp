@@ -13,11 +13,9 @@ MAKE_SIGNATURE(IsValidIDTargetCaller, "client.dll", "84 C0 0F 84 ? ? ? ? 48 8B 0
 MAKE_HOOK(CTFPlayer_IsPlayerClass, S::CTFPlayer_IsPlayerClass(), bool,
 	void* rcx, int iClass)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CTFPlayer_IsPlayerClass[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx, iClass);
-#endif
+	DEBUG_RETURN(CTFPlayer_IsPlayerClass, rcx, iClass);
 
+<<<<<<< HEAD
 	static const auto dwUpdateIDCaller = S::UpdateIDCaller();
 	static const auto dwShouldHealthBarBeVisibleCaller = S::ShouldHealthBarBeVisibleCaller();
 	static const auto dwIsValidIDTargetCaller = S::IsValidIDTargetCaller();
@@ -47,6 +45,12 @@ MAKE_HOOK(CTFPlayer_IsPlayerClass, S::CTFPlayer_IsPlayerClass(), bool,
 	// Hitsound functionality
 	static const auto dwDesired = S::CDamageAccountPanel_DisplayDamageFeedback_IsPlayerClass_Call();
 	if (Vars::Misc::Sound::HitsoundAlways.Value && dwRetAddr == dwDesired)
+=======
+	const auto dwRetAddr = uintptr_t(_ReturnAddress());
+	static const auto dwDesired = S::CDamageAccountPanel_DisplayDamageFeedback_IsPlayerClass_Call();
+
+	if (dwRetAddr == dwDesired && Vars::Misc::Sound::HitsoundAlways.Value)
+>>>>>>> upstream/master
 		return false;
 
 	return CALL_ORIGINAL(rcx, iClass);

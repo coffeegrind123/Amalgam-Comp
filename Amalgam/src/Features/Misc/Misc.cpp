@@ -11,19 +11,19 @@ void CMisc::RunPre(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
 	CheatsBypass();
 	WeaponSway();
-
-	if (!pLocal)
-		return;
-
 	AntiAFK(pLocal, pCmd);
 	InstantRespawnMVM(pLocal);
-
-	if (!pLocal->IsAlive() || pLocal->IsAGhost() || pLocal->m_MoveType() != MOVETYPE_WALK || pLocal->IsSwimming() || pLocal->InCond(TF_COND_SHIELD_CHARGE) || pLocal->InCond(TF_COND_HALLOWEEN_KART))
+	NoisemakerSpam(pLocal);
+	if (!pLocal->IsAlive() || pLocal->IsAGhost() || pLocal->m_MoveType() != MOVETYPE_WALK || pLocal->IsSwimming()
+		|| pLocal->IsTaunting() || pLocal->InCond(TF_COND_SHIELD_CHARGE))
 		return;
 
 	AutoJump(pLocal, pCmd);
 	F::SafeBhop.Run(pLocal, pCmd);
 	EdgeJump(pLocal, pCmd);
+	if (pLocal->InCond(TF_COND_HALLOWEEN_KART))
+		return;
+
 	AutoJumpbug(pLocal, pCmd);
 	AutoStrafe(pLocal, pCmd);
 	AutoPeek(pLocal, pCmd);
@@ -31,15 +31,20 @@ void CMisc::RunPre(CTFPlayer* pLocal, CUserCmd* pCmd)
 	BreakJump(pLocal, pCmd);
 }
 
-void CMisc::RunPost(CTFPlayer* pLocal, CUserCmd* pCmd, bool pSendPacket)
+void CMisc::RunPost(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
-	if (!pLocal || !pLocal->IsAlive() || pLocal->IsAGhost() || pLocal->m_MoveType() != MOVETYPE_WALK || pLocal->IsSwimming() || pLocal->InCond(TF_COND_SHIELD_CHARGE))
+	if (!pLocal->IsAlive() || pLocal->IsAGhost() || pLocal->m_MoveType() != MOVETYPE_WALK || pLocal->IsSwimming()
+		|| pLocal->InCond(TF_COND_SHIELD_CHARGE))
 		return;
 
-	EdgeJump(pLocal, pCmd, true);
-	TauntKartControl(pLocal, pCmd);
-	AutoPeek(pLocal, pCmd, true);
-	FastMovement(pLocal, pCmd);
+	if (pLocal->IsTaunting() || pLocal->InCond(TF_COND_HALLOWEEN_KART))
+		TauntKartControl(pLocal, pCmd);
+	else
+	{
+		EdgeJump(pLocal, pCmd, true);
+		AutoPeek(pLocal, pCmd, true);
+		FastMovement(pLocal, pCmd);
+	}
 }
 
 
@@ -128,7 +133,6 @@ void CMisc::AutoStrafe(CTFPlayer* pLocal, CUserCmd* pCmd)
 			break;
 
 		float flForward = pCmd->forwardmove, flSide = pCmd->sidemove;
-
 		Vec3 vForward, vRight; Math::AngleVectors(pCmd->viewangles, &vForward, &vRight, nullptr);
 		vForward.Normalize2D(), vRight.Normalize2D();
 
@@ -203,7 +207,7 @@ void CMisc::AntiAFK(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
 	static Timer tTimer = {};
 
-	if (pCmd->buttons & (IN_MOVELEFT | IN_MOVERIGHT | IN_FORWARD | IN_BACK) || !pLocal->IsAlive())
+	if (pCmd->buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT) || !pLocal->IsAlive())
 		tTimer.Update();
 	else if (Vars::Misc::Automation::AntiAFK.Value && tTimer.Run(25.f))
 		pCmd->buttons |= IN_FORWARD;
@@ -211,12 +215,31 @@ void CMisc::AntiAFK(CTFPlayer* pLocal, CUserCmd* pCmd)
 
 void CMisc::InstantRespawnMVM(CTFPlayer* pLocal)
 {
+<<<<<<< HEAD
 	if (Vars::Misc::MannVsMachine::InstantRespawn.Value && I::EngineClient->IsInGame() && !pLocal->IsAlive())
 	{
 		KeyValues* kv = CKeyValuesPool::Alloc("MVM_Revive_Response");
 		kv->SetInt("accepted", 1);
 		I::EngineClient->ServerCmdKeyValues(kv);
 	}
+=======
+	if (!Vars::Misc::MannVsMachine::InstantRespawn.Value || pLocal->IsAlive())
+		return;
+
+	KeyValues* kv = new KeyValues("MVM_Revive_Response");
+	kv->SetBool("accepted", true);
+	I::EngineClient->ServerCmdKeyValues(kv);
+}
+
+void CMisc::NoisemakerSpam(CTFPlayer* pLocal)
+{
+	if (!Vars::Misc::Exploits::NoisemakerSpam.Value || !pLocal->IsAlive() || pLocal->IsAGhost()
+		|| pLocal->m_bUsingActionSlot() || pLocal->m_flNextNoiseMakerTime() > I::GlobalVars->curtime)
+		return;
+
+	KeyValues* kv = new KeyValues("use_action_slot_item_server");
+	I::EngineClient->ServerCmdKeyValues(kv);
+>>>>>>> upstream/master
 }
 
 void CMisc::CheatsBypass()
@@ -249,7 +272,6 @@ void CMisc::WeaponSway()
 
 void CMisc::TauntKartControl(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
-	// Handle Taunt Slide
 	if (Vars::Misc::Automation::TauntControl.Value && pLocal->IsTaunting() && pLocal->m_bAllowMoveDuringTaunt())
 	{
 		if (pLocal->m_bTauntForceMoveForward())
@@ -260,50 +282,40 @@ void CMisc::TauntKartControl(CTFPlayer* pLocal, CUserCmd* pCmd)
 				pCmd->viewangles.x = 90.f;
 		}
 		if (pCmd->buttons & IN_MOVELEFT)
-			pCmd->sidemove = pCmd->viewangles.x != 90.f ? -50.f : -450.f;
+			pCmd->sidemove = pCmd->viewangles.x == 90.f ? -450.f : -pLocal->m_flTauntForceMoveForwardSpeed();
 		else if (pCmd->buttons & IN_MOVERIGHT)
-			pCmd->sidemove = pCmd->viewangles.x != 90.f ? 50.f : 450.f;
-
-		Vec3 vAngle = I::EngineClient->GetViewAngles();
-		pCmd->viewangles.y = vAngle.y;
-
-		G::SilentAngles = true;
+			pCmd->sidemove = pCmd->viewangles.x == 90.f ? 450.f : pLocal->m_flTauntForceMoveForwardSpeed();
 	}
 	else if (Vars::Misc::Automation::KartControl.Value && pLocal->InCond(TF_COND_HALLOWEEN_KART))
 	{
-		const bool bForward = pCmd->buttons & IN_FORWARD;
-		const bool bBack = pCmd->buttons & IN_BACK;
-		const bool bLeft = pCmd->buttons & IN_MOVELEFT;
-		const bool bRight = pCmd->buttons & IN_MOVERIGHT;
+		bool bChoke = I::ClientState->chokedcommands < 3 && F::Ticks.CanChoke(true);
+		float flForward = fabsf(pCmd->forwardmove), flSide = pCmd->sidemove * (!bChoke ? 0.f : pCmd->forwardmove < 0.f ? -1 : 1);
 
-		const bool flipVar = I::GlobalVars->tickcount % 2;
-		if (bForward && (!bLeft && !bRight || !flipVar))
-		{
-			pCmd->forwardmove = 450.f;
-			pCmd->viewangles.x = 0.f;
-		}
-		else if (bBack && (!bLeft && !bRight || !flipVar))
-		{
-			pCmd->forwardmove = 450.f;
-			pCmd->viewangles.x = 91.f;
-		}
-		else if (pCmd->buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT))
-		{
-			if (flipVar || !F::Ticks.CanChoke())
-			{	// you could just do this if you didn't care about viewangles
-				Vec3 vMove = { pCmd->forwardmove, pCmd->sidemove, 0.f };
-				Vec3 vAngMoveReverse = Math::VectorAngles(vMove * -1.f);
-				pCmd->forwardmove = -vMove.Length();
-				pCmd->sidemove = 0.f;
-				pCmd->viewangles.y = fmodf(pCmd->viewangles.y - vAngMoveReverse.y, 360.f);
-				pCmd->viewangles.z = 270.f;
-				G::PSilentAngles = true;
-			}
-		}
-		else
-			pCmd->viewangles.x = 90.f;
+		Vec3 vForward, vRight; Math::AngleVectors(pCmd->viewangles, &vForward, &vRight, nullptr);
+		vForward.Normalize2D(), vRight.Normalize2D();
 
+		pCmd->viewangles.x = 90.f;
 		G::SilentAngles = true;
+
+		if (!(pCmd->buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT)))
+			return;
+
+		if (pCmd->forwardmove < 0.f)
+			pCmd->viewangles.x = 91.f;
+		else if (pCmd->forwardmove > 0.f || flSide)
+			pCmd->viewangles.x = 10.f;
+		pCmd->forwardmove = 0.f;
+
+		if (!flForward && !flSide)
+			return;
+
+		pCmd->forwardmove = 450.f;
+		if (flSide)
+		{
+			Vec3 vWishDir = Math::VectorAngles({ vForward.x * flForward + vRight.x * flSide, vForward.y * flForward + vRight.y * flSide, 0.f });
+			pCmd->viewangles.y = vWishDir.y;
+			G::PSilentAngles = true;
+		}
 	}
 }
 
@@ -333,12 +345,16 @@ void CMisc::FastMovement(CTFPlayer* pLocal, CUserCmd* pCmd)
 	}
 	case 1:
 	{
-		if ((pLocal->IsDucking() ? !Vars::Misc::Movement::CrouchSpeed.Value : !Vars::Misc::Movement::FastAccelerate.Value)
+		if ((pLocal->IsDucking() ? !Vars::Misc::Movement::DuckSpeed.Value : !Vars::Misc::Movement::FastAccelerate.Value)
 			|| Vars::Misc::Game::AntiCheatCompatibility.Value
-			|| G::Attacking == 1 || F::Ticks.m_bDoubletap || F::Ticks.m_bSpeedhack || F::Ticks.m_bRecharge || G::AntiAim || I::GlobalVars->tickcount % 2)
+			|| G::Attacking == 1 || F::Ticks.m_bDoubletap || F::Ticks.m_bSpeedhack || F::Ticks.m_bRecharge || G::AntiAim)
 			return;
 
 		if (!(pCmd->buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT)))
+			return;
+
+		bool bChoke = !I::ClientState->chokedcommands && F::Ticks.CanChoke(true);
+		if (!bChoke)
 			return;
 
 		Vec3 vMove = { pCmd->forwardmove, pCmd->sidemove, 0.f };
@@ -416,7 +432,12 @@ void CMisc::Event(IGameEvent* pEvent, uint32_t uHash)
 	switch (uHash)
 	{
 	case FNV1A::Hash32Const("player_spawn"):
+	{
+		if (I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")) != I::EngineClient->GetLocalPlayer())
+			return;
+
 		m_bPeekPlaced = false;
+	}
 	}
 }
 
@@ -426,10 +447,10 @@ int CMisc::AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket)
 		return 0;
 
 	std::vector<std::pair<Vec3, CBaseEntity*>> vTargets = {};
-	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ENEMIES))
+	for (auto pEntity : H::Entities.GetGroup(EntityEnum::PlayerEnemy))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
-		if (pPlayer->IsDormant() || !pPlayer->IsAlive() || pPlayer->IsAGhost() || pPlayer->InCond(TF_COND_STEALTHED))
+		if (!pPlayer->IsAlive() || pPlayer->IsAGhost() || pPlayer->InCond(TF_COND_STEALTHED))
 			continue;
 
 		auto pWeapon = pPlayer->m_hActiveWeapon()->As<CTFWeaponBase>();
@@ -479,19 +500,23 @@ int CMisc::AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket)
 		{
 			auto TargetIsBehind = [&]()
 				{
+					const float flCompDist = PLAYER_ORIGIN_COMPRESSION / 2;
+					const float flSqCompDist = 0.0884f;
+
 					Vec3 vToTarget = (pLocal->m_vecOrigin() - pTargetPos.first).To2D();
 					const float flDist = vToTarget.Normalize();
-					if (!flDist)
+					if (flDist < flSqCompDist)
 						return true;
 
-					float flTolerance = 0.0625f;
-					float flExtra = 2.f * flTolerance / flDist; // account for origin compression
+					const float flExtra = 2.f * flCompDist / flDist; // account for origin compression
 					float flPosVsTargetViewMinDot = 0.f - 0.0031f - flExtra;
 
 					Vec3 vTargetForward; Math::AngleVectors(pCmd->viewangles, &vTargetForward);
 					vTargetForward.Normalize2D();
 
-					return vToTarget.Dot(vTargetForward) > flPosVsTargetViewMinDot;
+					const float flPosVsTargetViewDot = vToTarget.Dot(vTargetForward); // Behind?
+
+					return flPosVsTargetViewDot > flPosVsTargetViewMinDot;
 				};
 
 			if (!TargetIsBehind())
@@ -575,6 +600,7 @@ void CMisc::LockAchievements()
 		I::SteamUserStats->StoreStats();
 		I::SteamUserStats->RequestCurrentStats();
 	}
+<<<<<<< HEAD
 }
 
 bool CMisc::SteamRPC()
@@ -621,3 +647,6 @@ bool CMisc::SteamRPC()
 
 // Static member definition for CKeyValuesPool
 CKeyValuesPool* CKeyValuesPool::s_pInstance = nullptr;
+=======
+}
+>>>>>>> upstream/master

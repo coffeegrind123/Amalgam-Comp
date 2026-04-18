@@ -1,0 +1,192 @@
+#include "../SDK/SDK.h"
+#include "../SDK/Helpers/Hook/HookCache.h"
+#include "../SDK/Helpers/Performance/PerformanceMonitor.h"
+
+#include "../Features/Aimbot/Aimbot.h"
+#include "../Features/Backtrack/Backtrack.h"
+#include "../Features/Binds/Binds.h"
+#include "../Features/CheaterDetection/CheaterDetection.h"
+#include "../Features/CritHack/CritHack.h"
+#include "../Features/Players/PlayerUtils.h"
+#include "../Features/Simulation/MovementSimulation/MovementSimulation.h"
+#include "../Features/Spectate/Spectate.h"
+#include "../Features/Visuals/Visuals.h"
+#include "../Features/Visuals/ESP/ESP.h"
+#include "../Features/Visuals/Chams/Chams.h"
+#include "../Features/Visuals/Glow/Glow.h"
+<<<<<<< HEAD:Amalgam/src/Hooks/IBaseClientDLL_FrameStageNotify.cpp
+#include "../Features/Visuals/SentryESP/SentryESP.h"
+#include "../Features/Visuals/StickyESP/StickyESP.h"
+#include "../Features/Visuals/StickyCam/StickyCam.h"
+#include "../Features/Visuals/FocusFire/FocusFire.h"
+#include "../Features/Spectate/Spectate.h"
+#include "../Features/Binds/Binds.h"
+=======
+#include "../Features/Visuals/Groups/Groups.h"
+#include "../Features/Visuals/OffscreenArrows/OffscreenArrows.h"
+>>>>>>> upstream/master:Amalgam/src/Hooks/CHLClient_FrameStageNotify.cpp
+
+MAKE_HOOK(CHLClient_FrameStageNotify, U::Memory.GetVirtual(I::Client, 35), void,
+	void* rcx, ClientFrameStage_t curStage)
+{
+	DEBUG_RETURN(CHLClient_FrameStageNotify, rcx, curStage);
+
+	if (G::Unload)
+		return CALL_ORIGINAL(rcx, curStage);
+
+	// Performance optimization: Use cached function pointers to avoid virtual dispatch overhead
+	// In a full implementation, we could call the original function directly via cached pointer
+	// This would eliminate one level of virtual function call overhead in this hot path
+	CHookCache::Initialize(); // Ensure cache is ready
+
+	// Performance monitoring
+	PERF_TIMER_FRAMESTAGE();
+
+	CALL_ORIGINAL(rcx, curStage);
+
+	switch (curStage)
+	{
+	case FRAME_NET_UPDATE_START:
+	{
+		// Update cache statistics
+		CCacheManager::ClearEntityCache();
+
+		auto pLocal = H::Entities.GetLocal();
+		F::Spectate.NetUpdateStart(pLocal);
+
+		H::Entities.Clear();
+		break;
+	}
+	case FRAME_NET_UPDATE_END:
+	{
+		// Adaptive update frequency for performance
+		static int nUpdateCounter = 0;
+		nUpdateCounter++;
+
+		// Update cache statistics for heavy processing functions
+		CCacheManager::ClearBacktrackCache();
+		CCacheManager::ClearMoveSimCache();
+		CCacheManager::ClearCritHackCache();
+		CCacheManager::ClearAimbotCache();
+
+		H::Entities.Store();
+		F::PlayerUtils.Store();
+
+		// Every frame: Critical features
+		F::Backtrack.Store();
+		F::MoveSim.Store();
+		F::CritHack.Store();
+		F::Aimbot.Store();
+
+		auto pLocal = H::Entities.GetLocal();
+<<<<<<< HEAD:Amalgam/src/Hooks/IBaseClientDLL_FrameStageNotify.cpp
+=======
+		F::Groups.Store(pLocal);
+		F::ESP.Store(pLocal);
+		F::Chams.Store(pLocal);
+		F::Glow.Store(pLocal);
+		F::Arrows.Store();
+		F::Visuals.Store();
+>>>>>>> upstream/master:Amalgam/src/Hooks/CHLClient_FrameStageNotify.cpp
+
+		// Every 2 frames: ESP and visual features (heavy rendering)
+		if (nUpdateCounter % 2 == 0)
+		{
+			// Update competitive feature chams entities before chams system runs
+			F::SentryESP.UpdateChamsEntities();
+			F::StickyESP.UpdateChamsEntities();
+			F::StickyCam.UpdateChamsEntities();
+			F::FocusFire.UpdateChamsEntities();
+
+			F::ESP.Store(pLocal);
+			F::Chams.Store(pLocal);
+			F::Glow.Store(pLocal);
+			F::Visuals.Store(pLocal);
+		}
+
+		// Every 4 frames: Less critical features
+		if (nUpdateCounter % 4 == 0)
+		{
+			F::CheaterDetection.Run();
+		}
+
+		F::Spectate.NetUpdateEnd(pLocal);
+
+		// Disable freezecam feature (instant camera change)
+		static float freezeCamExitTime = 0.0f;
+		static bool bNeedsMixerReset = false;
+
+		if (Vars::Competitive::Features::DisableFreezeCam.Value && pLocal && pLocal->m_iObserverMode() == OBS_MODE_FREEZECAM)
+		{
+			// Track when we exit freezecam for audio timing
+			if (freezeCamExitTime == 0.0f)
+			{
+				freezeCamExitTime = I::GlobalVars->realtime;
+			}
+
+			pLocal->m_iObserverMode() = OBS_MODE_THIRDPERSON;
+			pLocal->m_hObserverTarget().Set(nullptr);
+
+			// Clear freezecam viewangles to prevent inheritance
+			QAngle neutralAngles(0.0f, 0.0f, 0.0f);
+			I::EngineClient->SetViewAngles(neutralAngles);
+
+			bNeedsMixerReset = true;
+		}
+
+		// Reset audio mixer after TF2's natural timing (1.4 seconds after we exit freezecam)
+		if (bNeedsMixerReset && freezeCamExitTime > 0.0f && I::GlobalVars->realtime - freezeCamExitTime >= 1.4f)
+		{
+			static auto snd_soundmixer = H::ConVars.FindVar("snd_soundmixer");
+			if (snd_soundmixer)
+			{
+				snd_soundmixer->SetValue("Default_Mix");
+			}
+			bNeedsMixerReset = false;
+			freezeCamExitTime = 0.0f;
+		}
+
+		// Reset timers when alive
+		if (pLocal && pLocal->IsAlive())
+		{
+			bNeedsMixerReset = false;
+			freezeCamExitTime = 0.0f;
+		}
+
+		F::Visuals.Modulate();
+		F::Visuals.DrawHitboxes(1);
+		break;
+	}
+	case FRAME_RENDER_START:
+		for (auto& tBind : F::Binds.m_vBinds)
+		{	// don't drop inputs for binds
+			if (tBind.m_iType != BindEnum::Key)
+				continue;
+
+			auto& tKey = tBind.m_tKeyStorage;
+
+			bool bOldIsDown = tKey.m_bIsDown;
+			bool bOldIsPressed = tKey.m_bIsPressed;
+			bool bOldIsDouble = tKey.m_bIsDouble;
+			bool bOldIsReleased = tKey.m_bIsReleased;
+
+			U::KeyHandler.StoreKey(tBind.m_iKey, &tKey);
+
+			tKey.m_bIsDown = tKey.m_bIsDown || bOldIsDown;
+			tKey.m_bIsPressed = tKey.m_bIsPressed || bOldIsPressed;
+			tKey.m_bIsDouble = tKey.m_bIsDouble || bOldIsDouble;
+			tKey.m_bIsReleased = tKey.m_bIsReleased || bOldIsReleased;
+		}
+	}
+}
+
+// Static member definitions for CHookCache
+void* CHookCache::s_pFrameStageNotify = nullptr;
+void* CHookCache::s_pCreateMove = nullptr;
+void* CHookCache::s_pPaintTraverse = nullptr;
+void* CHookCache::s_pViewRender = nullptr;
+void* CHookCache::s_pModelRender = nullptr;
+void* CHookCache::s_pSurface = nullptr;
+bool CHookCache::s_bInitialized = false;
+bool CHookCache::s_bValidationEnabled = true;
+uint32_t CHookCache::s_nErrorCount = 0;

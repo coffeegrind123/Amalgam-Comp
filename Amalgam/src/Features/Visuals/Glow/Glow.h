@@ -5,15 +5,13 @@
 
 class CGlow
 {
-	bool GetGlow(CTFPlayer* pLocal, CBaseEntity* pEntity, Glow_t* pGlow, Color_t* pColor);
-
-	void StencilBegin(IMatRenderContext* pRenderContext);
-	void StencilPreDraw(IMatRenderContext* pRenderContext);
-	void StencilEnd(IMatRenderContext* pRenderContext);
-
-	void SetupBegin(Glow_t glow, IMatRenderContext* pRenderContext, IMaterial* m_pMatGlowColor, IMaterial* m_pMatBlurY);
-	void SetupMid(IMatRenderContext* pRenderContext, int w, int h);
-	void SetupEnd(Glow_t glow, IMatRenderContext* pRenderContext, IMaterial* m_pMatBlurX, IMaterial* m_pMatBlurY, IMaterial* m_pMatHaloAddToScreen, int w, int h);
+private:
+	void Begin();
+	void End();
+	void FirstBegin(IMatRenderContext* pRenderContext);
+	void FirstEnd(IMatRenderContext* pRenderContext);
+	void SecondBegin(IMatRenderContext* pRenderContext, int w, int h);
+	void SecondEnd(Glow_t tGlow, IMatRenderContext* pRenderContext, int w, int h);
 
 	void DrawModel(CBaseEntity* pEntity);
 
@@ -26,6 +24,7 @@ class CGlow
 	IMaterial* m_pMatHaloAddToScreen;
 	IMaterial* m_pMatBlurX;
 	IMaterial* m_pMatBlurY;
+	IMaterialVar* m_pBloomAmount;
 
 
 
@@ -45,24 +44,29 @@ class CGlow
 	{
 		CBaseEntity* m_pEntity;
 		Color_t m_cColor;
-		bool m_bExtra = false;
+		int m_iFlags = 0;
 	};
 	std::unordered_map<Glow_t, std::vector<GlowInfo_t>, GlowHasher_t> m_mEntities = {};
 
-	float m_flSavedBlend = 1.f;
-	bool m_bExtra = false;
+	Color_t m_tOriginalColor = {};
+	float m_flOriginalBlend = 1.f;
+	IMaterial* m_pOriginalMaterial = nullptr;
+	OverrideType_t m_iOriginalOverride = OVERRIDE_NORMAL;
+
+	int m_iFlags = false;
 
 public:
-	void Initialize();
-	void Unload();
 
 	void Store(CTFPlayer* pLocal);
-
-	void RenderMain();
+	void RenderFirst();
+	void RenderSecond();
 	void RenderHandler(const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo, matrix3x4* pBoneToWorld);
 
 	void RenderViewmodel(void* ecx, int flags);
 	void RenderViewmodel(const DrawModelState_t& pState, const ModelRenderInfo_t& pInfo, matrix3x4* pBoneToWorld);
+
+	void Initialize();
+	void Unload();
 
 	bool m_bRendering = false;
 };

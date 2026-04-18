@@ -55,7 +55,7 @@ public:
 		KeyValues* m_pKeyValues;
 	};
 
-	bool LoadFromBuffer(char const* resource_name, const char* buffer, void* file_system = 0, const char* path_id = 0);
+	bool LoadFromBuffer(char const* resourceName, const char* pBuffer, void* pFileSystem = 0, const char* pPathID = 0);
 	void Initialize(const char* name);
 	KeyValues(const char* name);
 
@@ -76,7 +76,7 @@ public:
 	const char* GetString(const char* keyName, const char* defaultValue = "");
 	const wchar_t* GetWString(const char* keyName, const wchar_t* defaultValue = L"");
 	void* GetPtr(const char* keyName, void* defaultValue = (void*)0);
-	bool GetBool(const char* keyName, bool defaultValue = false);
+	bool GetBool(const char* keyName, bool defaultValue = false /*, bool* optGotDefault = NULL*/);
 	Color_t GetColor(const char* keyName);
 	bool IsEmpty(const char* keyName);
 
@@ -89,6 +89,7 @@ public:
 	void SetColor(const char* keyName, Color_t value);
 	void SetBool(const char* keyName, bool value);
 
+	void Clear();
 	void DeleteThis();
 };
 

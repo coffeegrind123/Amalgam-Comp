@@ -75,6 +75,7 @@ void CMenu::DrawMenu()
 		PushFont(F::Render.FontBold);
 		FTabs(
 			{
+<<<<<<< HEAD
 				{ "AIMBOT", "GENERAL", "HVH", "DRAW" },
 				{ "VISUALS", "ESP", "CHAMS", "GLOW", "MISC##", "RADAR", "MENU" },
 				{ "MISC" },
@@ -84,6 +85,15 @@ void CMenu::DrawMenu()
 				{ "SETTINGS", "CONFIG", "BINDS", "MATERIALS", "EXTRA" }
 			},
 			{ &iTab, &iAimbotTab, &iVisualsTab, nullptr, &iCompTab, &iChatTab, &iLogsTab, &iSettingsTab },
+=======
+				{ "AIMBOT", "GENERAL", "DRAW" },
+				{ "VISUALS", "ESP", "MISC##", "MENU" },
+				{ "MISC", "MAIN", "HVH" },
+				{ "LOGS", "PLAYERLIST", "SETTINGS##", "OUTPUT" },
+				{ "SETTINGS", "CONFIG", "BINDS", "MATERIALS", "EXTRA" }
+			},
+			{ &iTab, &iAimbotTab, &iVisualsTab, &iMiscTab, &iLogsTab, &iSettingsTab },
+>>>>>>> upstream/master
 			{ H::Draw.Scale(flSideSize - 16), H::Draw.Scale(36) },
 			{ H::Draw.Scale(8), H::Draw.Scale(8) + flOffset },
 			FTabsEnum::Vertical | FTabsEnum::HorizontalIcons | FTabsEnum::AlignLeft | FTabsEnum::BarLeft,
@@ -156,9 +166,9 @@ void CMenu::MenuAimbot(int iTab)
 					FDropdown(Vars::Aimbot::General::Ignore, FDropdownEnum::Right);
 					FSlider(Vars::Aimbot::General::AimFOV);
 					FSlider(Vars::Aimbot::General::MaxTargets, FSliderEnum::Left);
-					PushTransparent(!(Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Cloaked));
+					PushTransparent(!(Vars::Aimbot::General::Ignore.Value & Vars::Aimbot::General::IgnoreEnum::Invisible));
 					{
-						FSlider(Vars::Aimbot::General::IgnoreCloak, FSliderEnum::Right);
+						FSlider(Vars::Aimbot::General::IgnoreInvisible, FSliderEnum::Right);
 					}
 					PopTransparent();
 					FSlider(Vars::Aimbot::General::AssistStrength, FSliderEnum::Left);
@@ -186,15 +196,13 @@ void CMenu::MenuAimbot(int iTab)
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
-					if (Section("##Debug Aimbot"))
+					if (Section("##Debug Aimbot", -8))
 					{
-						FSlider(Vars::Aimbot::General::HitscanPeek);
-						FToggle(Vars::Aimbot::General::PeekDTOnly, FToggleEnum::Left, &Hovered); FTooltip("This should probably stay on if you want to be able to target hitboxes other than the highest priority one", Hovered);
+						FDropdown(Vars::Aimbot::General::AimHoldsFire);
 						FSlider(Vars::Aimbot::General::NoSpreadOffset);
 						FSlider(Vars::Aimbot::General::NoSpreadAverage);
 						FSlider(Vars::Aimbot::General::NoSpreadInterval);
 						FSlider(Vars::Aimbot::General::NoSpreadBackupInterval);
-						FDropdown(Vars::Aimbot::General::AimHoldsFire);
 					} EndSection();
 				}
 				if (Section("Backtrack", 8))
@@ -212,10 +220,13 @@ void CMenu::MenuAimbot(int iTab)
 						FSlider(Vars::Backtrack::Offset);
 					} EndSection();
 				}
-				if (Section("Healing", 8))
+				if (Section("Healing"))
 				{
+					FDropdown(Vars::Aimbot::Healing::HealPriority);
 					FToggle(Vars::Aimbot::Healing::AutoHeal, FToggleEnum::Left);
-					FToggle(Vars::Aimbot::Healing::FriendsOnly, FToggleEnum::Right);
+					FToggle(Vars::Aimbot::Healing::AutoArrow, FToggleEnum::Right);
+					FToggle(Vars::Aimbot::Healing::AutoRepair, FToggleEnum::Left);
+					FToggle(Vars::Aimbot::Healing::AutoSandvich, FToggleEnum::Right);
 					FToggle(Vars::Aimbot::Healing::AutoVaccinator, FToggleEnum::Left);
 					FToggle(Vars::Aimbot::Healing::ActivateOnVoice, FToggleEnum::Right);
 					FToggle(Vars::Aimbot::Healing::AutoVaccinatorFOVRestriction, FToggleEnum::Left);
@@ -244,18 +255,21 @@ void CMenu::MenuAimbot(int iTab)
 				if (Section("Hitscan"))
 				{
 					FDropdown(Vars::Aimbot::Hitscan::Hitboxes, FDropdownEnum::Left);
-					FDropdown(Vars::Aimbot::Hitscan::Modifiers, FDropdownEnum::Right);
-					FSlider(Vars::Aimbot::Hitscan::PointScale);
+					FDropdown(Vars::Aimbot::Hitscan::MultipointHitboxes, FDropdownEnum::Right);
+					FDropdown(Vars::Aimbot::Hitscan::Modifiers);
+					FSlider(Vars::Aimbot::Hitscan::MultipointScale);
 					PushTransparent(!(Vars::Aimbot::Hitscan::Modifiers.Value & Vars::Aimbot::Hitscan::ModifiersEnum::Tapfire));
 					{
-						FSlider(Vars::Aimbot::Hitscan::TapFireDist);
+						FSlider(Vars::Aimbot::Hitscan::TapfireDistance);
 					}
 					PopTransparent();
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
-					if (Section("##Debug Hitscan"))
+					if (Section("##Debug Hitscan", -8))
 					{
+						FDropdown(Vars::Aimbot::Hitscan::PeekCheck, FDropdownEnum::None, 0, &Hovered); FTooltip("This should stay as doubletap only or off if you want to be able to target hitboxes other than the highest priority one", Hovered);
+						FSlider(Vars::Aimbot::Hitscan::PeekAmount);
 						FSlider(Vars::Aimbot::Hitscan::BoneSizeSubtract);
 						FSlider(Vars::Aimbot::Hitscan::BoneSizeMinimumScale);
 					} EndSection();
@@ -287,6 +301,7 @@ void CMenu::MenuAimbot(int iTab)
 					if (Section("##Debug Projectile"))
 					{
 						FText("Ground");
+						Divider();
 						FSlider(Vars::Aimbot::Projectile::GroundSamples, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::GroundStraightFuzzyValue, FSliderEnum::Right);
 						FSlider(Vars::Aimbot::Projectile::GroundLowMinimumSamples, FSliderEnum::Left);
@@ -296,7 +311,9 @@ void CMenu::MenuAimbot(int iTab)
 						FSlider(Vars::Aimbot::Projectile::GroundMaxChanges, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::GroundMaxChangeTime, FSliderEnum::Right);
 
-						FText("\nAir");
+						Divider();
+						FText("Air");
+						Divider();
 						FSlider(Vars::Aimbot::Projectile::AirSamples, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::AirStraightFuzzyValue, FSliderEnum::Right);
 						FSlider(Vars::Aimbot::Projectile::AirLowMinimumSamples, FSliderEnum::Left);
@@ -306,7 +323,9 @@ void CMenu::MenuAimbot(int iTab)
 						FSlider(Vars::Aimbot::Projectile::AirMaxChanges, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::AirMaxChangeTime, FSliderEnum::Right);
 
-						FText("");
+						Divider();
+						FText("General");
+						Divider();
 						FSlider(Vars::Aimbot::Projectile::VelocityAverageCount, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::VerticalShift, FSliderEnum::Right);
 
@@ -317,21 +336,38 @@ void CMenu::MenuAimbot(int iTab)
 						FSlider(Vars::Aimbot::Projectile::HuntsmanAdd, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::HuntsmanAddLow, FSliderEnum::Right);
 						FSlider(Vars::Aimbot::Projectile::HuntsmanClamp, FSliderEnum::Left);
-						FToggle(Vars::Aimbot::Projectile::HuntsmanPullPoint, FToggleEnum::Right);
-						SetCursorPosY(GetCursorPosY() + 8);
+						FToggle(Vars::Aimbot::Projectile::HuntsmanPullPoint, FSliderEnum::Left);
+						FToggle(Vars::Aimbot::Projectile::HuntsmanPullNoZ, FToggleEnum::Right);
 
+<<<<<<< HEAD
 						FSlider(Vars::Aimbot::Projectile::SplashPointsDirect, FSliderEnum::Left);
 		FSlider(Vars::Aimbot::Projectile::SplashPointsArc, FSliderEnum::Right);
 						FToggle(Vars::Aimbot::Projectile::SplashGrates, FToggleEnum::Right);
 						FSlider(Vars::Aimbot::Projectile::SplashRotateX, FSliderEnum::Left, Vars::Aimbot::Projectile::SplashRotateX[DEFAULT_BIND] < 0.f ? "random" : "%g");
 						FSlider(Vars::Aimbot::Projectile::SplashRotateY, FSliderEnum::Right, Vars::Aimbot::Projectile::SplashRotateY[DEFAULT_BIND] < 0.f ? "random" : "%g");
 						FSlider(Vars::Aimbot::Projectile::SplashNthRoot);
+=======
+						Divider();
+						FText("Splash");
+						Divider();
+						FSlider(Vars::Aimbot::Projectile::SplashPointsDirect, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::SplashPointsArc, FSliderEnum::Right);
+>>>>>>> upstream/master
 						FSlider(Vars::Aimbot::Projectile::SplashCountDirect, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::SplashCountArc, FSliderEnum::Right);
+						FSlider(Vars::Aimbot::Projectile::SplashRotateX, FSliderEnum::Left, Vars::Aimbot::Projectile::SplashRotateX[DEFAULT_BIND] < 0.f ? "random" : "%g");
+						FSlider(Vars::Aimbot::Projectile::SplashRotateY, FSliderEnum::Right, Vars::Aimbot::Projectile::SplashRotateY[DEFAULT_BIND] < 0.f ? "random" : "%g");
 						FSlider(Vars::Aimbot::Projectile::SplashTraceInterval, FSliderEnum::Left);
 						FSlider(Vars::Aimbot::Projectile::SplashNormalSkip, FSliderEnum::Right);
 						FDropdown(Vars::Aimbot::Projectile::SplashMode, FDropdownEnum::Left);
 						FDropdown(Vars::Aimbot::Projectile::RocketSplashMode, FDropdownEnum::Right, 0, &Hovered); FTooltip("Special splash type for rockets, more expensive", Hovered);
+						FToggle(Vars::Aimbot::Projectile::SplashGrates);
+						FSlider(Vars::Aimbot::Projectile::Out2NormalMin, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Projectile::Out2NormalMax, FSliderEnum::Right);
+
+						Divider();
+						FText("Misc");
+						Divider();
 						FSlider(Vars::Aimbot::Projectile::DeltaCount, FSliderEnum::Left);
 						FDropdown(Vars::Aimbot::Projectile::DeltaMode, FDropdownEnum::Right);
 						FDropdown(Vars::Aimbot::Projectile::MovesimFrictionFlags);
@@ -348,12 +384,777 @@ void CMenu::MenuAimbot(int iTab)
 				{
 					if (Section("##Debug Melee"))
 					{
-						FSlider(Vars::Aimbot::Melee::SwingTicks, FSliderEnum::Left);
+						FSlider(Vars::Aimbot::Melee::SwingOffset, FSliderEnum::Left);
 						FToggle(Vars::Aimbot::Melee::SwingPredictLag, FToggleEnum::Right);
 						FToggle(Vars::Aimbot::Melee::BackstabAccountPing, FToggleEnum::Left);
 						FToggle(Vars::Aimbot::Melee::BackstabDoubleTest, FToggleEnum::Right);
 					} EndSection();
 				}
+			}
+			EndTable();
+		}
+		break;
+	}
+	// Draw
+	case 1:
+	{
+		if (BeginTable("DrawTable", 2))
+		{
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("Line", 8))
+				{
+					FColorPicker(Vars::Colors::Line, FColorPickerEnum::None, { -H::Draw.Scale(12), 0 });
+					FColorPicker(Vars::Colors::LineIgnoreZ);
+					FToggle(Vars::Visuals::Line::Enabled);
+					FSlider(Vars::Visuals::Line::DrawDuration);
+				} EndSection();
+				if (Section("Hitbox"))
+				{
+					FDropdown(Vars::Visuals::Hitbox::BonesEnabled, FDropdownEnum::None, -50);
+					FColorPicker(Vars::Colors::BoneHitboxEdge, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::BoneHitboxEdgeIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::BoneHitboxFace, FColorPickerEnum::SameLine, { H::Draw.Scale(10), 0 }, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::BoneHitboxFaceIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::TargetHitboxEdge, FColorPickerEnum::SameLine, { -H::Draw.Scale(50), H::Draw.Scale(20) }, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::TargetHitboxEdgeIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::TargetHitboxFace, FColorPickerEnum::SameLine, { H::Draw.Scale(10), 0 }, { H::Draw.Scale(10), H::Draw.Scale(20) });
+					FColorPicker(Vars::Colors::TargetHitboxFaceIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(20) });
+
+					FDropdown(Vars::Visuals::Hitbox::BoundsEnabled, FDropdownEnum::None, -50);
+					FColorPicker(Vars::Colors::BoundHitboxEdge, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::BoundHitboxEdgeIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::BoundHitboxFace, FColorPickerEnum::SameLine, { H::Draw.Scale(10), 0 }, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::BoundHitboxFaceIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+
+					FSlider(Vars::Visuals::Hitbox::DrawDuration);
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("Simulation"))
+				{
+					FDropdown(Vars::Visuals::Simulation::PlayerPath, FDropdownEnum::Left, -20);
+					FColorPicker(Vars::Colors::PlayerPath, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::PlayerPathIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FDropdown(Vars::Visuals::Simulation::ProjectilePath, FDropdownEnum::Right, -20);
+					FColorPicker(Vars::Colors::ProjectilePath, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::ProjectilePathIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FDropdown(Vars::Visuals::Simulation::TrajectoryPath, FDropdownEnum::Left, -20);
+					FColorPicker(Vars::Colors::TrajectoryPath, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::TrajectoryPathIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FDropdown(Vars::Visuals::Simulation::ShotPath, FDropdownEnum::Right, -20);
+					FColorPicker(Vars::Colors::ShotPath, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::ShotPathIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FDropdown(Vars::Visuals::Simulation::SplashRadius, FDropdownEnum::None, -20);
+					FColorPicker(Vars::Colors::SplashRadius, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FColorPicker(Vars::Colors::SplashRadiusIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FToggle(Vars::Visuals::Simulation::Timed, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Simulation::Box, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Simulation::ProjectileCamera, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Simulation::SwingLines, FToggleEnum::Right);
+					FSlider(Vars::Visuals::Simulation::DrawDuration);
+				} EndSection();
+				if (Vars::Debug::Options.Value)
+				{
+					if (Section("##Debug Part1", -8))
+					{
+						FDropdown(Vars::Visuals::Simulation::RealPath, FDropdownEnum::None, -20);
+						FColorPicker(Vars::Colors::RealPath, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+						FColorPicker(Vars::Colors::RealPathIgnoreZ, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+
+						FSlider(Vars::Visuals::Simulation::SeparatorSpacing, FSliderEnum::Left);
+						FSlider(Vars::Visuals::Simulation::SeparatorLength, FSliderEnum::Right);
+					} EndSection();
+					if (Section("##Debug Part2"))
+					{
+						FToggle(Vars::Visuals::Trajectory::Override);
+						FSlider(Vars::Visuals::Trajectory::OffsetX);
+						FSlider(Vars::Visuals::Trajectory::OffsetY);
+						FSlider(Vars::Visuals::Trajectory::OffsetZ);
+						FSlider(Vars::Visuals::Trajectory::ForwardRedirect);
+						FSlider(Vars::Visuals::Trajectory::ForwardCutoff);
+						FSlider(Vars::Visuals::Trajectory::Hull);
+						FSlider(Vars::Visuals::Trajectory::Speed);
+						FSlider(Vars::Visuals::Trajectory::Gravity);
+						FSlider(Vars::Visuals::Trajectory::LifeTime);
+						FSlider(Vars::Visuals::Trajectory::UpVelocity);
+						FSlider(Vars::Visuals::Trajectory::AngularVelocityX);
+						FSlider(Vars::Visuals::Trajectory::AngularVelocityY);
+						FSlider(Vars::Visuals::Trajectory::AngularVelocityZ);
+						FSlider(Vars::Visuals::Trajectory::Drag);
+						FSlider(Vars::Visuals::Trajectory::DragX);
+						FSlider(Vars::Visuals::Trajectory::DragY);
+						FSlider(Vars::Visuals::Trajectory::DragZ);
+						FSlider(Vars::Visuals::Trajectory::AngularDragX);
+						FSlider(Vars::Visuals::Trajectory::AngularDragY);
+						FSlider(Vars::Visuals::Trajectory::AngularDragZ);
+						FSlider(Vars::Visuals::Trajectory::MaxVelocity);
+						FSlider(Vars::Visuals::Trajectory::MaxAngularVelocity);
+					} EndSection();
+				}
+			}
+			EndTable();
+		}
+		break;
+	}
+	}
+}
+
+void CMenu::MenuVisuals(int iTab)
+{
+	using namespace ImGui;
+
+	switch (iTab)
+	{
+	// ESP
+	case 0:
+	{
+		// fake angle/viewmodel visuals, pickup timers?
+		static size_t iCurrentGroup = 0;
+
+		if (Section("Groups"))
+		{
+			static std::string sStaticName;
+
+			PushDisabled(F::Groups.m_vGroups.size() >= sizeof(int) * 8); // for active groups flags
+			{
+				FSDropdown("Name", &sStaticName, {}, FDropdownEnum::Left | FSDropdownEnum::AutoUpdate, -H::Draw.Unscale(FCalcTextSize("CREATE").x) - 36);
+
+				PushDisabled(Disabled || sStaticName.empty());
+				{
+					if (FButton("Create", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
+					{
+						F::Groups.m_vGroups.emplace_back(sStaticName);
+						sStaticName.clear();
+
+						iCurrentGroup = F::Groups.m_vGroups.size() - 1;
+					}
+				}
+				PopDisabled();
+			}
+			PopDisabled();
+
+			FDropdown(Vars::ESP::ActiveGroups, FDropdownEnum::Right | FDropdownEnum::Multi);
+
+			PushStyleColor(ImGuiCol_Text, F::Render.Inactive.Value);
+			SetCursorPos({ H::Draw.Scale(13), H::Draw.Scale(80) });
+			FText("Groups");
+			SetCursorPosY(GetCursorPosY() - H::Draw.Scale(5));
+			PopStyleColor();
+
+			auto positionToIndex = [](ImVec2 vPos)
+				{
+					int iIndex = floorf((vPos.y - GetCursorPosY() - H::Draw.Scale(4)) / H::Draw.Scale(36)) * 2
+								 + (vPos.x > GetWindowWidth() / 2 ? 1 : 0);
+					iIndex = std::clamp(iIndex, 0, int(F::Groups.m_vGroups.size() - 1));
+					return iIndex;
+				};
+
+			static int iDragging = -1;
+			if (!IsMouseDown(ImGuiMouseButton_Left))
+				iDragging = -1;
+			else if (iDragging != -1)
+			{
+				int iTo = positionToIndex(GetMousePos() - GetDrawPos());
+				if (iDragging != iTo)
+				{
+					F::Groups.Move(iDragging, iTo);
+					iDragging = iTo;
+				}
+			}
+
+			for (auto it = F::Groups.m_vGroups.begin(); it < F::Groups.m_vGroups.end();)
+			{
+				int iGroup = std::distance(F::Groups.m_vGroups.begin(), it);
+				auto& tGroup = *it;
+
+				ImVec2 vOriginalPos = !(iGroup % 2)
+					? ImVec2(GetStyle().WindowPadding.x, GetCursorPosY() + H::Draw.Scale(8))
+					: ImVec2(GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, GetCursorPosY() - H::Draw.Scale(28));
+
+				// background
+				float flWidth = GetWindowWidth() / 2 - GetStyle().WindowPadding.x * 1.5f;
+				float flHeight = H::Draw.Scale(28);
+				ImColor tColor = ColorToVec(tGroup.m_tColor.Lerp(Vars::Menu::Theme::Background.Value, 0.5f, LerpEnum::NoAlpha));
+				ImVec2 vDrawPos = GetDrawPos() + vOriginalPos;
+				if (iCurrentGroup != iGroup)
+					GetWindowDrawList()->AddRectFilled(vDrawPos, { vDrawPos.x + flWidth, vDrawPos.y + flHeight }, tColor, H::Draw.Scale(4));
+				else
+				{
+					ImColor tColor2 = { tColor.Value.x * 1.1f, tColor.Value.y * 1.1f, tColor.Value.z * 1.1f, tColor.Value.w };
+					GetWindowDrawList()->AddRectFilled(vDrawPos, { vDrawPos.x + flWidth, vDrawPos.y + flHeight }, tColor2, H::Draw.Scale(4));
+
+					tColor2 = ColorToVec(tGroup.m_tColor.Lerp(Vars::Menu::Theme::Background.Value, 0.25f, LerpEnum::NoAlpha));
+					float flInset = H::Draw.Scale(0.5f) - 0.5f;
+					GetWindowDrawList()->AddRect({ vDrawPos.x + flInset, vDrawPos.y + flInset }, { vDrawPos.x - flInset + flWidth, vDrawPos.y - flInset + flHeight }, tColor2, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
+				}
+
+				// text + icons
+				float flTextWidth = flWidth - H::Draw.Scale(36);
+				SetCursorPos({ vOriginalPos.x + H::Draw.Scale(9), vOriginalPos.y + H::Draw.Scale(7) });
+				PushTransparent(!(Vars::ESP::ActiveGroups.Value & 1 << iGroup), true);
+				{
+					FText(TruncateText(tGroup.m_sName, flTextWidth).c_str());
+				}
+				PopTransparent(1, 1);
+
+				SetCursorPos({ vOriginalPos.x + flWidth - H::Draw.Scale(26), vOriginalPos.y + H::Draw.Scale(2) });
+				bool bDelete = IconButton(ICON_MD_DELETE);
+
+				SetCursorPos(vOriginalPos);
+				bool bClicked = Button(std::format("##{}", iGroup).c_str(), { flWidth, flHeight });
+				bool bPopup = IsItemClicked(ImGuiMouseButton_Right);
+
+				if (bClicked)
+					iCurrentGroup = iGroup;
+				else if (bPopup)
+					OpenPopup(std::format("RightClicked{}", iGroup).c_str());
+				else if (iDragging == -1 && IsItemHovered() && IsMouseDown(ImGuiMouseButton_Left))
+					iDragging = iGroup;
+
+				if (FBeginPopup(std::format("RightClicked{}", iGroup).c_str()))
+				{
+					PushStyleVar(ImGuiStyleVar_ItemSpacing, { H::Draw.Scale(8), 0 });
+
+					{
+						static std::string sInput = "";
+
+						bool bEnter = FInputText("Name...", sInput, H::Draw.Scale(284), ImGuiInputTextFlags_EnterReturnsTrue);
+						if (!IsItemFocused())
+							sInput = tGroup.m_sName;
+						if (bEnter)
+							tGroup.m_sName = sInput;
+					}
+
+					if (FButton("Duplicate"))
+					{
+						auto it2 = F::Groups.m_vGroups.insert(it + 1, tGroup);
+						it2->m_sName += " duplicate";
+					}
+
+					PopStyleVar();
+					EndPopup();
+				}
+
+				if (!bDelete)
+					++it;
+				else
+					it = F::Groups.m_vGroups.erase(it);
+			}
+		} EndSection();
+
+		if (!F::Groups.m_vGroups.empty()
+			&& BeginTable("VisualsESPTable", 2))
+		{
+			iCurrentGroup = std::clamp(iCurrentGroup, 0ui64, F::Groups.m_vGroups.size() - 1);
+			auto& tGroup = F::Groups.m_vGroups[iCurrentGroup];
+
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("Color", 8))
+				{
+					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
+					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
+				} EndSection();
+				if (Section("Targets"))
+				{
+					FDropdown("Targets", &tGroup.m_iTargets, { "Players", "Buildings", "Projectiles", "Ragdolls", "Objective", "NPCs", "Health", "Ammo", "Money", "Powerups", "Spellbook", "Bombs", "Gargoyle", "##Divider", "Fake angle", "Viewmodel weapon", "Viewmodel hands" }, {}, FDropdownEnum::Multi);
+				} EndSection();
+				if (Section("Conditions"))
+				{
+					FDropdown("Conditions", &tGroup.m_iConditions, { "Enemy", "Team", "BLU", "RED", "##Divider", "Local", "Friends", "Party", "Priority", "Target", "##Divider", "Dormant" }, {}, FDropdownEnum::Multi);
+					Divider(H::Draw.Scale(), H::Draw.Scale(8), -H::Draw.Scale());
+					PushTransparent(!(tGroup.m_iTargets & TargetsEnum::Players));
+					{
+						FDropdown("Players", &tGroup.m_iPlayers, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy", "##Divider", "Invulnerable", "Crits", "Invisible", "Disguise", "Hurt" }, {}, FDropdownEnum::Multi, 0, "All");
+					}
+					PopTransparent();
+					PushTransparent(!(tGroup.m_iTargets & TargetsEnum::Buildings));
+					{
+						FDropdown("Buildings", &tGroup.m_iBuildings, { "Sentry", "Dispenser", "Teleporter", "##Divider", "Hurt" }, {}, FDropdownEnum::Multi, 0, "All");
+					}
+					PopTransparent();
+					PushTransparent(!(tGroup.m_iTargets & TargetsEnum::Projectiles));
+					{
+						FDropdown("Projectiles", &tGroup.m_iProjectiles, { "Rocket", "Sticky", "Pipe", "Arrow", "Heal", "Flare", "Fire", "Repair", "Cleaver", "Milk", "Jarate", "Gas", "Bauble", "Baseball", "Energy", "Short circuit", "Meteor shower", "Lightning", "Fireball", "Bomb", "Bats", "Pumpkin", "Monoculus", "Skeleton", "Misc", "##Divider", "Crit", "Minicrit" }, {}, FDropdownEnum::Multi, 0, "All");
+					}
+					PopTransparent();
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("ESP"))
+				{
+					std::vector<const char*> vEntries = { "Name", "Box", "Distance" };
+					std::vector<int> vValues = { ESPEnum::Name, ESPEnum::Box, ESPEnum::Distance };
+					if (tGroup.m_iTargets & TargetsEnum::Players)
+					{
+						vEntries.insert(vEntries.end(), { "Bones" });
+						vValues.insert(vValues.end(), { ESPEnum::Bones });
+					}
+					if (tGroup.m_iTargets & (TargetsEnum::Players | TargetsEnum::Buildings))
+					{
+						vEntries.insert(vEntries.end(), { "Health bar", "Health text" });
+						vValues.insert(vValues.end(), { ESPEnum::HealthBar, ESPEnum::HealthText });
+					}
+					if (tGroup.m_iTargets & TargetsEnum::Players)
+					{
+						vEntries.insert(vEntries.end(), { "Uber bar", "Uber text", "Class icon", "Class text", "Weapon icon", "Weapon text", "Priority", "Labels", "Buffs", "Debuffs" });
+						vValues.insert(vValues.end(), { ESPEnum::UberBar, ESPEnum::UberText, ESPEnum::ClassIcon, ESPEnum::ClassText, ESPEnum::WeaponIcon, ESPEnum::WeaponText, ESPEnum::Priority, ESPEnum::Labels, ESPEnum::Buffs, ESPEnum::Debuffs });
+					}
+					if (tGroup.m_iTargets & (TargetsEnum::Players | TargetsEnum::Buildings | TargetsEnum::Projectiles | TargetsEnum::Objective))
+					{
+						vEntries.insert(vEntries.end(), { "Flags" });
+						vValues.insert(vValues.end(), { ESPEnum::Flags });
+					}
+					if (tGroup.m_iTargets & TargetsEnum::Players)
+					{
+						vEntries.insert(vEntries.end(), { "Lag compensation", "Ping", "KDR" });
+						vValues.insert(vValues.end(), { ESPEnum::LagCompensation, ESPEnum::Ping, ESPEnum::KDR });
+					}
+					if (tGroup.m_iTargets & (TargetsEnum::Buildings | TargetsEnum::Projectiles))
+					{
+						vEntries.insert(vEntries.end(), { "Owner" });
+						vValues.insert(vValues.end(), { ESPEnum::Owner });
+					}
+					if (tGroup.m_iTargets & TargetsEnum::Buildings)
+					{
+						vEntries.insert(vEntries.end(), { "Level", "Ammo bars", "Ammo text" });
+						vValues.insert(vValues.end(), { ESPEnum::Level, ESPEnum::AmmoBars, ESPEnum::AmmoText });
+					}
+					if (tGroup.m_iTargets & TargetsEnum::Objective)
+					{
+						vEntries.insert(vEntries.end(), { "Intel return time" });
+						vValues.insert(vValues.end(), { ESPEnum::IntelReturnTime });
+					}
+
+					PushTransparent(tGroup.m_iTargets && !(tGroup.m_iTargets& TargetsEnum::ESP));
+					{
+						FDropdown("Draw", &tGroup.m_iESP, vEntries, vValues, FDropdownEnum::Multi);
+					}
+					PopTransparent();
+				} EndSection();
+				if (Section("Chams"))
+				{
+					if (!tGroup.m_iTargets || tGroup.m_iTargets & TargetsEnum::Occluded)
+					{
+						FMDropdown("Visible material", &tGroup.m_tChams.Visible, FDropdownEnum::Left);
+						FMDropdown("Occluded material", &tGroup.m_tChams.Occluded, FDropdownEnum::Right);
+					}
+					else
+						FMDropdown("Material", &tGroup.m_tChams.Visible);
+				} EndSection();
+				if (Section("Glow", 8))
+				{
+					PushTransparent(!tGroup.m_tGlow.Stencil);
+					{
+						FSlider("Stencil scale", &tGroup.m_tGlow.Stencil, 0, 10, 1, "%i", FSliderEnum::Left | FSliderEnum::Min);
+					}
+					PopTransparent();
+					PushTransparent(!tGroup.m_tGlow.Blur);
+					{
+						FSlider("Blur scale", &tGroup.m_tGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
+					}
+					PopTransparent();
+				} EndSection();
+				if (Section("Misc", 8))
+				{
+					FToggle("Offscreen arrows", &tGroup.m_bOffscreenArrows, FToggleEnum::Left);
+					SameLine(GetWindowWidth() - H::Draw.Scale(33));
+					if (IconButton(ICON_MD_KEYBOARD_ARROW_DOWN))
+						OpenPopup("OffscreenArrows");
+
+					FToggle("Pickup timer", &tGroup.m_bPickupTimer);
+
+					FToggle("Backtrack", &tGroup.m_iBacktrack, BacktrackEnum::Enabled, FToggleEnum::Left);
+					SameLine(GetWindowWidth() - H::Draw.Scale(33));
+					if (IconButton(ICON_MD_KEYBOARD_ARROW_DOWN))
+						OpenPopup("Backtrack");
+
+					FToggle("Trajectory", &tGroup.m_iTrajectory, TrajectoryEnum::Enabled, FToggleEnum::Left);
+					SameLine(GetWindowWidth() - H::Draw.Scale(33));
+					if (IconButton(ICON_MD_KEYBOARD_ARROW_DOWN))
+						OpenPopup("Trajectory");
+
+					FToggle("Sightlines", &tGroup.m_iSightlines, SightlinesEnum::Enabled, FToggleEnum::Left);
+					SameLine(GetWindowWidth() - H::Draw.Scale(33));
+					if (IconButton(ICON_MD_KEYBOARD_ARROW_DOWN))
+						OpenPopup("Sightlines");
+
+					SetNextWindowSize({ H::Draw.Scale(300), 0 });
+					if (FBeginPopup("OffscreenArrows"))
+					{
+						FSlider("Offset", &tGroup.m_iOffscreenArrowsOffset, 0, 1000, 25, "%i", FSliderEnum::Precision);
+						FSlider("Max distance", &tGroup.m_flOffscreenArrowsMaxDistance, 0.f, 5000.f, 50.f, "%g", FSliderEnum::Min | FSliderEnum::Precision);
+
+						EndPopup();
+					}
+
+					SetNextWindowSize({ H::Draw.Scale(300), 0 });
+					if (FBeginPopup("Backtrack"))
+					{
+						SetCursorPosY(GetCursorPosY() - H::Draw.Scale(8));
+
+						FDropdown("##Draw", &tGroup.m_iBacktrack, { "Last", "First", "##Divider", "Always" }, { BacktrackEnum::Last, BacktrackEnum::First, BacktrackEnum::Always }, FDropdownEnum::Multi | FDropdownEnum::NoSanitization, 0, "All");
+
+						FMDropdown("Material", &tGroup.m_vBacktrackChams, FDropdownEnum::Left);
+						SetCursorPos({ GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, GetCursorPosY() - H::Draw.Scale(32) });
+						FToggle("Ignore Z", &tGroup.m_iBacktrack, BacktrackEnum::IgnoreZ, FToggleEnum::Left);
+
+						SetCursorPosY(GetCursorPosY() + H::Draw.Scale(8));
+						PushTransparent(!tGroup.m_tBacktrackGlow.Stencil);
+						{
+							FSlider("Stencil scale## Backtrack", &tGroup.m_tBacktrackGlow.Stencil, 0, 10, 1, "%i", FSliderEnum::Left | FSliderEnum::Min);
+						}
+						PopTransparent();
+						PushTransparent(!tGroup.m_tBacktrackGlow.Blur);
+						{
+							FSlider("Blur scale## Backtrack", &tGroup.m_tBacktrackGlow.Blur, 0.f, 10.f, 1.f, "%g", FSliderEnum::Right | FSliderEnum::Min | FSliderEnum::Precision);
+						}
+						PopTransparent();
+
+						EndPopup();
+					}
+
+					SetNextWindowSize({ H::Draw.Scale(300), 0 });
+					if (FBeginPopup("Trajectory"))
+					{
+						SetCursorPosY(GetCursorPosY() - H::Draw.Scale(8));
+
+						FDropdown("Flags", &tGroup.m_iTrajectory, { "Predict", "##Divider", "Radius", "Trace", "Sphere", "##Divider", "Path" }, { TrajectoryEnum::Predict, TrajectoryEnum::Radius, TrajectoryEnum::Trace, TrajectoryEnum::Sphere, TrajectoryEnum::Path }, FDropdownEnum::Multi | FDropdownEnum::NoSanitization);
+						FToggle("Ignore Z", &tGroup.m_iTrajectory, SightlinesEnum::IgnoreZ);
+
+						EndPopup();
+					}
+
+					SetNextWindowSize({ H::Draw.Scale(300), 0 });
+					if (FBeginPopup("Sightlines"))
+					{
+						FToggle("Ignore Z", &tGroup.m_iSightlines, SightlinesEnum::IgnoreZ);
+
+						EndPopup();
+					}
+				} EndSection();
+			}
+			EndTable();
+		}
+		break;
+	}
+	// Misc
+	case 1:
+	{
+		if (BeginTable("VisualsMiscTable", 2))
+		{
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("UI"))
+				{
+					FDropdown(Vars::Visuals::UI::StreamerMode, FDropdownEnum::Left);
+					FDropdown(Vars::Visuals::UI::ChatTags, FDropdownEnum::Right, -10);
+					FColorPicker(Vars::Colors::Local, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					PushTransparent(!Vars::Visuals::UI::FieldOfView.Value);
+					{
+						FSlider(Vars::Visuals::UI::FieldOfView);
+					}
+					PopTransparent();
+					PushTransparent(!Vars::Visuals::UI::ZoomFieldOfView.Value);
+					{
+						FSlider(Vars::Visuals::UI::ZoomFieldOfView);
+					}
+					PopTransparent();
+					/*
+					PushTransparent(!Vars::Visuals::UI::AspectRatio.Value);
+					{
+						FSlider(Vars::Visuals::UI::AspectRatio);
+					}
+					PopTransparent();
+					*/
+					FToggle(Vars::Visuals::UI::RevealScoreboard, FToggleEnum::Left);
+					FToggle(Vars::Visuals::UI::ScoreboardUtility, FToggleEnum::Right);
+					FToggle(Vars::Visuals::UI::ScoreboardColors, FToggleEnum::Left);
+					FToggle(Vars::Visuals::UI::CleanScreenshots, FToggleEnum::Right);
+				} EndSection();
+				if (Section("Thirdperson", 8))
+				{
+					FToggle(Vars::Visuals::Thirdperson::Enabled, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Thirdperson::Crosshair, FToggleEnum::Right);
+					FSlider(Vars::Visuals::Thirdperson::Distance);
+					FSlider(Vars::Visuals::Thirdperson::Right);
+					FSlider(Vars::Visuals::Thirdperson::Up);
+				} EndSection();
+				if (Vars::Debug::Options.Value)
+				{
+					if (Section("##Debug"))
+					{
+						FToggle(Vars::Visuals::Thirdperson::Scale, FToggleEnum::Left);
+						FToggle(Vars::Visuals::Thirdperson::Collide, FToggleEnum::Right);
+					} EndSection();
+				}
+				if (Section("Effects"))
+				{
+					// https://developer.valvesoftware.com/wiki/Team_Fortress_2/Particles
+					// https://forums.alliedmods.net/showthread.php?t=127111
+					FSDropdown(Vars::Visuals::Effects::BulletTracer, FDropdownEnum::Left);
+					FSDropdown(Vars::Visuals::Effects::CritTracer, FDropdownEnum::Right);
+					FSDropdown(Vars::Visuals::Effects::MedigunBeam, FDropdownEnum::Left);
+					FSDropdown(Vars::Visuals::Effects::MedigunCharge, FDropdownEnum::Right);
+					FSDropdown(Vars::Visuals::Effects::ProjectileTrail, FDropdownEnum::Left);
+					FDropdown(Vars::Visuals::Effects::SpellFootsteps, FDropdownEnum::Right, -10);
+					FColorPicker(Vars::Colors::SpellFootstep, FColorPickerEnum::SameLine | FColorPickerEnum::NoTooltip, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
+					FDropdown(Vars::Visuals::Effects::RagdollEffects);
+					FToggle(Vars::Visuals::Effects::DrawIconsThroughWalls);
+					FToggle(Vars::Visuals::Effects::DrawDamageNumbersThroughWalls);
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("Removals", 8))
+				{
+					FToggle(Vars::Visuals::Removals::Interpolation, FToggleEnum::Left);
+					PushTransparent(Vars::Visuals::Removals::Interpolation.Value);
+					{
+						FToggle(Vars::Visuals::Removals::Lerp, FToggleEnum::Right);
+					}
+					PopTransparent();
+					FToggle(Vars::Visuals::Removals::Disguises, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::Taunts, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::Scope, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::PostProcessing, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::ScreenOverlays, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::ScreenEffects, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::ViewPunch, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::AngleForcing, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::Ragdolls, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::Gibs, FToggleEnum::Right);
+					FToggle(Vars::Visuals::Removals::MOTD, FToggleEnum::Left);
+				} EndSection();
+				if (Section("Viewmodel", 8))
+				{
+					FToggle(Vars::Visuals::Viewmodel::CrosshairAim, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Viewmodel::ViewmodelAim, FToggleEnum::Right);
+					FSlider(Vars::Visuals::Viewmodel::OffsetX, FSliderEnum::Left);
+					FSlider(Vars::Visuals::Viewmodel::Pitch, FSliderEnum::Right);
+					FSlider(Vars::Visuals::Viewmodel::OffsetY, FSliderEnum::Left);
+					FSlider(Vars::Visuals::Viewmodel::Yaw, FSliderEnum::Right);
+					FSlider(Vars::Visuals::Viewmodel::OffsetZ, FSliderEnum::Left);
+					FSlider(Vars::Visuals::Viewmodel::Roll, FSliderEnum::Right);
+					PushTransparent(!Vars::Visuals::Viewmodel::SwayScale.Value || !Vars::Visuals::Viewmodel::SwayInterp.Value);
+					{
+						FSlider(Vars::Visuals::Viewmodel::SwayScale, FSliderEnum::Left);
+						FSlider(Vars::Visuals::Viewmodel::SwayInterp, FSliderEnum::Right);
+					}
+					PopTransparent();
+				} EndSection();
+				if (Section("World"))
+				{
+					FDropdown(Vars::Visuals::World::Modulations);
+					FSDropdown(Vars::Visuals::World::WorldTexture, FDropdownEnum::Left);
+					FSDropdown(Vars::Visuals::World::SkyboxChanger, FDropdownEnum::Right);
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::World));
+					{
+						FColorPicker(Vars::Colors::WorldModulation, FColorPickerEnum::Left);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Sky));
+					{
+						FColorPicker(Vars::Colors::SkyModulation, FColorPickerEnum::Right);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Prop));
+					{
+						FColorPicker(Vars::Colors::PropModulation, FColorPickerEnum::Left);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Particle));
+					{
+						FColorPicker(Vars::Colors::ParticleModulation, FColorPickerEnum::Right);
+					}
+					PopTransparent();
+					PushTransparent(!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Fog));
+					{
+						FColorPicker(Vars::Colors::FogModulation, FColorPickerEnum::Left);
+					}
+					PopTransparent();
+					FToggle(Vars::Visuals::World::NearPropFade, FToggleEnum::Left);
+					FToggle(Vars::Visuals::World::NoPropFade, FToggleEnum::Right);
+				} EndSection();
+			}
+			EndTable();
+		}
+		break;
+	}
+	// Menu
+	case 2:
+	{
+		if (BeginTable("MenuTable", 2))
+		{
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("Settings", 8))
+				{
+					FColorPicker(Vars::Menu::Theme::Accent, FColorPickerEnum::Left);
+					FColorPicker(Vars::Menu::Theme::Background, FColorPickerEnum::Right);
+					FColorPicker(Vars::Menu::Theme::Active, FColorPickerEnum::Left);
+					FColorPicker(Vars::Menu::Theme::Inactive, FColorPickerEnum::Right);
+
+					FSDropdown(Vars::Menu::CheatTitle, FDropdownEnum::Left);
+					FSDropdown(Vars::Menu::CheatTag, FDropdownEnum::Right);
+					FKeybind(Vars::Menu::PrimaryKey, FButtonEnum::Left, { Vars::Menu::SecondaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON });
+					FKeybind(Vars::Menu::SecondaryKey, FButtonEnum::Right | FButtonEnum::SameLine, { Vars::Menu::PrimaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON });
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("Indicators"))
+				{
+					FDropdown(Vars::Menu::Indicators);
+					if (FSlider(Vars::Menu::Scale))
+						H::Fonts.Reload(Vars::Menu::Scale[DEFAULT_BIND]);
+					FToggle(Vars::Menu::CheapText);
+				} EndSection();
+				if (Vars::Debug::Options.Value)
+				{
+					if (Section("##Debug"))
+					{
+						FColorPicker(Vars::Colors::IndicatorGood, FColorPickerEnum::Left);
+						FColorPicker(Vars::Colors::IndicatorTextGood, FColorPickerEnum::Right);
+						FColorPicker(Vars::Colors::IndicatorBad, FColorPickerEnum::Left);
+						FColorPicker(Vars::Colors::IndicatorTextBad, FColorPickerEnum::Right);
+						FColorPicker(Vars::Colors::IndicatorMid, FColorPickerEnum::Left);
+						FColorPicker(Vars::Colors::IndicatorTextMid, FColorPickerEnum::Right);
+						FColorPicker(Vars::Colors::IndicatorMisc, FColorPickerEnum::Left);
+						FColorPicker(Vars::Colors::IndicatorTextMisc, FColorPickerEnum::Right);
+					}
+					EndSection();
+				}
+			}
+			EndTable();
+		}
+		break;
+	}
+	}
+}
+
+void CMenu::MenuMisc(int iTab)
+{
+	using namespace ImGui;
+
+	switch (iTab)
+	{
+	// Main
+	case 0:
+	{
+		if (BeginTable("MiscTable", 2))
+		{
+			/* Column 1 */
+			TableNextColumn();
+			{
+				if (Section("Movement"))
+				{
+					FDropdown(Vars::Misc::Movement::AutoStrafe);
+					PushTransparent(Vars::Misc::Movement::AutoStrafe.Value != Vars::Misc::Movement::AutoStrafeEnum::Directional);
+					{
+						FSlider(Vars::Misc::Movement::AutoStrafeTurnScale, FSliderEnum::Left);
+						FSlider(Vars::Misc::Movement::AutoStrafeMaxDelta, FSliderEnum::Right);
+					}
+					PopTransparent();
+					FToggle(Vars::Misc::Movement::Bunnyhop, FToggleEnum::Left);
+					FToggle(Vars::Misc::Movement::EdgeJump, FToggleEnum::Right);
+					FToggle(Vars::Misc::Movement::AutoJumpbug, FToggleEnum::Left); // this is unreliable without setups, do not depend on it!
+					FToggle(Vars::Misc::Movement::NoPush, FToggleEnum::Right);
+					FToggle(Vars::Misc::Movement::AutoRocketJump, FToggleEnum::Left);
+					FToggle(Vars::Misc::Movement::AutoCTap, FToggleEnum::Right);
+					FToggle(Vars::Misc::Movement::FastStop, FToggleEnum::Left);
+					FToggle(Vars::Misc::Movement::FastAccelerate, FToggleEnum::Right);
+					FToggle(Vars::Misc::Movement::DuckSpeed, FToggleEnum::Left);
+					FToggle(Vars::Misc::Movement::MovementLock, FToggleEnum::Right);
+					FToggle(Vars::Misc::Movement::BreakJump, FToggleEnum::Left);
+					FToggle(Vars::Misc::Movement::ShieldTurnRate, FToggleEnum::Right);
+				} EndSection();
+				if (Vars::Debug::Options.Value)
+				{
+					if (Section("##Debug"))
+					{
+						FSlider(Vars::Misc::Movement::AutoRocketJumpChokeGrounded, FToggleEnum::Left);
+						FSlider(Vars::Misc::Movement::AutoRocketJumpChokeAir, FToggleEnum::Right);
+						FSlider(Vars::Misc::Movement::AutoRocketJumpSkipGround, FToggleEnum::Left);
+						FSlider(Vars::Misc::Movement::AutoRocketJumpSkipAir, FToggleEnum::Right);
+						FSlider(Vars::Misc::Movement::AutoRocketJumpTimingOffset, FToggleEnum::Left);
+						FSlider(Vars::Misc::Movement::AutoRocketJumpApplyAbove, FToggleEnum::Right);
+					} EndSection();
+				}
+				if (Section("Automation"))
+				{
+					FDropdown(Vars::Misc::Automation::AntiBackstab); // pitch/fake _might_ slip up some auto backstabs
+					FToggle(Vars::Misc::Automation::AntiAFK, FToggleEnum::Left);
+					FToggle(Vars::Misc::Automation::AntiAutobalance, FToggleEnum::Right);
+					FToggle(Vars::Misc::Automation::TauntControl, FToggleEnum::Left);
+					FToggle(Vars::Misc::Automation::KartControl, FToggleEnum::Right);
+					FToggle(Vars::Misc::Automation::AutoF2Ignored, FToggleEnum::Left);
+					FToggle(Vars::Misc::Automation::AutoF1Priority, FToggleEnum::Right);
+					FToggle(Vars::Misc::Automation::AcceptItemDrops);
+				} EndSection();
+				if (Section("Mann vs. Machine", 8))
+				{
+					FToggle(Vars::Misc::MannVsMachine::InstantRespawn, FToggleEnum::Left);
+					FToggle(Vars::Misc::MannVsMachine::InstantRevive, FToggleEnum::Right);
+					FToggle(Vars::Misc::MannVsMachine::AllowInspect);
+				} EndSection();
+			}
+			/* Column 2 */
+			TableNextColumn();
+			{
+				if (Section("Exploits", 8))
+				{
+					FToggle(Vars::Misc::Exploits::PureBypass, FToggleEnum::Left);
+					FToggle(Vars::Misc::Exploits::CheatsBypass, FToggleEnum::Right);
+					FToggle(Vars::Misc::Exploits::UnlockCVars, FToggleEnum::Left);
+					FToggle(Vars::Misc::Exploits::EquipRegionUnlock, FToggleEnum::Right);
+					FToggle(Vars::Misc::Exploits::BackpackExpander, FToggleEnum::Left);
+					FToggle(Vars::Misc::Exploits::NoisemakerSpam, FToggleEnum::Right);
+					FToggle(Vars::Misc::Exploits::PingReducer, FToggleEnum::Left);
+					PushTransparent(!Vars::Misc::Exploits::PingReducer.Value);
+					{
+						FSlider(Vars::Misc::Exploits::PingTarget, FSliderEnum::Right);
+					}
+					PopTransparent();
+				} EndSection();
+				if (Section("Game", 8))
+				{
+					FToggle(Vars::Misc::Game::AntiCheatCompatibility, FToggleEnum::Left);
+					FToggle(Vars::Misc::Game::F2PChatBypass, FToggleEnum::Right);
+					FToggle(Vars::Misc::Game::NetworkFix, FToggleEnum::Left);
+					FToggle(Vars::Misc::Game::SetupBonesOptimization, FToggleEnum::Right);
+				} EndSection();
+				if (Vars::Debug::Options.Value)
+				{
+					if (Section("##Debug AntiCheat"))
+					{
+						FToggle(Vars::Misc::Game::AntiCheatCritHack);
+					} EndSection();
+				}
+				if (Section("Queueing"))
+				{
+					FDropdown(Vars::Misc::Queueing::ForceRegions);
+					FToggle(Vars::Misc::Queueing::ExtendQueue, FToggleEnum::Left);
+					FToggle(Vars::Misc::Queueing::AutoCasualQueue, FToggleEnum::Right);
+				} EndSection();
+				if (Section("Sound"))
+				{
+					FDropdown(Vars::Misc::Sound::Block);
+					FToggle(Vars::Misc::Sound::HitsoundAlways, FToggleEnum::Left);
+					FToggle(Vars::Misc::Sound::RemoveDSP, FToggleEnum::Right);
+					FToggle(Vars::Misc::Sound::GiantWeaponSounds);
+				} EndSection();
 			}
 			EndTable();
 		}
@@ -402,15 +1203,15 @@ void CMenu::MenuAimbot(int iTab)
 						FToggle(Vars::Fakelag::RetainSoldierOnly);
 					} EndSection();
 				}
-				if (Section("Anti-aim", 8))
+				if (Section("Antiaim", 8))
 				{
 					FToggle(Vars::AntiAim::Enabled);
 					FDropdown(Vars::AntiAim::PitchReal, FDropdownEnum::Left);
 					FDropdown(Vars::AntiAim::PitchFake, FDropdownEnum::Right);
 					FDropdown(Vars::AntiAim::YawReal, FDropdownEnum::Left);
 					FDropdown(Vars::AntiAim::YawFake, FDropdownEnum::Right);
-					FDropdown(Vars::AntiAim::RealYawMode, FDropdownEnum::Left);
-					FDropdown(Vars::AntiAim::FakeYawMode, FDropdownEnum::Right);
+					FDropdown(Vars::AntiAim::RealYawBase, FDropdownEnum::Left);
+					FDropdown(Vars::AntiAim::FakeYawBase, FDropdownEnum::Right);
 					FSlider(Vars::AntiAim::RealYawOffset, FSliderEnum::Left);
 					FSlider(Vars::AntiAim::FakeYawOffset, FSliderEnum::Right);
 					PushTransparent(Vars::AntiAim::YawReal.Value != Vars::AntiAim::YawEnum::Edge && Vars::AntiAim::YawReal.Value != Vars::AntiAim::YawEnum::Jitter);
@@ -504,6 +1305,7 @@ void CMenu::MenuAimbot(int iTab)
 		}
 		break;
 	}
+<<<<<<< HEAD
 	// Draw
 	case 2:
 	{
@@ -1556,6 +2358,8 @@ void CMenu::MenuMisc(int iTab)
 			EndTable();
 		}
 	}
+=======
+>>>>>>> upstream/master
 	}
 }
 
@@ -1985,27 +2789,18 @@ void CMenu::MenuLogs(int iTab)
 		{
 			if (I::EngineClient->IsInGame())
 			{
-				std::lock_guard lock(F::PlayerUtils.m_mutex);
+				std::lock_guard tLock(m_tMutex);
 				const auto& vPlayers = F::PlayerUtils.m_vPlayerCache;
 
 				std::unordered_map<uint64_t, std::vector<const ListPlayer*>> mParties = {};
-				std::unordered_map<uint64_t, float> mHues = {}; // don't just shift based on party id in the case that it will be similar
+				int iPartyCount = 0;
 				for (auto& tPlayer : vPlayers)
 				{
 					if (tPlayer.m_iParty)
+					{
 						mParties[tPlayer.m_iParty].push_back(&tPlayer);
-				}
-				for (auto it = mParties.begin(); it != mParties.end();)
-				{
-					if (it->second.size() > 1)
-						it++;
-					else
-						it = mParties.erase(it);
-				}
-				{
-					float flParties = mParties.size() + 1 - mParties.contains(1);
-					int i = 0; for (auto& [iParty, _] : mParties)
-						mHues[iParty] = iParty != 1 ? 360 * ++i / flParties : 0;
+						iPartyCount = std::max(iPartyCount, tPlayer.m_iParty);
+					}
 				}
 
 				auto getTeamColor = [&](int iTeam, bool bAlive)
@@ -2019,41 +2814,29 @@ void CMenu::MenuLogs(int iTab)
 					};
 				auto drawPlayer = [&](const ListPlayer& tPlayer, int x, int y)
 					{
-						ImColor tColor = ColorToVec(getTeamColor(tPlayer.m_iTeam, tPlayer.m_bAlive));
-
 						ImVec2 vOriginalPos = { !x ? GetStyle().WindowPadding.x : GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, H::Draw.Scale(35 + 36 * y) };
 
 						// background
 						float flWidth = GetWindowWidth() / 2 - GetStyle().WindowPadding.x * 1.5f;
 						float flHeight = H::Draw.Scale(28);
+						ImColor tColor = ColorToVec(getTeamColor(tPlayer.m_iTeam, tPlayer.m_bAlive));
 						ImVec2 vDrawPos = GetDrawPos() + vOriginalPos;
 						GetWindowDrawList()->AddRectFilled(vDrawPos, { vDrawPos.x + flWidth, vDrawPos.y + flHeight }, tColor, H::Draw.Scale(4));
 
 						// text + icons
 						int lOffset = H::Draw.Scale(10);
-						if (tPlayer.m_bLocal)
+						if (tPlayer.m_bLocal || F::Spectate.GetTarget(true) == tPlayer.m_iUserID || tPlayer.m_bFriend || tPlayer.m_bParty)
 						{
-							lOffset = H::Draw.Scale(29);
+							lOffset += H::Draw.Scale(19);
 							SetCursorPos({ vOriginalPos.x + H::Draw.Scale(7), vOriginalPos.y + H::Draw.Scale(6) });
-							IconImage(ICON_MD_PERSON);
-						}
-						else if (F::Spectate.m_iIntendedTarget == tPlayer.m_iUserID)
-						{
-							lOffset = H::Draw.Scale(29);
-							SetCursorPos({ vOriginalPos.x + H::Draw.Scale(7), vOriginalPos.y + H::Draw.Scale(6) });
-							IconImage(ICON_MD_VISIBILITY);
-						}
-						else if (tPlayer.m_bFriend)
-						{
-							lOffset = H::Draw.Scale(29);
-							SetCursorPos({ vOriginalPos.x + H::Draw.Scale(7), vOriginalPos.y + H::Draw.Scale(6) });
-							IconImage(ICON_MD_GROUP);
-						}
-						else if (tPlayer.m_bParty)
-						{
-							lOffset = H::Draw.Scale(29);
-							SetCursorPos({ vOriginalPos.x + H::Draw.Scale(7), vOriginalPos.y + H::Draw.Scale(6) });
-							IconImage(ICON_MD_GROUPS);
+							if (tPlayer.m_bLocal)
+								IconImage(ICON_MD_PERSON);
+							else if (F::Spectate.GetTarget(true) == tPlayer.m_iUserID)
+								IconImage(ICON_MD_VISIBILITY);
+							else if (tPlayer.m_bFriend)
+								IconImage(ICON_MD_GROUP);
+							else if (tPlayer.m_bParty)
+								IconImage(ICON_MD_GROUPS);
 						}
 						SetCursorPos({ vOriginalPos.x + lOffset, vOriginalPos.y + H::Draw.Scale(7) });
 						auto sName = TruncateText(tPlayer.m_sName, flWidth / 2 - lOffset);
@@ -2061,24 +2844,32 @@ void CMenu::MenuLogs(int iTab)
 						lOffset += FCalcTextSize(sName.c_str()).x + H::Draw.Scale(8);
 
 						// buttons
-						bool bClicked = false;
+						bool bPopup = false;
 
 						if (!tPlayer.m_bFake)
 						{
 							// tag bar
 							SetCursorPos({ vOriginalPos.x + lOffset, vOriginalPos.y });
-							if (BeginChild(std::format("TagBar{}", tPlayer.m_uFriendsID).c_str(), { flWidth - lOffset - H::Draw.Scale(4), flHeight }, ImGuiWindowFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground))
+							if (BeginChild(std::format("TagBar{}", tPlayer.m_iUserID).c_str(), { flWidth - lOffset - H::Draw.Scale(4), flHeight }, ImGuiWindowFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground))
 							{
 								std::vector<PriorityLabel_t> vLabels = {};
 								std::vector<std::pair<PriorityLabel_t*, int>> vTags = {};
-								if (mHues.contains(tPlayer.m_iParty))
-									vLabels.emplace_back("Party", F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)].m_tColor.HueShift(mHues[tPlayer.m_iParty]));
-								if (tPlayer.m_bF2P)
-									vTags.emplace_back(&F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)], 0);
-								for (auto& iID : F::PlayerUtils.m_mPlayerTags[tPlayer.m_uFriendsID])
+								if (int iParty = tPlayer.m_iParty)
 								{
-									auto pTag = F::PlayerUtils.GetTag(iID);
-									if (pTag)
+									auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)];
+									if (!--iParty)
+										vTags.emplace_back(pTag, 0);
+									else
+										vLabels.emplace_back(std::format("{}: {}", pTag->m_sName, iParty), pTag->m_tColor.HueShift(iParty * 360.f / iPartyCount));
+								}
+								if (tPlayer.m_bF2P)
+								{
+									auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)];
+									vTags.emplace_back(pTag, 0);
+								}
+								for (auto& iID : F::PlayerUtils.GetPlayerTags(tPlayer.m_uAccountID))
+								{
+									if (auto pTag = F::PlayerUtils.GetTag(iID))
 										vTags.emplace_back(pTag, iID);
 								}
 
@@ -2094,12 +2885,12 @@ void CMenu::MenuLogs(int iTab)
 
 										GetWindowDrawList()->AddRectFilled(vDrawPos + vTagPos, { vDrawPos.x + vTagPos.x + flTagWidth, vDrawPos.y + vTagPos.y + flTagHeight }, tTagColor, H::Draw.Scale(4));
 										SetCursorPos({ vTagPos.x + H::Draw.Scale(5), vTagPos.y + H::Draw.Scale(3) });
-										TextColored(IsColorBright(tTagColor) ? ImVec4(0, 0, 0, 1) : ImVec4(1, 1, 1, 1), tTag.m_sName.c_str());
+										TextColored(VecToColor(tColor).Blend(tTag.m_tColor).IsColorBright() ? ImVec4(0, 0, 0, 1) : ImVec4(1, 1, 1, 1), tTag.m_sName.c_str());
 										if (iID)
 										{
 											SetCursorPos({ vTagPos.x + flTagWidth - H::Draw.Scale(22), vTagPos.y - H::Draw.Scale(2) });
 											if (IconButton(ICON_MD_CANCEL))
-												F::PlayerUtils.RemoveTag(tPlayer.m_uFriendsID, iID, true, tPlayer.m_sName);
+												F::PlayerUtils.RemoveTag(tPlayer.m_uAccountID, iID, true, tPlayer.m_sName.c_str());
 										}
 
 										flTagOffset += flTagWidth + H::Draw.Scale(4);
@@ -2112,42 +2903,39 @@ void CMenu::MenuLogs(int iTab)
 								PopFont();
 							} EndChild();
 
-							bClicked = IsItemHovered() && IsMouseReleased(ImGuiMouseButton_Right);
+							bPopup = IsItemHovered() && IsMouseReleased(ImGuiMouseButton_Right);
 						}
 						SetCursorPos(vOriginalPos);
-						Button(std::format("##{}", tPlayer.m_uFriendsID).c_str(), { flWidth, flHeight });
-						bClicked = bClicked || IsItemHovered() && IsMouseReleased(ImGuiMouseButton_Right);
+						Button(std::format("##{}", tPlayer.m_iUserID).c_str(), { flWidth, flHeight });
+						bPopup |= IsItemHovered() && IsMouseReleased(ImGuiMouseButton_Right);
 
 						// popups
-						if (bClicked)
-							OpenPopup(std::format("Clicked{}", tPlayer.m_uFriendsID).c_str());
-						if (FBeginPopup(std::format("Clicked{}", tPlayer.m_uFriendsID).c_str()))
+						if (bPopup)
+							OpenPopup(std::format("RightClicked{}", tPlayer.m_iUserID).c_str());
+
+						if (FBeginPopup(std::format("RightClicked{}", tPlayer.m_iUserID).c_str()))
 						{
 							PushStyleVar(ImGuiStyleVar_ItemSpacing, { H::Draw.Scale(8), H::Draw.Scale(8) });
 
 							if (!tPlayer.m_bFake)
 							{
 								if (FSelectable("Profile"))
-									I::SteamFriends->ActivateGameOverlayToUser("steamid", CSteamID(tPlayer.m_uFriendsID, k_EUniversePublic, k_EAccountTypeIndividual));
-
+									I::SteamFriends->ActivateGameOverlayToUser("steamid", CSteamID(tPlayer.m_uAccountID, k_EUniversePublic, k_EAccountTypeIndividual));
 								if (FSelectable("History"))
-									I::SteamFriends->ActivateGameOverlayToWebPage(std::format("https://steamhistory.net/id/{}", CSteamID(tPlayer.m_uFriendsID, k_EUniversePublic, k_EAccountTypeIndividual).ConvertToUint64()).c_str());
+									I::SteamFriends->ActivateGameOverlayToWebPage(std::format("https://steamhistory.net/id/{}", CSteamID(tPlayer.m_uAccountID, k_EUniversePublic, k_EAccountTypeIndividual).ConvertToUint64()).c_str());
 							}
 
-							if (FSelectable(F::Spectate.m_iIntendedTarget == tPlayer.m_iUserID ? "Unspectate" : "Spectate"))
+							if (FSelectable(F::Spectate.GetTarget(true) == tPlayer.m_iUserID ? "Unspectate" : "Spectate"))
 								F::Spectate.SetTarget(tPlayer.m_iUserID);
 
 							if (!I::EngineClient->IsPlayingDemo() && FBeginMenu("Votekick"))
 							{
 								if (FSelectable("No reason"))
 									I::ClientState->SendStringCmd(std::format("callvote Kick \"{} other\"", tPlayer.m_iUserID).c_str());
-
 								if (FSelectable("Cheating"))
 									I::ClientState->SendStringCmd(std::format("callvote Kick \"{} cheating\"", tPlayer.m_iUserID).c_str());
-
 								if (FSelectable("Idle"))
 									I::ClientState->SendStringCmd(std::format("callvote Kick \"{} idle\"", tPlayer.m_iUserID).c_str());
-
 								if (FSelectable("Scamming"))
 									I::ClientState->SendStringCmd(std::format("callvote Kick \"{} scamming\"", tPlayer.m_iUserID).c_str());
 
@@ -2162,50 +2950,42 @@ void CMenu::MenuLogs(int iTab)
 									{
 										int iID = std::distance(F::PlayerUtils.m_vTags.begin(), it);
 										auto& tTag = *it;
-										if (!tTag.m_bAssignable || F::PlayerUtils.HasTag(tPlayer.m_uFriendsID, iID))
+										if (!tTag.m_bAssignable || F::PlayerUtils.HasTag(tPlayer.m_uAccountID, iID))
 											continue;
 
 										auto imColor = ColorToVec(tTag.m_tColor);
 										PushStyleColor(ImGuiCol_Text, imColor);
 										imColor.x /= 3; imColor.y /= 3; imColor.z /= 3;
 										if (FSelectable(tTag.m_sName.c_str(), imColor))
-											F::PlayerUtils.AddTag(tPlayer.m_uFriendsID, iID, true, tPlayer.m_sName);
+											F::PlayerUtils.AddTag(tPlayer.m_uAccountID, iID, true, tPlayer.m_sName.c_str());
 										PopStyleColor();
 									}
 
 									ImGui::EndMenu();
 								}
-
 								if (FBeginMenu("Alias"))
 								{
-									bool bHasAlias = F::PlayerUtils.m_mPlayerAliases.contains(tPlayer.m_uFriendsID);
+									bool bHasAlias = F::PlayerUtils.m_mPlayerAliases.contains(tPlayer.m_uAccountID);
 									static std::string sInput = "";
 
-									PushStyleVar(ImGuiStyleVar_FramePadding, { H::Draw.Scale(8), H::Draw.Scale(8) });
-									PushItemWidth(H::Draw.Scale(150));
 									bool bEnter = FInputText("Alias...", sInput, H::Draw.Scale(150), ImGuiInputTextFlags_EnterReturnsTrue);
 									if (!IsItemFocused())
-										sInput = bHasAlias ? F::PlayerUtils.m_mPlayerAliases[tPlayer.m_uFriendsID] : "";
-									PopItemWidth();
-									PopStyleVar();
-
+										sInput = bHasAlias ? F::PlayerUtils.m_mPlayerAliases[tPlayer.m_uAccountID] : "";
 									if (bEnter)
 									{
 										if (sInput.empty() && bHasAlias)
 										{
-											F::Output.AliasChanged(tPlayer.m_sName, "Removed", F::PlayerUtils.m_mPlayerAliases[tPlayer.m_uFriendsID]);
+											F::Output.AliasChanged(tPlayer.m_sName.c_str(), "Removed", F::PlayerUtils.m_mPlayerAliases[tPlayer.m_uAccountID].c_str());
 
-											auto it = F::PlayerUtils.m_mPlayerAliases.find(tPlayer.m_uFriendsID);
-											if (it != F::PlayerUtils.m_mPlayerAliases.end())
-												F::PlayerUtils.m_mPlayerAliases.erase(it);
+											F::PlayerUtils.m_mPlayerAliases.erase(tPlayer.m_uAccountID);
 											F::PlayerUtils.m_bSave = true;
 										}
 										else if (!sInput.empty())
 										{
-											F::PlayerUtils.m_mPlayerAliases[tPlayer.m_uFriendsID] = sInput;
+											F::PlayerUtils.m_mPlayerAliases[tPlayer.m_uAccountID] = sInput;
 											F::PlayerUtils.m_bSave = true;
 
-											F::Output.AliasChanged(tPlayer.m_sName, bHasAlias ? "Changed" : "Added", sInput);
+											F::Output.AliasChanged(tPlayer.m_sName.c_str(), bHasAlias ? "Changed" : "Added", sInput.c_str());
 										}
 									}
 
@@ -2213,11 +2993,11 @@ void CMenu::MenuLogs(int iTab)
 								}
 							}
 
-							if (Vars::Resolver::Enabled.Value && !tPlayer.m_bLocal)
+							if (Vars::Resolver::Enabled.Value && !tPlayer.m_bLocal && !I::EngineClient->IsPlayingDemo())
 							{
 								if (FBeginMenu("Set yaw"))
 								{
-									static std::vector<std::pair<std::string, float>> vYaws = {
+									static std::vector<std::pair<const char*, float>> vYaws = {
 										{ "Auto", 0.f },
 										{ "Forward", 0.f },
 										{ "Left", 90.f },
@@ -2226,9 +3006,9 @@ void CMenu::MenuLogs(int iTab)
 									};
 									for (auto& [sYaw, flValue] : vYaws)
 									{
-										if (FSelectable(sYaw.c_str()))
+										if (FSelectable(sYaw))
 										{
-											switch (FNV1A::Hash32(sYaw.c_str()))
+											switch (FNV1A::Hash32(sYaw))
 											{
 											case FNV1A::Hash32Const("Auto"):
 												F::Resolver.SetYaw(tPlayer.m_iUserID, 0.f, true);
@@ -2241,10 +3021,9 @@ void CMenu::MenuLogs(int iTab)
 
 									ImGui::EndMenu();
 								}
-
 								if (FBeginMenu("Set pitch"))
 								{
-									static std::vector<std::pair<std::string, float>> vPitches = {
+									static std::vector<std::pair<const char*, float>> vPitches = {
 										{ "Auto", 0.f },
 										{ "Up", -90.f },
 										{ "Down", 90.f },
@@ -2253,9 +3032,9 @@ void CMenu::MenuLogs(int iTab)
 									};
 									for (auto& [sPitch, flValue] : vPitches)
 									{
-										if (FSelectable(sPitch.c_str()))
+										if (FSelectable(sPitch))
 										{
-											switch (FNV1A::Hash32(sPitch.c_str()))
+											switch (FNV1A::Hash32(sPitch))
 											{
 											case FNV1A::Hash32Const("Auto"):
 												F::Resolver.SetPitch(tPlayer.m_iUserID, 0.f, false, true);
@@ -2271,31 +3050,29 @@ void CMenu::MenuLogs(int iTab)
 
 									ImGui::EndMenu();
 								}
-
 								if (FBeginMenu("Set view"))
 								{
-									static std::vector<std::pair<std::string, bool>> vPitches = {
+									static std::vector<std::pair<const char*, bool>> vPitches = {
 										{ "Offset from static view", true },
 										{ "Offset from view to local", false }
 									};
 									for (auto& [sPitch, bValue] : vPitches)
 									{
-										if (FSelectable(sPitch.c_str()))
+										if (FSelectable(sPitch))
 											F::Resolver.SetView(tPlayer.m_iUserID, bValue);
 									}
 
 									ImGui::EndMenu();
 								}
-
 								if (FBeginMenu("Set minwalk"))
 								{
-									static std::vector<std::pair<std::string, bool>> vPitches = {
+									static std::vector<std::pair<const char*, bool>> vPitches = {
 										{ "Minwalk on", true },
 										{ "Minwalk off", false }
 									};
 									for (auto& [sPitch, bValue] : vPitches)
 									{
-										if (FSelectable(sPitch.c_str()))
+										if (FSelectable(sPitch))
 											F::Resolver.SetMinwalk(tPlayer.m_iUserID, bValue);
 									}
 
@@ -2343,23 +3120,27 @@ void CMenu::MenuLogs(int iTab)
 					}
 				}
 
-				if (vBlu.size() < vRed.size()) // display whichever one has more last
+				int iBlu = 0, iRed = 0;
+				for (size_t i = 0; i < vBlu.size(); i++)
 				{
-					for (size_t i = 0; i < vBlu.size(); i++)
-						drawPlayer(vBlu[i], 0, int(i));
-					for (size_t i = 0; i < vRed.size(); i++)
-						drawPlayer(vRed[i], 1, int(i));
+					drawPlayer(vBlu[i], 0, int(i));
+					iBlu++;
+				}
+				for (size_t i = 0; i < vRed.size(); i++)
+				{
+					drawPlayer(vRed[i], 1, int(i));
+					iRed++;
+				}
+				if (vOther.empty())
+				{
+					SetCursorPos({ 0, H::Draw.Scale(36 * std::max(iBlu, iRed) - 1) }); DebugDummy({ 0, H::Draw.Scale(28) });
 				}
 				else
 				{
-					for (size_t i = 0; i < vRed.size(); i++)
-						drawPlayer(vRed[i], 1, int(i));
-					for (size_t i = 0; i < vBlu.size(); i++)
-						drawPlayer(vBlu[i], 0, int(i));
+					size_t iMax = std::max(iBlu, iRed);
+					for (size_t i = 0; i < vOther.size(); i++)
+						drawPlayer(vOther[i], i % 2, int(iMax + i / 2));
 				}
-				size_t iMax = std::max(vBlu.size(), vRed.size());
-				for (size_t i = 0; i < vOther.size(); i++)
-					drawPlayer(vOther[i], i % 2, int(iMax + i / 2));
 			}
 			else
 			{
@@ -2375,8 +3156,7 @@ void CMenu::MenuLogs(int iTab)
 
 			auto vTable = WidgetTable(3, H::Draw.Scale(56), { GetWindowWidth() / 2, GetWindowWidth() / 2 - H::Draw.Scale(90) - GetStyle().WindowPadding.x });
 
-			SetCursorPos(vTable[0].m_vPos);
-			if (BeginChild(vTable[0].m_sName.c_str(), vTable[0].m_vSize, vTable[0].m_iWindowFlags, vTable[0].m_iChildFlags))
+			if (BeginWidgetTable(0, vTable))
 			{
 				FSDropdown("Name", &tTag.m_sName, {}, FDropdownEnum::Left | FSDropdownEnum::AutoUpdate, -10);
 				FColorPicker("Color", &tTag.m_tColor, FColorPickerEnum::SameLine, {}, { H::Draw.Scale(10), H::Draw.Scale(40) });
@@ -2392,8 +3172,7 @@ void CMenu::MenuLogs(int iTab)
 				PopDisabled();
 			} EndChild();
 
-			SetCursorPos(vTable[1].m_vPos);
-			if (BeginChild(vTable[1].m_sName.c_str(), vTable[1].m_vSize, vTable[1].m_iWindowFlags, vTable[1].m_iChildFlags))
+			if (BeginWidgetTable(1, vTable))
 			{
 				PushTransparent(tTag.m_bLabel); // transparent if we want a label, user can still use to sort
 				{
@@ -2403,8 +3182,7 @@ void CMenu::MenuLogs(int iTab)
 				PopTransparent();
 			} EndChild();
 
-			SetCursorPos(vTable[2].m_vPos);
-			if (BeginChild(vTable[2].m_sName.c_str(), vTable[2].m_vSize, vTable[2].m_iWindowFlags, vTable[2].m_iChildFlags))
+			if (BeginWidgetTable(2, vTable))
 			{
 				// create/modify button
 				bool bCreate = false, bClear = false;
@@ -2444,8 +3222,6 @@ void CMenu::MenuLogs(int iTab)
 				{
 					int _iID = std::distance(F::PlayerUtils.m_vTags.begin(), it);
 
-					bool bClicked = false, bDelete = false;
-
 					ImVec2 vOriginalPos = { !_tTag.m_bLabel ? GetStyle().WindowPadding.x : GetWindowWidth() * 2 / 3 + GetStyle().WindowPadding.x / 2, H::Draw.Scale(96 + 36 * y) };
 
 					// background
@@ -2476,6 +3252,7 @@ void CMenu::MenuLogs(int iTab)
 					}
 
 					// buttons / icons
+					bool bDelete = false;
 					if (!_tTag.m_bLocked)
 					{
 						SetCursorPos({ vOriginalPos.x + flWidth - H::Draw.Scale(26), vOriginalPos.y + H::Draw.Scale(2) });
@@ -2496,7 +3273,8 @@ void CMenu::MenuLogs(int iTab)
 					}
 
 					SetCursorPos(vOriginalPos);
-					bClicked = Button(std::format("##{}", _tTag.m_sName).c_str(), { flWidth, flHeight });
+					bool bClicked = Button(std::format("##{}", _tTag.m_sName).c_str(), { flWidth, flHeight });
+					bool bPopup = IsItemClicked(ImGuiMouseButton_Right);
 
 					if (bClicked)
 					{
@@ -2506,9 +3284,51 @@ void CMenu::MenuLogs(int iTab)
 						tTag.m_iPriority = _tTag.m_iPriority;
 						tTag.m_bLabel = _tTag.m_bLabel;
 					}
-					if (bDelete)
-						OpenPopup(std::format("Confirmation## DeleteTag{}", _iID).c_str());
-					if (FBeginPopupModal(std::format("Confirmation## DeleteTag{}", _iID).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+					else if (bPopup)
+						OpenPopup(std::format("RightClicked{}", _iID).c_str());
+					else if (bDelete)
+						OpenPopup(std::format("DeleteTag{}", _iID).c_str());
+
+					if (FBeginPopup(std::format("RightClicked{}", _iID).c_str()))
+					{
+						PushStyleVar(ImGuiStyleVar_ItemSpacing, { H::Draw.Scale(8), 0 });
+
+						auto& _tTag2 = *it;
+						bool bSave = false;
+
+						{
+							static std::string sInput = "";
+
+							bool bEnter = FInputText("Name...", sInput, H::Draw.Scale(284), ImGuiInputTextFlags_EnterReturnsTrue);
+							if (!IsItemFocused())
+								sInput = _tTag2.m_sName;
+							if (bEnter)
+							{
+								_tTag2.m_sName = sInput;
+								bSave = true;
+							}
+						}
+
+						PushDisabled(_iID == DEFAULT_TAG || _iID == IGNORED_TAG);
+						{
+							int iLabel = Disabled ? 0 : _tTag2.m_bLabel;
+							if (FDropdown("Type##", &iLabel, { "Priority", "Label" }))
+								bSave = true;
+							_tTag2.m_bLabel = iLabel;
+							if (Disabled)
+								_tTag2.m_bLabel = false;
+						}
+						PopDisabled();
+						if (FSlider("Priority##", &_tTag2.m_iPriority, -10, 10))
+							bSave = true;
+
+						if (bSave)
+							F::PlayerUtils.m_bSave = true;
+
+						PopStyleVar();
+						EndPopup();
+					}
+					else if (FBeginPopupModal(std::format("DeleteTag{}", _iID).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
 					{
 						FText(std::format("Do you really want to delete '{}'?", _tTag.m_sName).c_str());
 
@@ -2612,22 +3432,21 @@ void CMenu::MenuLogs(int iTab)
 				if (FButton("Export", FButtonEnum::Fit | FButtonEnum::SameLine))
 				{
 					// this should be up2date anyways
-					std::ifstream file;
-					file.open(F::Configs.m_sCorePath + "Players.json", std::ios_base::app);
-					if (file.is_open())
+					std::ifstream fStream(F::Configs.m_sCorePath + "Players.json", std::ios_base::app);
+					if (fStream.is_open())
 					{
 						std::string sString;
 						{
 							std::string line;
-							while (std::getline(file, line))
+							while (std::getline(fStream, line))
 								sString += line + "\n";
 							if (!sString.empty())
 								sString.pop_back();
 						}
-						file.close();
+						fStream.close();
 
 						SDK::SetClipboard(sString);
-						SDK::Output("Amalgam", "Copied playerlist to clipboard", { 175, 150, 255 }, true, true, true);
+						SDK::Output("Amalgam", "Copied playerlist to clipboard", DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 					}
 				}
 
@@ -2639,105 +3458,80 @@ void CMenu::MenuLogs(int iTab)
 
 					if (FButton("Import", FButtonEnum::Fit | FButtonEnum::SameLine))
 					{
-						// just put it in a file so it will be easier to use with boost
-						std::ofstream outStream(F::Configs.m_sCorePath + "Import.json");
-						outStream << SDK::GetClipboard();
-						outStream.close();
-
 						try
 						{
 							// will not directly support older tag systems
-							if (std::filesystem::exists(F::Configs.m_sCorePath + "Import.json"))
+							boost::property_tree::ptree tRead;
+							std::stringstream ssStream;
+							ssStream << SDK::GetClipboard();
+							read_json(ssStream, tRead);
+
+							mPlayerTags.clear();
+							mPlayerAliases.clear();
+							mAs.clear();
+							vTags = {
+								{ "Default", { 200, 200, 200, 255 }, 0, false, false, true },
+								{ "Ignored", { 200, 200, 200, 255 }, -1, false, true, true },
+								{ "Cheater", { 255, 100, 100, 255 }, 1, false, true, true },
+								{ "Friend", { 100, 255, 100, 255 }, 0, true, false, true },
+								{ "Party", { 100, 100, 255, 255 }, 0, true, false, true },
+								{ "F2P", { 255, 255, 255, 255 }, 0, true, false, true }
+							};
+
+							if (auto tSub = tRead.get_child_optional("Config"))
 							{
-								boost::property_tree::ptree readTree;
-								read_json(F::Configs.m_sCorePath + "Import.json", readTree);
-
-								mPlayerTags.clear();
-								mPlayerAliases.clear();
-								mAs.clear();
-								vTags = {
-									{ "Default", { 200, 200, 200, 255 }, 0, false, false, true },
-									{ "Ignored", { 200, 200, 200, 255 }, -1, false, true, true },
-									{ "Cheater", { 255, 100, 100, 255 }, 1, false, true, true },
-									{ "Friend", { 100, 255, 100, 255 }, 0, true, false, true },
-									{ "Party", { 100, 100, 255, 255 }, 0, true, false, true },
-									{ "F2P", { 255, 255, 255, 255 }, 0, true, false, true }
-								};
-
-								if (auto configTree = readTree.get_child_optional("Config"))
+								for (auto& [sName, tChild] : *tSub)
 								{
-									for (auto& it : *configTree)
+									PriorityLabel_t tTag = {};
+									F::Configs.LoadJson(tChild, "Name", tTag.m_sName);
+									F::Configs.LoadJson(tChild, "Color", tTag.m_tColor);
+									F::Configs.LoadJson(tChild, "Priority", tTag.m_iPriority);
+									F::Configs.LoadJson(tChild, "Label", tTag.m_bLabel);
+
+									int iID = F::PlayerUtils.TagToIndex(std::stoi(sName));
+									if (iID > -1 && iID < vTags.size())
 									{
-										PriorityLabel_t tTag = {};
-										if (auto getValue = it.second.get_optional<std::string>("Name")) { tTag.m_sName = *getValue; }
-										if (const auto getChild = it.second.get_child_optional("Color")) { F::Configs.TreeToColor(*getChild, tTag.m_tColor); }
-										if (auto getValue = it.second.get_optional<int>("Priority")) { tTag.m_iPriority = *getValue; }
-										if (auto getValue = it.second.get_optional<bool>("Label")) { tTag.m_bLabel = *getValue; }
-
-										int iID = -1;
-										try
-										{	// new id based indexing
-											iID = std::stoi(it.first);
-											iID = F::PlayerUtils.TagToIndex(iID);
-										}
-										catch (...) {}
-
-										if (iID > -1 && iID < vTags.size())
-										{
-											vTags[iID].m_sName = tTag.m_sName;
-											vTags[iID].m_tColor = tTag.m_tColor;
-											vTags[iID].m_iPriority = tTag.m_iPriority;
-											vTags[iID].m_bLabel = tTag.m_bLabel;
-										}
-										else
-											vTags.push_back(tTag);
+										vTags[iID].m_sName = tTag.m_sName;
+										vTags[iID].m_tColor = tTag.m_tColor;
+										vTags[iID].m_iPriority = tTag.m_iPriority;
+										vTags[iID].m_bLabel = tTag.m_bLabel;
 									}
+									else
+										vTags.push_back(tTag);
 								}
+							}
 
-								if (auto tagTree = readTree.get_child_optional("Tags"))
+							if (auto tSub = tRead.get_child_optional("Tags"))
+							{
+								for (auto& [sName, tChild] : *tSub)
 								{
-									for (auto& player : *tagTree)
+									uint32_t uAccountID = std::stoul(sName);
+									for (auto& [_, tTag] : tChild)
 									{
-										uint32_t uFriendsID = std::stoi(player.first);
+										const std::string& sTag = tTag.data();
 
-										for (auto& tag : player.second)
-										{
-											std::string sTag = tag.second.data();
+										int iID = F::PlayerUtils.TagToIndex(std::stoi(sTag));
+										auto pTag = F::PlayerUtils.GetTag(iID);
+										if (!pTag || !pTag->m_bAssignable)
+											continue;
 
-											int iID = -1;
-											try
-											{	// new id based indexing
-												iID = std::stoi(sTag);
-												iID = F::PlayerUtils.TagToIndex(iID);
-											}
-											catch (...) {}
-											if (iID == -1)
-												continue;
-
-											auto pTag = F::PlayerUtils.GetTag(iID);
-											if (!pTag || !pTag->m_bAssignable)
-												continue;
-
-											if (!F::PlayerUtils.HasTag(uFriendsID, iID, mPlayerTags))
-												F::PlayerUtils.AddTag(uFriendsID, iID, false, "", mPlayerTags);
-										}
-									}
-								}
-
-								if (auto aliasTree = readTree.get_child_optional("Aliases"))
-								{
-									for (auto& player : *aliasTree)
-									{
-										uint32_t uFriendsID = std::stoi(player.first);
-										std::string sAlias = player.second.data();
-
-										if (!sAlias.empty())
-											mPlayerAliases[uFriendsID] = player.second.data();
+										if (!F::PlayerUtils.HasTag(uAccountID, iID, mPlayerTags))
+											F::PlayerUtils.AddTag(uAccountID, iID, false, "", mPlayerTags);
 									}
 								}
 							}
 
-							//std::filesystem::remove(F::Configs.m_sCorePath + "Import.json");
+							if (auto tSub = tRead.get_child_optional("Aliases"))
+							{
+								for (auto& [sName, tAlias] : *tSub)
+								{
+									uint32_t uAccountID = std::stoul(sName);
+									const std::string& sAlias = tAlias.data();
+
+									if (!sAlias.empty())
+										mPlayerAliases[uAccountID] = sAlias;
+								}
+							}
 
 							for (int i = 0; i < vTags.size(); i++)
 							{
@@ -2749,16 +3543,16 @@ void CMenu::MenuLogs(int iTab)
 										mAs[i] = -1;
 								}
 							}
-							OpenPopup("Import playerlist");
+							OpenPopup("ImportPlayerlist");
 						}
 						catch (...)
 						{
-							SDK::Output("Amalgam", "Failed to import playerlist", { 175, 150, 255, 127 }, true, true, true);
+							SDK::Output("Amalgam", "Failed to import playerlist", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 						}
 					}
 
 					SetNextWindowSize({ H::Draw.Scale(300), 0 });
-					if (FBeginPopupModal("Import playerlist", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+					if (FBeginPopupModal("ImportPlayerlist", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
 					{
 						FText("Import");
 						FText("As", FTextEnum::Right | FTextEnum::SameLine);
@@ -2798,23 +3592,23 @@ void CMenu::MenuLogs(int iTab)
 
 						if (FButton("Import", FButtonEnum::Left))
 						{
-							for (auto& [uFriendsID, vTags] : mPlayerTags)
+							for (auto& [uAccountID, vTags] : mPlayerTags)
 							{
 								for (auto& iTag : vTags)
 								{
 									int iID = mAs.contains(iTag) ? mAs[iTag] : -1;
-									if (iID != -1 && !F::PlayerUtils.HasTag(uFriendsID, iID))
-										F::PlayerUtils.AddTag(uFriendsID, iID, false);
+									if (iID != -1 && !F::PlayerUtils.HasTag(uAccountID, iID))
+										F::PlayerUtils.AddTag(uAccountID, iID, false);
 								}
 							}
-							for (auto& [uFriendsID, sAlias] : mPlayerAliases)
+							for (auto& [uAccountID, sAlias] : mPlayerAliases)
 							{
-								if (!F::PlayerUtils.m_mPlayerAliases.contains(uFriendsID))
-									F::PlayerUtils.m_mPlayerAliases[uFriendsID] = sAlias;
+								if (!F::PlayerUtils.m_mPlayerAliases.contains(uAccountID))
+									F::PlayerUtils.m_mPlayerAliases[uAccountID] = sAlias;
 							}
 
 							F::PlayerUtils.m_bSave = true;
-							SDK::Output("Amalgam", "Imported playerlist", { 175, 150, 255 }, true, true, true);
+							SDK::Output("Amalgam", "Imported playerlist", DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 
 							CloseCurrentPopup();
 						}
@@ -2830,12 +3624,12 @@ void CMenu::MenuLogs(int iTab)
 					try
 					{
 						int iBackupCount = 0;
-						for (auto& entry : std::filesystem::directory_iterator(F::Configs.m_sCorePath))
+						for (auto& tEntry : std::filesystem::directory_iterator(F::Configs.m_sCorePath))
 						{
-							if (!entry.is_regular_file() || entry.path().extension() != F::Configs.m_sConfigExtension)
+							if (!tEntry.is_regular_file() || tEntry.path().extension() != F::Configs.m_sConfigExtension)
 								continue;
 
-							std::string sConfigName = entry.path().filename().string();
+							std::string sConfigName = tEntry.path().filename().string();
 							sConfigName.erase(sConfigName.end() - F::Configs.m_sConfigExtension.size(), sConfigName.end());
 							if (sConfigName.find("Backup") != std::string::npos)
 								iBackupCount++;
@@ -2845,11 +3639,11 @@ void CMenu::MenuLogs(int iTab)
 							F::Configs.m_sCorePath + std::format("Backup{}.json", iBackupCount + 1),
 							std::filesystem::copy_options::overwrite_existing
 						);
-						SDK::Output("Amalgam", "Saved backup playerlist", { 175, 150, 255 }, true, true, true);
+						SDK::Output("Amalgam", "Saved backup playerlist", DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 					}
 					catch (...)
 					{
-						SDK::Output("Amalgam", "Failed to backup playerlist", { 175, 150, 255, 127 }, true, true, true);
+						SDK::Output("Amalgam", "Failed to backup playerlist", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 					}
 				}
 			}
@@ -3029,6 +3823,7 @@ void CMenu::MenuLogs(int iTab)
 				}
 			}
 		} EndSection();
+		break;
 	}
 	}
 }
@@ -3056,137 +3851,167 @@ void CMenu::MenuSettings(int iTab)
 				switch (iCurrentType)
 			*/
 
+			auto drawConfigs = [](std::string& sStaticName, bool bVisual = false)
+				{
+					auto& sPath = !bVisual ? F::Configs.m_sConfigPath : F::Configs.m_sVisualsPath;
+					auto& sConfig = !bVisual ? F::Configs.m_sCurrentConfig : F::Configs.m_sCurrentVisuals;
+					auto sType = !bVisual ? "Config" : "Visual";
+					bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+
+					FSDropdown("Name", &sStaticName, {}, FSDropdownEnum::AutoUpdate, -H::Draw.Unscale(FCalcTextSize("CREATE").x + FCalcTextSize("FOLDER").x) - 72);
+					PushDisabled(sStaticName.empty());
+					{
+						if (FButton("Create", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
+						{
+							if (!std::filesystem::exists(sPath + sStaticName))
+							{
+								if (!bVisual)
+									F::Configs.SaveConfig(sStaticName);
+								else
+									F::Configs.SaveVisual(sStaticName);
+							}
+							sStaticName.clear();
+						}
+					}
+					PopDisabled();
+					if (FButton("Folder", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
+						ShellExecuteA(NULL, NULL, sPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+					vRowSizes.clear();
+
+					std::vector<std::pair<std::filesystem::directory_entry, std::string>> vConfigs = {};
+					bool bDefaultFound = false;
+					for (auto& tEntry : std::filesystem::directory_iterator(sPath))
+					{
+						if (!tEntry.is_regular_file() || tEntry.path().extension() != F::Configs.m_sConfigExtension)
+							continue;
+
+						std::string sName = tEntry.path().filename().string();
+						sName.erase(sName.end() - F::Configs.m_sConfigExtension.size(), sName.end());
+						if (FNV1A::Hash32(sName.c_str()) == FNV1A::Hash32Const("default"))
+							bDefaultFound = true;
+
+						vConfigs.emplace_back(tEntry, sName);
+					}
+					if (!bVisual)
+					{
+						if (!bDefaultFound)
+							F::Configs.SaveConfig("default");
+						std::sort(vConfigs.begin(), vConfigs.end(), [&](const auto& a, const auto& b) -> bool
+							{
+								// override for default config
+								if (FNV1A::Hash32(a.second.c_str()) == FNV1A::Hash32Const("default"))
+									return true;
+								if (FNV1A::Hash32(b.second.c_str()) == FNV1A::Hash32Const("default"))
+									return false;
+
+								return a.second < b.second;
+							});
+					}
+
+					for (auto& [entry, sConfigName] : vConfigs)
+					{
+						bool bCurrentConfig = FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32(sConfig.c_str());
+						ImVec2 vOriginalPos = GetCursorPos();
+
+						SetCursorPos({ vOriginalPos.x + H::Draw.Scale(2), vOriginalPos.y + H::Draw.Scale(9) });
+						bool bLoad = IconButton(bCurrentConfig ? ICON_MD_REFRESH : ICON_MD_DOWNLOAD);
+						FTooltip(ICON_MD_ADD ICON_MD_FILE_UPLOAD_OFF, bNoSave && IsItemHovered(), 300.f, F::Render.IconFont);
+
+						SetCursorPos({ H::Draw.Scale(43), vOriginalPos.y + H::Draw.Scale(14) });
+						TextColored(bCurrentConfig ? F::Render.Active.Value : F::Render.Inactive.Value, TruncateText(sConfigName, GetWindowWidth() - GetStyle().WindowPadding.x * 2 - H::Draw.Scale(80)).c_str());
+
+						int iOffset = 9;
+						SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
+						bool bDelete = IconButton(ICON_MD_DELETE);
+
+						SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
+						bool bSave = IconButton(ICON_MD_SAVE);
+						FTooltip(ICON_MD_ADD ICON_MD_FILE_DOWNLOAD_OFF, bNoSave && IsItemHovered(), 300.f, F::Render.IconFont);
+
+						if (bLoad)
+						{
+							if (!bVisual)
+								F::Configs.LoadConfig(sConfigName);
+							else
+								F::Configs.LoadVisual(sConfigName);
+						}
+						else if (bSave)
+						{
+							if (!bCurrentConfig || !bVisual && !F::Configs.m_sCurrentVisuals.empty())
+								OpenPopup(std::format("Save{}{}", sType, sConfigName).c_str());
+							else if (!bVisual)
+								F::Configs.SaveConfig(sConfigName);
+							else
+								F::Configs.SaveVisual(sConfigName);
+						}
+						else if (bDelete)
+							OpenPopup(std::format("Remove{}{}", sType, sConfigName).c_str());
+
+						if (FBeginPopupModal(std::format("Save{}{}", sType, sConfigName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+						{
+							FText(std::format("Do you really want to override '{}'?", sConfigName).c_str());
+
+							if (FButton("Yes, override", FButtonEnum::Left))
+							{
+								if (!bVisual)
+									F::Configs.SaveConfig(sConfigName);
+								else
+									F::Configs.SaveVisual(sConfigName);
+								CloseCurrentPopup();
+							}
+							if (FButton("No", FButtonEnum::Right | FButtonEnum::SameLine))
+								CloseCurrentPopup();
+
+							EndPopup();
+						}
+						else if (FBeginPopupModal(std::format("Remove{}{}", sType, sConfigName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+						{
+							FText(std::format("Do you really want to remove '{}'?", sConfigName).c_str());
+
+							PushDisabled(!bVisual && FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32Const("default"));
+							{
+								if (FButton("Yes, delete", FButtonEnum::Fit))
+								{
+									if (!bVisual)
+										F::Configs.DeleteConfig(sConfigName);
+									else
+										F::Configs.DeleteVisual(sConfigName);
+									CloseCurrentPopup();
+								}
+							}
+							PopDisabled();
+							if (FButton("Yes, reset", FButtonEnum::Fit | FButtonEnum::SameLine))
+							{
+								if (!bVisual)
+									F::Configs.ResetConfig(sConfigName);
+								else
+									F::Configs.ResetVisual(sConfigName);
+								CloseCurrentPopup();
+							}
+							if (FButton("No", FButtonEnum::Fit | FButtonEnum::SameLine))
+								CloseCurrentPopup();
+
+							EndPopup();
+						}
+
+						SetCursorPos(vOriginalPos); DebugDummy({ 0, H::Draw.Scale(28) });
+					}
+					DebugDummy({ 0, H::Draw.Scale(7) });
+				};
+
 			/* Column 1 */
 			TableNextColumn();
 			if (Section("Config"))
 			{
 				static std::string sStaticName;
 
-				auto vTable = WidgetTable(2, H::Draw.Scale(48), { GetWindowWidth() - H::Draw.Scale(154) - GetStyle().WindowPadding.x });
-
-				SetCursorPos(vTable[0].m_vPos);
-				if (BeginChild(vTable[0].m_sName.c_str(), vTable[0].m_vSize, vTable[0].m_iWindowFlags, vTable[0].m_iChildFlags))
-				{
-					FSDropdown("Name", &sStaticName, {}, FSDropdownEnum::AutoUpdate);
-				} EndChild();
-
-				SetCursorPos(vTable[1].m_vPos);
-				if (BeginChild(vTable[1].m_sName.c_str(), vTable[1].m_vSize, vTable[1].m_iWindowFlags, vTable[1].m_iChildFlags))
-				{
-					PushDisabled(sStaticName.empty());
-					{
-						if (FButton("Create", FButtonEnum::Fit, { 0, 40 }))
-						{
-							if (!std::filesystem::exists(F::Configs.m_sConfigPath + sStaticName))
-								F::Configs.SaveConfig(sStaticName);
-							sStaticName.clear();
-						}
-					}
-					PopDisabled();
-					if (FButton("Folder", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
-						ShellExecuteA(NULL, NULL, F::Configs.m_sConfigPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-				} EndChild();
-
-				std::vector<std::pair<std::filesystem::directory_entry, std::string>> vConfigs = {};
-				bool bDefaultFound = false;
-				for (auto& entry : std::filesystem::directory_iterator(F::Configs.m_sConfigPath))
-				{
-					if (!entry.is_regular_file() || entry.path().extension() != F::Configs.m_sConfigExtension)
-						continue;
-
-					std::string sConfigName = entry.path().filename().string();
-					sConfigName.erase(sConfigName.end() - F::Configs.m_sConfigExtension.size(), sConfigName.end());
-					if (FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32Const("default"))
-						bDefaultFound = true;
-
-					vConfigs.emplace_back(entry, sConfigName);
-				}
-				if (!bDefaultFound)
-					F::Configs.SaveConfig("default");
-				std::sort(vConfigs.begin(), vConfigs.end(), [&](const auto& a, const auto& b) -> bool
-					{
-						// override for default config
-						if (FNV1A::Hash32(a.second.c_str()) == FNV1A::Hash32Const("default"))
-							return true;
-						if (FNV1A::Hash32(b.second.c_str()) == FNV1A::Hash32Const("default"))
-							return false;
-
-						return a.second < b.second;
-					});
-
-				for (auto& [entry, sConfigName] : vConfigs)
-				{
-					bool bCurrentConfig = FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32(F::Configs.m_sCurrentConfig.c_str());
-					ImVec2 vOriginalPos = GetCursorPos();
-
-					SetCursorPos({ vOriginalPos.x + H::Draw.Scale(2), vOriginalPos.y + H::Draw.Scale(9) });
-					if (IconButton(bCurrentConfig ? ICON_MD_REFRESH : ICON_MD_DOWNLOAD))
-						F::Configs.LoadConfig(sConfigName);
-
-					SetCursorPos({ H::Draw.Scale(43), vOriginalPos.y + H::Draw.Scale(14) });
-					TextColored(bCurrentConfig ? F::Render.Active.Value : F::Render.Inactive.Value, TruncateText(sConfigName, GetWindowWidth() - GetStyle().WindowPadding.x * 2 - H::Draw.Scale(80)).c_str());
-
-					int iOffset = 9;
-					SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
-					if (IconButton(ICON_MD_DELETE))
-						OpenPopup(std::format("Confirmation## RemoveConfig{}", sConfigName).c_str());
-
-					SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
-					if (IconButton(ICON_MD_SAVE))
-					{
-						if (!bCurrentConfig || F::Configs.m_sCurrentVisuals.length())
-							OpenPopup(std::format("Confirmation## SaveConfig{}", sConfigName).c_str());
-						else
-							F::Configs.SaveConfig(sConfigName);
-					}
-
-					if (FBeginPopupModal(std::format("Confirmation## SaveConfig{}", sConfigName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
-					{
-						FText(std::format("Do you really want to override '{}'?", sConfigName).c_str());
-
-						if (FButton("Yes, override", FButtonEnum::Left))
-						{
-							F::Configs.SaveConfig(sConfigName);
-							CloseCurrentPopup();
-						}
-						if (FButton("No", FButtonEnum::Right | FButtonEnum::SameLine))
-							CloseCurrentPopup();
-
-						EndPopup();
-					}
-
-					if (FBeginPopupModal(std::format("Confirmation## RemoveConfig{}", sConfigName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
-					{
-						FText(std::format("Do you really want to remove '{}'?", sConfigName).c_str());
-
-						PushDisabled(FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32Const("default"));
-						{
-							if (FButton("Yes, delete", FButtonEnum::Fit))
-							{
-								F::Configs.DeleteConfig(sConfigName);
-								CloseCurrentPopup();
-							}
-						}
-						PopDisabled();
-						if (FButton("Yes, reset", FButtonEnum::Fit | FButtonEnum::SameLine))
-						{
-							F::Configs.ResetConfig(sConfigName);
-							CloseCurrentPopup();
-						}
-						if (FButton("No", FButtonEnum::Fit | FButtonEnum::SameLine))
-							CloseCurrentPopup();
-
-						EndPopup();
-					}
-
-					SetCursorPos(vOriginalPos); DebugDummy({ 0, H::Draw.Scale(28) });
-				}
-				DebugDummy({ 0, H::Draw.Scale(7) });
+				drawConfigs(sStaticName);
 			} EndSection();
-			SetCursorPosX(GetCursorPosX() + 8);
 			PushStyleColor(ImGuiCol_Text, F::Render.Inactive.Value);
+			SetCursorPosX(GetCursorPosX() + GetStyle().WindowPadding.x);
 			FText("Built @ " __DATE__ ", " __TIME__ ", " __CONFIGURATION__);
-
+			//SetCursorPosX(GetCursorPosX() + GetStyle().WindowPadding.x);
+			//FText(std::format("Time @ {}, {}", SDK::GetDate(), SDK::GetTime()).c_str());
 			PopStyleColor();
 
 			/* Column 2 */
@@ -3195,101 +4020,7 @@ void CMenu::MenuSettings(int iTab)
 			{
 				static std::string sStaticName;
 
-				auto vTable = WidgetTable(2, H::Draw.Scale(48), { GetWindowWidth() - H::Draw.Scale(154) - GetStyle().WindowPadding.x });
-
-				SetCursorPos(vTable[0].m_vPos);
-				if (BeginChild(vTable[0].m_sName.c_str(), vTable[0].m_vSize, vTable[0].m_iWindowFlags, vTable[0].m_iChildFlags))
-				{
-					FSDropdown("Name", &sStaticName, {}, FSDropdownEnum::AutoUpdate);
-				} EndChild();
-
-				SetCursorPos(vTable[1].m_vPos);
-				if (BeginChild(vTable[1].m_sName.c_str(), vTable[1].m_vSize, vTable[1].m_iWindowFlags, vTable[1].m_iChildFlags))
-				{
-					PushDisabled(sStaticName.empty());
-					{
-						if (FButton("Create", FButtonEnum::Fit, { 0, 40 }))
-						{
-							if (!std::filesystem::exists(F::Configs.m_sVisualsPath + sStaticName))
-								F::Configs.SaveVisual(sStaticName);
-							sStaticName.clear();
-						}
-					}
-					PopDisabled();
-					if (FButton("Folder", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
-						ShellExecuteA(NULL, NULL, F::Configs.m_sVisualsPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-				} EndChild();
-
-				for (auto& entry : std::filesystem::directory_iterator(F::Configs.m_sVisualsPath))
-				{
-					if (!entry.is_regular_file() || entry.path().extension() != F::Configs.m_sConfigExtension)
-						continue;
-
-					std::string sConfigName = entry.path().filename().string();
-					sConfigName.erase(sConfigName.end() - F::Configs.m_sConfigExtension.size(), sConfigName.end());
-
-					bool bCurrentConfig = FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32(F::Configs.m_sCurrentVisuals.c_str());
-					ImVec2 vOriginalPos = GetCursorPos();
-
-					SetCursorPos({ vOriginalPos.x + H::Draw.Scale(2), vOriginalPos.y + H::Draw.Scale(9) });
-					if (IconButton(bCurrentConfig ? ICON_MD_REFRESH : ICON_MD_DOWNLOAD))
-						F::Configs.LoadVisual(sConfigName);
-
-					SetCursorPos({ H::Draw.Scale(43), vOriginalPos.y + H::Draw.Scale(14) });
-					TextColored(bCurrentConfig ? F::Render.Active.Value : F::Render.Inactive.Value, TruncateText(sConfigName, GetWindowWidth() - GetStyle().WindowPadding.x * 2 - H::Draw.Scale(80)).c_str());
-
-					int iOffset = 9;
-					SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
-					if (IconButton(ICON_MD_DELETE))
-						OpenPopup(std::format("Confirmation## DeleteVisual{}", sConfigName).c_str());
-
-					SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
-					if (IconButton(ICON_MD_SAVE))
-					{
-						if (!bCurrentConfig)
-							OpenPopup(std::format("Confirmation## SaveVisual{}", sConfigName).c_str());
-						else
-							F::Configs.SaveVisual(sConfigName);
-					}
-
-					// Dialogs
-					{
-						// Save config dialog
-						if (FBeginPopupModal(std::format("Confirmation## SaveVisual{}", sConfigName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
-						{
-							FText(std::format("Do you really want to override '{}'?", sConfigName).c_str());
-
-							if (FButton("Yes, override", FButtonEnum::Left))
-							{
-								F::Configs.SaveVisual(sConfigName);
-								CloseCurrentPopup();
-							}
-							if (FButton("No", FButtonEnum::Right | FButtonEnum::SameLine))
-								CloseCurrentPopup();
-
-							EndPopup();
-						}
-
-						// Delete config dialog
-						if (FBeginPopupModal(std::format("Confirmation## DeleteVisual{}", sConfigName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
-						{
-							FText(std::format("Do you really want to delete '{}'?", sConfigName).c_str());
-
-							if (FButton("Yes, delete", FButtonEnum::Left))
-							{
-								F::Configs.DeleteVisual(sConfigName);
-								CloseCurrentPopup();
-							}
-							if (FButton("No", FButtonEnum::Right | FButtonEnum::SameLine))
-								CloseCurrentPopup();
-
-							EndPopup();
-						}
-					}
-
-					SetCursorPos(vOriginalPos); DebugDummy({ 0, H::Draw.Scale(28) });
-				}
-				DebugDummy({ 0, H::Draw.Scale(7) });
+				drawConfigs(sStaticName, true);
 			} EndSection();
 
 			EndTable();
@@ -3303,20 +4034,17 @@ void CMenu::MenuSettings(int iTab)
 		{
 			auto vTable = WidgetTable(3, H::Draw.Scale(24));
 
-			SetCursorPos(vTable[0].m_vPos);
-			if (BeginChild(vTable[0].m_sName.c_str(), vTable[0].m_vSize, vTable[0].m_iWindowFlags, vTable[0].m_iChildFlags))
+			if (BeginWidgetTable(0, vTable))
 			{
 				FToggle(Vars::Menu::BindWindow);
 			} EndChild();
 
-			SetCursorPos(vTable[1].m_vPos);
-			if (BeginChild(vTable[1].m_sName.c_str(), vTable[1].m_vSize, vTable[1].m_iWindowFlags, vTable[1].m_iChildFlags))
+			if (BeginWidgetTable(1, vTable))
 			{
 				FToggle(Vars::Menu::BindWindowTitle);
 			} EndChild();
 
-			SetCursorPos(vTable[2].m_vPos);
-			if (BeginChild(vTable[2].m_sName.c_str(), vTable[2].m_vSize, vTable[2].m_iWindowFlags, vTable[2].m_iChildFlags))
+			if (BeginWidgetTable(2, vTable))
 			{
 				FToggle(Vars::Menu::MenuShowsBinds);
 			} EndChild();
@@ -3332,8 +4060,7 @@ void CMenu::MenuSettings(int iTab)
 
 			auto vTable = WidgetTable(2, H::Draw.Scale(104));
 
-			SetCursorPos(vTable[0].m_vPos);
-			if (BeginChild(vTable[0].m_sName.c_str(), vTable[0].m_vSize, vTable[0].m_iWindowFlags, vTable[0].m_iChildFlags))
+			if (BeginWidgetTable(0, vTable))
 			{
 				FSDropdown("Name", &tBind.m_sName, {}, FDropdownEnum::Left | FSDropdownEnum::AutoUpdate);
 				{
@@ -3341,25 +4068,25 @@ void CMenu::MenuSettings(int iTab)
 					if (FButton(std::format("Parent: {}", sParent).c_str(), FButtonEnum::Right | FButtonEnum::SameLine | FButtonEnum::NoUpper, { 0, 40 }))
 						bParent = 2;
 				}
-				FDropdown("Type", &tBind.m_iType, { "Key", "Class", "Weapon type", "Item slot" }, {}, FDropdownEnum::Left);
+				FDropdown("Type", &tBind.m_iType, { "Key", "Class", "Weapon type", "Item slot", "Misc" }, {}, FDropdownEnum::Left);
 				switch (tBind.m_iType)
 				{
-				case BindEnum::Key: tBind.m_iInfo = std::clamp(tBind.m_iInfo, 0, 2); FDropdown("Behavior", &tBind.m_iInfo, { "Hold", "Toggle", "Double click" }, {}, FDropdownEnum::Right); break;
-				case BindEnum::Class: tBind.m_iInfo = std::clamp(tBind.m_iInfo, 0, 8); FDropdown("Class", &tBind.m_iInfo, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, {}, FDropdownEnum::Right); break;
-				case BindEnum::WeaponType: tBind.m_iInfo = std::clamp(tBind.m_iInfo, 0, 3); FDropdown("Weapon type", &tBind.m_iInfo, { "Hitscan", "Projectile", "Melee", "Throwable" }, {}, FDropdownEnum::Right); break;
-				case BindEnum::ItemSlot: tBind.m_iInfo = std::max(tBind.m_iInfo, 0); FDropdown("Item slot", &tBind.m_iInfo, { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, {}, FDropdownEnum::Right); break;
+				case BindEnum::Key: FDropdown("Behavior", &tBind.m_iInfo, { "Hold", "Toggle", "Double click" }, {}, FDropdownEnum::Right); break;
+				case BindEnum::Class: FDropdown("Class", &tBind.m_iInfo, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, {}, FDropdownEnum::Right); break;
+				case BindEnum::WeaponType: FDropdown("Weapon type", &tBind.m_iInfo, { "Hitscan", "Projectile", "Melee", "Throwable" }, {}, FDropdownEnum::Right); break;
+				case BindEnum::ItemSlot: FDropdown("Item slot", &tBind.m_iInfo, { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, {}, FDropdownEnum::Right); break;
+				case BindEnum::Misc: FDropdown("Misc", &tBind.m_iInfo, { "Spectated", "Spectated 1st", "Spectated 3rd", "##Divider", "Zoomed", "Aiming" }, {}, FDropdownEnum::Right); break;
 				}
 			} EndChild();
 
-			SetCursorPos(vTable[1].m_vPos);
-			if (BeginChild(vTable[1].m_sName.c_str(), vTable[1].m_vSize, vTable[1].m_iWindowFlags, vTable[1].m_iChildFlags))
+			if (BeginWidgetTable(1, vTable))
 			{
 				int iNot = tBind.m_bNot;
 				FDropdown("While", &iNot, { "Active", "Not active" }, {}, FDropdownEnum::Left);
 				tBind.m_bNot = iNot;
 				FDropdown("Visibility", &tBind.m_iVisibility, { "Always", "While active", "Hidden" }, {}, FDropdownEnum::Right);
 				if (tBind.m_iType == 0)
-					FKeybind("Key", tBind.m_iKey, FButtonEnum::None, { Vars::Menu::MenuPrimaryKey[DEFAULT_BIND], Vars::Menu::MenuSecondaryKey[DEFAULT_BIND] }, { 0, 40 }, -96);
+					FKeybind("Key", tBind.m_iKey, FButtonEnum::None, { Vars::Menu::PrimaryKey[DEFAULT_BIND], Vars::Menu::SecondaryKey[DEFAULT_BIND] }, { 0, 40 }, -96);
 
 				// create/modify button
 				bool bCreate = false, bClear = false, bParent = true;
@@ -3393,17 +4120,63 @@ void CMenu::MenuSettings(int iTab)
 			SetCursorPosY(GetCursorPosY() - H::Draw.Scale(5));
 			PopStyleColor();
 
+			auto numberToIndex = [](int iNumber, int iLayer)
+				{
+					int iIndex = -1, i = -1;
+
+					std::unordered_map<int, bool> mBinds = {};
+					std::function<void(int)> getBinds = [&](int iParent)
+						{
+							for (int _iBind = 0; _iBind < F::Binds.m_vBinds.size(); _iBind++)
+							{
+								auto& _tBind = F::Binds.m_vBinds[_iBind];
+								if (iParent != _tBind.m_iParent || mBinds.contains(_iBind))
+									continue;
+
+								mBinds[_iBind];
+
+								i++;
+								//if (iParent == iLayer && iNumber >= i)
+								if (iIndex == -1 && iParent == iLayer && iNumber <= i)
+									iIndex = _iBind;
+								getBinds(_iBind);
+							}
+						};
+					getBinds(DEFAULT_BIND);
+
+					return iIndex;
+				};
+			auto positionToIndex = [&](ImVec2 vPos, int iLayer = DEFAULT_BIND)
+				{
+					int iIndex = floorf((vPos.y - GetCursorPosY() - H::Draw.Scale(4)) / H::Draw.Scale(36));
+					iIndex = std::clamp(iIndex, 0, int(F::Binds.m_vBinds.size() - 1));
+					iIndex = numberToIndex(iIndex, iLayer);
+					return iIndex;
+				};
+
+			static int iDragging = -1, iLayer = DEFAULT_BIND;
+			if (!IsMouseDown(ImGuiMouseButton_Left))
+				iDragging = -1;
+			else if (iDragging != -1)
+			{
+				int iTo = positionToIndex(GetMousePos() - GetDrawPos(), iLayer);
+				if (iTo != -1 && iDragging != iTo)
+				{
+					F::Binds.Move(iDragging, iTo);
+					iDragging = iTo;
+				}
+			}
+
 			std::unordered_map<int, bool> mBinds = {};
 			std::function<void(int, int)> getBinds = [&](int iParent, int x)
 				{
-					for (auto it = F::Binds.m_vBinds.begin(); it < F::Binds.m_vBinds.end(); it++)
+					for (int _iBind = 0; _iBind < F::Binds.m_vBinds.size(); _iBind++)
 					{
-						int _iBind = std::distance(F::Binds.m_vBinds.begin(), it);
-						auto& _tBind = *it;
+						auto& _tBind = F::Binds.m_vBinds[_iBind];
 						if (iParent != DEFAULT_BIND - 1 && iParent != _tBind.m_iParent || mBinds.contains(_iBind))
 							continue;
 
-						mBinds[_iBind] = true;
+						mBinds[_iBind];
 
 						std::string sType; std::string sInfo;
 						switch (_tBind.m_iType)
@@ -3445,6 +4218,31 @@ void CMenu::MenuSettings(int iTab)
 						case BindEnum::ItemSlot:
 							sType = "slot";
 							sInfo = std::format("{}", _tBind.m_iInfo + 1);
+							break;
+						case BindEnum::Misc:
+							switch (_tBind.m_iInfo)
+							{
+							case BindEnum::MiscEnum::Spectated:
+							case BindEnum::MiscEnum::SpectatedFirst:
+							case BindEnum::MiscEnum::SpectatedThird:
+								sType = "spectated";
+								switch (_tBind.m_iInfo)
+								{
+								case BindEnum::MiscEnum::Spectated: { sInfo = "any"; break; }
+								case BindEnum::MiscEnum::SpectatedFirst: { sInfo = "1st"; break; }
+								case BindEnum::MiscEnum::SpectatedThird: { sInfo = "3rd"; break; }
+								}
+								break;
+							case BindEnum::MiscEnum::Zoomed:
+							case BindEnum::MiscEnum::Aiming:
+								sType = "cond";
+								switch (_tBind.m_iInfo)
+								{
+								case BindEnum::MiscEnum::Zoomed: { sInfo = "zoomed"; break; }
+								case BindEnum::MiscEnum::Aiming: { sInfo = "aiming"; break; }
+								}
+								break;
+							}
 							break;
 						}
 						if (_tBind.m_bNot && (_tBind.m_iType != BindEnum::Key || _tBind.m_iInfo == BindEnum::KeyEnum::Hold))
@@ -3514,12 +4312,18 @@ void CMenu::MenuSettings(int iTab)
 
 						SetCursorPos(vOriginalPos);
 						bool bClicked = Button(std::format("##{}", _iBind).c_str(), { flWidth, flHeight });
+						bool bPopup = IsItemClicked(ImGuiMouseButton_Right);
 
 						PopTransparent(1, 1);
 
 						if (bClicked)
 						{
-							if (bParent)
+							if (!bParent)
+							{
+								iBind = _iBind;
+								tBind = _tBind;
+							}
+							else
 							{
 								bParent = false;
 								tBind.m_iParent = _iBind;
@@ -3534,20 +4338,49 @@ void CMenu::MenuSettings(int iTab)
 									_iBind2 = _tBind2.m_iParent;
 								}
 							}
-							else
-							{
-								iBind = _iBind;
-								tBind = _tBind;
-							}
 						}
-						if (bDelete)
+						else if (bPopup)
+							OpenPopup(std::format("RightClicked{}", _iBind).c_str());
+						else if (iDragging == -1 && IsItemHovered() && IsMouseDown(ImGuiMouseButton_Left))
+							iDragging = _iBind, iLayer = iParent;
+						else if (bDelete)
 						{
 							if (U::KeyHandler.Down(VK_SHIFT)) // allow user to quickly remove binds
 								F::Binds.RemoveBind(_iBind);
 							else
-								OpenPopup(std::format("Confirmation## DeleteBind{}", _iBind).c_str());
+								OpenPopup(std::format("DeleteBind{}", _iBind).c_str());
 						}
-						if (FBeginPopupModal(std::format("Confirmation## DeleteBind{}", _iBind).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+
+						if (FBeginPopup(std::format("RightClicked{}", _iBind).c_str()))
+						{
+							PushStyleVar(ImGuiStyleVar_ItemSpacing, { H::Draw.Scale(8), 0 });
+
+							{
+								static std::string sInput = "";
+
+								bool bEnter = FInputText("Name...", sInput, H::Draw.Scale(284), ImGuiInputTextFlags_EnterReturnsTrue);
+								if (!IsItemFocused())
+									sInput = _tBind.m_sName;
+								if (bEnter)
+									_tBind.m_sName = sInput;
+							}
+
+							FDropdown("Type", &_tBind.m_iType, { "Key", "Class", "Weapon type", "Item slot", "Misc" }, {}, FDropdownEnum::Left);
+							switch (_tBind.m_iType)
+							{
+							case BindEnum::Key: FDropdown("Behavior", &_tBind.m_iInfo, { "Hold", "Toggle", "Double click" }, {}, FDropdownEnum::Right); break;
+							case BindEnum::Class: FDropdown("Class", &_tBind.m_iInfo, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, {}, FDropdownEnum::Right); break;
+							case BindEnum::WeaponType: FDropdown("Weapon type", &_tBind.m_iInfo, { "Hitscan", "Projectile", "Melee", "Throwable" }, {}, FDropdownEnum::Right); break;
+							case BindEnum::ItemSlot: FDropdown("Item slot", &_tBind.m_iInfo, { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, {}, FDropdownEnum::Right); break;
+							case BindEnum::Misc: FDropdown("Misc", &_tBind.m_iInfo, { "Spectated", "Spectated 1st", "Spectated 3rd", "##Divider", "Zoomed", "Aiming" }, {}, FDropdownEnum::Right); break;
+							}
+							if (_tBind.m_iType == BindEnum::Key)
+								FKeybind("Key", _tBind.m_iKey);
+
+							PopStyleVar();
+							EndPopup();
+						}
+						else if (FBeginPopupModal(std::format("DeleteBind{}", _iBind).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
 						{
 							FText(std::format("Do you really want to delete '{}'{}?", _tBind.m_sName, F::Binds.HasChildren(_iBind) ? " and all of its children" : "").c_str());
 
@@ -3617,29 +4450,18 @@ void CMenu::MenuSettings(int iTab)
 			{
 				static std::string sStaticName;
 
-				auto vTable = WidgetTable(2, H::Draw.Scale(48), { GetWindowWidth() - H::Draw.Scale(154) - GetStyle().WindowPadding.x });
-
-				SetCursorPos(vTable[0].m_vPos);
-				if (BeginChild(vTable[0].m_sName.c_str(), vTable[0].m_vSize, vTable[0].m_iWindowFlags, vTable[0].m_iChildFlags))
+				FSDropdown("Name", &sStaticName, {}, FSDropdownEnum::AutoUpdate, -H::Draw.Unscale(FCalcTextSize("CREATE").x + FCalcTextSize("FOLDER").x) - 72);
+				PushDisabled(sStaticName.empty());
 				{
-					FSDropdown("Name", &sStaticName, {}, FSDropdownEnum::AutoUpdate);
-				} EndChild();
-
-				SetCursorPos(vTable[1].m_vPos);
-				if (BeginChild(vTable[1].m_sName.c_str(), vTable[1].m_vSize, vTable[1].m_iWindowFlags, vTable[1].m_iChildFlags))
-				{
-					PushDisabled(sStaticName.empty());
+					if (FButton("Create", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
 					{
-						if (FButton("Create", FButtonEnum::Fit, { 0, 40 }))
-						{
-							F::Materials.AddMaterial(sStaticName.c_str());
-							sStaticName.clear();
-						}
+						F::Materials.AddMaterial(sStaticName.c_str());
+						sStaticName.clear();
 					}
-					PopDisabled();
-					if (FButton("Folder", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
-						ShellExecuteA(NULL, NULL, F::Configs.m_sMaterialsPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-				} EndChild();
+				}
+				PopDisabled();
+				if (FButton("Folder", FButtonEnum::Fit | FButtonEnum::SameLine, { 0, 40 }))
+					ShellExecuteA(NULL, NULL, F::Configs.m_sMaterialsPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
 
 				std::vector<Material_t> vMaterials;
 				for (auto& [_, mat] : F::Materials.m_mMaterials)
@@ -3674,8 +4496,8 @@ void CMenu::MenuSettings(int iTab)
 					{
 						SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), vOriginalPos.y + H::Draw.Scale(9) });
 						if (IconButton(ICON_MD_DELETE))
-							OpenPopup(std::format("Confirmation## DeleteMat{}", tMaterial.m_sName).c_str());
-						if (FBeginPopupModal(std::format("Confirmation## DeleteMat{}", tMaterial.m_sName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+							OpenPopup(std::format("DeleteMat{}", tMaterial.m_sName).c_str());
+						if (FBeginPopupModal(std::format("DeleteMat{}", tMaterial.m_sName).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
 						{
 							FText(std::format("Do you really want to delete '{}'?", tMaterial.m_sName).c_str());
 
@@ -3787,7 +4609,7 @@ void CMenu::MenuSettings(int iTab)
 			// Mouse movement logger
 			FToggle(Vars::Debug::MouseMovementLogger, FToggleEnum::Right);
 		} EndSection();
-		if (Section("Extra"))
+		if (Section("Buttons"))
 		{
 			if (FButton("cl_fullupdate", FButtonEnum::Left))
 				I::EngineClient->ClientCmd_Unrestricted("cl_fullupdate");
@@ -3819,7 +4641,7 @@ void CMenu::MenuSettings(int iTab)
 
 					EndPopup();
 				}
-				if (FBeginPopupModal("LockAchievements", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+				else if (FBeginPopupModal("LockAchievements", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
 				{
 					FText("Do you really want to lock all achievements?");
 
@@ -3834,7 +4656,6 @@ void CMenu::MenuSettings(int iTab)
 					EndPopup();
 				}
 			}
-
 		} EndSection();
 		if (Vars::Debug::Options.Value && I::EngineClient->IsConnected())
 		{
@@ -3891,16 +4712,17 @@ void CMenu::MenuSettings(int iTab)
 #ifdef DEBUG_HOOKS
 		if (Section("Hooks", 8))
 		{
-			int i = 0; for (auto& pVar : G::Vars)
+			int i = 0; for (auto& pBase : G::Vars)
 			{
-				if (pVar->m_sName.find("Vars::Hooks::") == std::string::npos)
+				if (std::string(pBase->Name()).find("Vars::Hooks::") == std::string::npos)
 					continue;
 
-				FToggle(*pVar->As<bool>(), !(i % 2) ? FToggleEnum::Left : FToggleEnum::Right);
+				FToggle(*pBase->As<bool>(), !(i % 2) ? FToggleEnum::Left : FToggleEnum::Right);
 				i++;
 			}
 		} EndSection();
 #endif
+		break;
 	}
 	}
 }
@@ -4193,23 +5015,21 @@ void CMenu::MenuSearch(std::string sSearch)
 	static std::vector<BaseVar*> vVars = {}; // don't string search every single frame
 
 	static uint32_t uStaticHash = 0;
-	const uint32_t uLastHash = uStaticHash;
-	const uint32_t uCurrHash = uStaticHash = FNV1A::Hash32(sSearch.c_str());
-
-	if (uCurrHash != uLastHash)
+	if (const uint32_t uCurrHash = FNV1A::Hash32(sSearch.c_str());
+		uCurrHash != uStaticHash)
 	{
 		std::string sSearch2 = sSearch;
 		std::transform(sSearch2.begin(), sSearch2.end(), sSearch2.begin(), ::tolower);
 
 		vVars.clear();
-		for (auto pVar : G::Vars)
+		for (auto& pBase : G::Vars)
 		{
-			if (!Vars::Debug::Options[DEFAULT_BIND] && pVar->m_iFlags & DEBUGVAR)
+			if (!Vars::Debug::Options[DEFAULT_BIND] && pBase->m_iFlags & DEBUGVAR)
 				continue;
 
-			std::vector<const char*> vSearch = { pVar->m_sName.c_str(), pVar->m_sSection };
-			vSearch.insert(vSearch.end(), pVar->m_vTitle.begin(), pVar->m_vTitle.end());
-			vSearch.insert(vSearch.end(), pVar->m_vValues.begin(), pVar->m_vValues.end());
+			std::vector<const char*> vSearch = { pBase->Name(), pBase->Section() };
+			vSearch.insert(vSearch.end(), pBase->m_vNames.begin(), pBase->m_vNames.end());
+			vSearch.insert(vSearch.end(), pBase->m_vValues.begin(), pBase->m_vValues.end());
 			for (auto pSearch : vSearch)
 			{
 				std::string sSearch3 = pSearch;
@@ -4220,11 +5040,13 @@ void CMenu::MenuSearch(std::string sSearch)
 				std::transform(sSearch3.begin(), sSearch3.end(), sSearch3.begin(), ::tolower);
 				if (sSearch3.find(sSearch2) != std::string::npos)
 				{
-					vVars.push_back(pVar);
+					vVars.push_back(pBase);
 					break;
 				}
 			}
 		}
+
+		uStaticHash = uCurrHash;
 	}
 
 	if (vVars.empty())
@@ -4238,7 +5060,8 @@ void CMenu::MenuSearch(std::string sSearch)
 			iWidgetEnum = iTypeEnum = WidgetEnum::FToggle;
 		else if (auto pVar = pBase->As<int>())
 		{
-			if (!pVar->m_vValues.empty())
+			if (!pVar->m_vValues.empty()
+				|| FNV1A::Hash32(pVar->Name()) == FNV1A::Hash32Const("Vars::ESP::ActiveGroups"))
 				iWidgetEnum = iTypeEnum = WidgetEnum::FDropdown;
 			else if (pVar->m_sExtra)
 				iWidgetEnum = WidgetEnum::FISlider, iTypeEnum = WidgetEnum::FSlider;
@@ -4262,24 +5085,12 @@ void CMenu::MenuSearch(std::string sSearch)
 		else
 			continue;
 
-		uint32_t uSection = FNV1A::Hash32(pBase->m_sSection);
+		uint32_t uSection = FNV1A::Hash32(pBase->Section());
 		if (uSection != uLastSection)
 		{
 			if (uLastSection)
 				EndSection();
-			const char* sSection = pBase->m_sSection;
-			switch (FNV1A::Hash32(sSection))
-			{
-			case FNV1A::Hash32Const("Enemy Chams"):
-				if (!FGet(Vars::Chams::Relative))
-					sSection = "BLU Chams";
-				break;
-			case FNV1A::Hash32Const("Team Chams"):
-				if (!FGet(Vars::Chams::Relative))
-					sSection = "RED Chams";
-				break;
-			}
-			Section(std::format("{}## {}", pBase->m_sSection, pBase->m_sName).c_str());
+			Section(std::format("{}## {}", pBase->Section(), pBase->Name()).c_str());
 			i = 0;
 		}
 		uLastSection = uSection;
@@ -4325,30 +5136,11 @@ void CMenu::MenuSearch(std::string sSearch)
 		case WidgetEnum::FToggle:
 		{
 			auto pVar = pBase->As<bool>();
-			bool bTransparent = false;
-			switch (FNV1A::Hash32(pVar->m_sName.c_str()))
-			{
-			case FNV1A::Hash32Const("Vars::Chams::Enemy::Players"):
-			case FNV1A::Hash32Const("Vars::Chams::Enemy::Ragdolls"):
-			case FNV1A::Hash32Const("Vars::Chams::Enemy::Buildings"):
-			case FNV1A::Hash32Const("Vars::Chams::Enemy::Projectiles"):
-			case FNV1A::Hash32Const("Vars::Chams::Team::Players"):
-			case FNV1A::Hash32Const("Vars::Chams::Team::Ragdolls"):
-			case FNV1A::Hash32Const("Vars::Chams::Team::Buildings"):
-			case FNV1A::Hash32Const("Vars::Chams::Team::Projectiles"):
-				iOverride = FGet(Vars::Chams::Relative) ? 1 : 2;
-				break;
-			case FNV1A::Hash32Const("Vars::Chams::EnemyChams"):
-			case FNV1A::Hash32Const("Vars::Chams::TeamChams"):
-				bTransparent = FGet(Vars::Chams::Relative);
-			}
-			PushTransparent(bTransparent);
 			if (FToggle(*pVar, !(i % 2) ? FToggleEnum::Left : FToggleEnum::Right, nullptr, iOverride/*, iOverride*/))
 			{
-				if (FNV1A::Hash32(pVar->m_sName.c_str()) == FNV1A::Hash32Const("Vars::Debug::Options"))
+				if (FNV1A::Hash32(pVar->Name()) == FNV1A::Hash32Const("Vars::Debug::Options"))
 					uStaticHash = 0;
 			}
-			PopTransparent();
 			break;
 		}
 		case WidgetEnum::FISlider:
@@ -4361,7 +5153,7 @@ void CMenu::MenuSearch(std::string sSearch)
 		{
 			auto pVar = pBase->As<float>();
 			const char* sFormat = pVar->m_sExtra;
-			switch (FNV1A::Hash32(pVar->m_sName.c_str()))
+			switch (FNV1A::Hash32(pVar->Name()))
 			{
 			case FNV1A::Hash32Const("Vars::Aimbot::Projectile::SplashRotateX"):
 			case FNV1A::Hash32Const("Vars::Aimbot::Projectile::SplashRotateY"):
@@ -4404,24 +5196,6 @@ void CMenu::MenuSearch(std::string sSearch)
 		case WidgetEnum::FColorPicker:
 		{
 			auto pVar = pBase->As<Color_t>();
-			switch (FNV1A::Hash32(pVar->m_sName.c_str()))
-			{
-			case FNV1A::Hash32Const("Vars::Colors::Backtrack"):
-			case FNV1A::Hash32Const("Vars::Colors::FakeAngle"):
-				iOverride = int(pBase->m_vTitle.size() - 1);
-				break;
-			case FNV1A::Hash32Const("Vars::Colors::Enemy"):
-			case FNV1A::Hash32Const("Vars::Colors::Team"):
-				if (!FGet(Vars::Colors::Relative))
-					iOverride = -2;
-				break;
-			case FNV1A::Hash32Const("Vars::Colors::TeamRed"):
-			case FNV1A::Hash32Const("Vars::Colors::TeamBlu"):
-				if (FGet(Vars::Colors::Relative))
-					iOverride = -2;
-			}
-			if (iOverride == -2)
-				break;
 			FColorPicker(*pVar, !(i % 2) ? FColorPickerEnum::Left : FColorPickerEnum::Right, {}, { H::Draw.Scale(12), H::Draw.Scale(12) }, {}, nullptr, iOverride, iOverride);
 			break;
 		}
@@ -4436,18 +5210,18 @@ void CMenu::MenuSearch(std::string sSearch)
 		{
 			auto pVar = pBase->As<int>();
 			std::vector<int> vIgnore;
-			switch (FNV1A::Hash32(pVar->m_sName.c_str()))
+			switch (FNV1A::Hash32(pVar->Name()))
 			{
-			case FNV1A::Hash32Const("Vars::Menu::MenuPrimaryKey"):
-				vIgnore = { Vars::Menu::MenuSecondaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON };
+			case FNV1A::Hash32Const("Vars::Menu::PrimaryKey"):
+				vIgnore = { Vars::Menu::SecondaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON };
 				break;
-			case FNV1A::Hash32Const("Vars::Menu::MenuSecondaryKey"):
-				vIgnore = { Vars::Menu::MenuPrimaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON };
+			case FNV1A::Hash32Const("Vars::Menu::SecondaryKey"):
+				vIgnore = { Vars::Menu::PrimaryKey[DEFAULT_BIND], VK_LBUTTON, VK_RBUTTON };
 				break;
 			default:
-				vIgnore = { Vars::Menu::MenuPrimaryKey[DEFAULT_BIND], Vars::Menu::MenuSecondaryKey[DEFAULT_BIND] };
+				vIgnore = { Vars::Menu::PrimaryKey[DEFAULT_BIND], Vars::Menu::SecondaryKey[DEFAULT_BIND] };
 			}
-			FKeybind(iOverride != -1 ? pVar->m_vTitle[iOverride] : pVar->m_vTitle.front(), pVar->Map[DEFAULT_BIND], !(i % 2) ? FButtonEnum::Left : FButtonEnum::Right | FButtonEnum::SameLine, vIgnore);
+			FKeybind(iOverride != -1 ? pVar->m_vNames[iOverride] : pVar->m_vNames.front(), pVar->Map[DEFAULT_BIND], !(i % 2) ? FButtonEnum::Left : FButtonEnum::Right | FButtonEnum::SameLine, vIgnore);
 			break;
 		}
 		}
@@ -4465,7 +5239,7 @@ struct DragBoxStorage_t
 	DragBox_t m_tDragBox;
 	float m_flScale;
 };
-static std::unordered_map<uint32_t, DragBoxStorage_t> mDragBoxStorage = {};
+static std::unordered_map<uint32_t, DragBoxStorage_t> s_mDragBoxStorage = {};
 void CMenu::AddDraggable(const char* sLabel, ConfigVar<DragBox_t>& var, bool bShouldDraw, ImVec2 vSize)
 {
 	using namespace ImGui;
@@ -4476,8 +5250,8 @@ void CMenu::AddDraggable(const char* sLabel, ConfigVar<DragBox_t>& var, bool bSh
 	auto tDragBox = FGet(var, true);
 	auto uHash = FNV1A::Hash32(sLabel);
 
-	bool bContains = mDragBoxStorage.contains(uHash);
-	auto& tStorage = mDragBoxStorage[uHash];
+	bool bContains = s_mDragBoxStorage.contains(uHash);
+	auto& tStorage = s_mDragBoxStorage[uHash];
 
 	SetNextWindowSize(vSize, ImGuiCond_Always);
 	if (!bContains || tDragBox != tStorage.m_tDragBox || H::Draw.Scale() != tStorage.m_flScale)
@@ -4513,7 +5287,7 @@ struct WindowBoxStorage_t
 	WindowBox_t m_tWindowBox;
 	float m_flScale;
 };
-static std::unordered_map<uint32_t, WindowBoxStorage_t> mWindowBoxStorage = {};
+static std::unordered_map<uint32_t, WindowBoxStorage_t> s_mWindowBoxStorage = {};
 void CMenu::AddResizableDraggable(const char* sLabel, ConfigVar<WindowBox_t>& var, bool bShouldDraw, ImVec2 vMinSize, ImVec2 vMaxSize, ImGuiSizeCallback fCustomCallback)
 {
 	using namespace ImGui;
@@ -4524,8 +5298,8 @@ void CMenu::AddResizableDraggable(const char* sLabel, ConfigVar<WindowBox_t>& va
 	auto tWindowBox = FGet(var, true);
 	auto uHash = FNV1A::Hash32(sLabel);
 
-	bool bContains = mWindowBoxStorage.contains(uHash);
-	auto& tStorage = mWindowBoxStorage[uHash];
+	bool bContains = s_mWindowBoxStorage.contains(uHash);
+	auto& tStorage = s_mWindowBoxStorage[uHash];
 
 	SetNextWindowSizeConstraints(vMinSize, vMaxSize, fCustomCallback);
 	if (!bContains || tWindowBox != tStorage.m_tWindowBox || H::Draw.Scale() != tStorage.m_flScale)
@@ -4573,16 +5347,15 @@ void CMenu::DrawBinds()
 {
 	using namespace ImGui;
 
-	if (m_bIsOpen ? false : !Vars::Menu::BindWindow.Value || I::EngineVGui->IsGameUIVisible() || I::MatSystemSurface->IsCursorVisible() && !I::EngineClient->IsPlayingDemo())
+	if (!F::Binds.m_bDisplay)
 		return;
 
 	std::vector<BindInfo_t> vInfo;
 	std::function<void(int)> getBinds = [&](int iParent)
 		{
-			for (auto it = F::Binds.m_vBinds.begin(); it < F::Binds.m_vBinds.end(); it++)
+			for (int iBind = 0; iBind < F::Binds.m_vBinds.size(); iBind++)
 			{
-				int iBind = std::distance(F::Binds.m_vBinds.begin(), it);
-				auto& tBind = *it;
+				auto& tBind = F::Binds.m_vBinds[iBind];
 				if (iParent != tBind.m_iParent || !tBind.m_bEnabled && !m_bIsOpen)
 					continue;
 
@@ -4629,6 +5402,31 @@ void CMenu::DrawBinds()
 						sType = "slot";
 						sInfo = std::format("{}", tBind.m_iInfo + 1);
 						break;
+					case BindEnum::Misc:
+						switch (tBind.m_iInfo)
+						{
+						case BindEnum::MiscEnum::Spectated:
+						case BindEnum::MiscEnum::SpectatedFirst:
+						case BindEnum::MiscEnum::SpectatedThird:
+							sType = "spectated";
+							switch (tBind.m_iInfo)
+							{
+							case BindEnum::MiscEnum::Spectated: { sInfo = "any"; break; }
+							case BindEnum::MiscEnum::SpectatedFirst: { sInfo = "1st"; break; }
+							case BindEnum::MiscEnum::SpectatedThird: { sInfo = "3rd"; break; }
+							}
+							break;
+						case BindEnum::MiscEnum::Zoomed:
+						case BindEnum::MiscEnum::Aiming:
+							sType = "cond";
+							switch (tBind.m_iInfo)
+							{
+							case BindEnum::MiscEnum::Zoomed: { sInfo = "zoomed"; break; }
+							case BindEnum::MiscEnum::Aiming: { sInfo = "aiming"; break; }
+							}
+							break;
+						}
+						break;
 					}
 					if (tBind.m_bNot && (tBind.m_iType != BindEnum::Key || tBind.m_iInfo == BindEnum::KeyEnum::Hold))
 						sInfo = std::format("not {}", sInfo);
@@ -4644,10 +5442,10 @@ void CMenu::DrawBinds()
 	if (vInfo.empty())
 		return;
 
-	static DragBox_t old = { -2147483648, -2147483648 };
-	DragBox_t info = m_bIsOpen ? FGet(Vars::Menu::BindsDisplay, true) : Vars::Menu::BindsDisplay.Value;
-	if (info != old)
-		SetNextWindowPos({ float(info.x), float(info.y) }, ImGuiCond_Always);
+	static DragBox_t tOld = { -2147483648, -2147483648 };
+	DragBox_t tDragBox = m_bIsOpen ? FGet(Vars::Menu::BindsDisplay, true) : Vars::Menu::BindsDisplay.Value;
+	if (tDragBox != tOld)
+		SetNextWindowPos({ float(tDragBox.x), float(tDragBox.y) }, ImGuiCond_Always);
 
 	float flNameWidth = 0, flInfoWidth = 0, flStateWidth = 0;
 	PushFont(F::Render.FontSmall);
@@ -4673,9 +5471,9 @@ void CMenu::DrawBinds()
 		else
 			RenderBackground(F::Render.Background0p5, F::Render.Background2);
 
-		info.x = vWindowPos.x; info.y = vWindowPos.y; old = info;
+		tDragBox.x = vWindowPos.x; tDragBox.y = vWindowPos.y; tOld = tDragBox;
 		if (m_bIsOpen)
-			FSet(Vars::Menu::BindsDisplay, info);
+			FSet(Vars::Menu::BindsDisplay, tDragBox);
 
 		int iListStart = 8;
 		if (Vars::Menu::BindWindowTitle.Value)
@@ -4717,32 +5515,36 @@ void CMenu::DrawBinds()
 				bool bDelete = IconButton(ICON_MD_DELETE, H::Draw.Scale(18));
 
 				SetCursorPos({ flWidth - H::Draw.Scale(51), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				if (IconButton(!tBind.m_bNot ? ICON_MD_CODE : ICON_MD_CODE_OFF, H::Draw.Scale(18)))
-					tBind.m_bNot = !tBind.m_bNot;
+				bool bNot = IconButton(!tBind.m_bNot ? ICON_MD_CODE : ICON_MD_CODE_OFF, H::Draw.Scale(18));
 
 				PushTransparent(Transparent || tBind.m_iVisibility == BindVisibilityEnum::Hidden, true);
 				SetCursorPos({ flWidth - H::Draw.Scale(76), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				if (IconButton(tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(18)))
-					tBind.m_iVisibility = (tBind.m_iVisibility + 1) % 3;
+				bool bVisibility = IconButton(tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(18));
 				PopTransparent(1, 1);
 
 				SetCursorPos({ flWidth - H::Draw.Scale(101), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				if (IconButton(tBind.m_bEnabled ? ICON_MD_TOGGLE_ON : ICON_MD_TOGGLE_OFF, H::Draw.Scale(18)))
-					tBind.m_bEnabled = !tBind.m_bEnabled;
+				bool bEnable = IconButton(tBind.m_bEnabled ? ICON_MD_TOGGLE_ON : ICON_MD_TOGGLE_OFF, H::Draw.Scale(18));
 
 				PopTransparent(1, 1);
 
 				PushFont(F::Render.FontRegular);
 				PushStyleVar(ImGuiStyleVar_WindowPadding, { H::Draw.Scale(8), H::Draw.Scale(8) });
 
-				if (bDelete)
+				if (bEnable)
+					tBind.m_bEnabled = !tBind.m_bEnabled;
+				else if (bVisibility)
+					tBind.m_iVisibility = (tBind.m_iVisibility + 1) % 3;
+				else if (bNot)
+					tBind.m_bNot = !tBind.m_bNot;
+				else if (bDelete)
 				{
 					if (U::KeyHandler.Down(VK_SHIFT)) // allow user to quickly remove binds
 						F::Binds.RemoveBind(iBind);
 					else
-						OpenPopup(std::format("Confirmation## DeleteBind{}", iBind).c_str());
+						OpenPopup(std::format("DeleteBind{}", iBind).c_str());
 				}
-				if (FBeginPopupModal(std::format("Confirmation## DeleteBind{}", iBind).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
+
+				if (FBeginPopupModal(std::format("DeleteBind{}", iBind).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysUseWindowPadding))
 				{
 					FText(std::format("Do you really want to delete '{}'{}?", tBind.m_sName, F::Binds.HasChildren(iBind) ? " and all of its children" : "").c_str());
 
@@ -4777,11 +5579,18 @@ static inline void SquareConstraints(ImGuiSizeCallbackData* data)
 	data->DesiredSize.x = data->DesiredSize.y = (data->DesiredSize.x + data->DesiredSize.y) / 2;
 }
 
+static inline void ManageVars()
+{
+	Vars::ESP::ActiveGroups.m_vValues = {};
+	for (auto& tGroup : F::Groups.m_vGroups)
+		Vars::ESP::ActiveGroups.m_vValues.push_back(tGroup.m_sName.c_str());
+}
+
 void CMenu::Render()
 {
 	using namespace ImGui;
 
-	if (!F::Configs.m_bConfigLoaded || !(ImGui::GetIO().DisplaySize.x > 160.f && ImGui::GetIO().DisplaySize.y > 28.f))
+	if (!(ImGui::GetIO().DisplaySize.x > 160.f && ImGui::GetIO().DisplaySize.y > 28.f))
 		return;
 
 	m_bInKeybind = m_bWindowHovered = false;
@@ -4792,11 +5601,11 @@ void CMenu::Render()
 	}
 	else
 	{
-		U::KeyHandler.StoreKey(Vars::Menu::MenuPrimaryKey.Value);
-		U::KeyHandler.StoreKey(Vars::Menu::MenuSecondaryKey.Value);
+		U::KeyHandler.StoreKey(Vars::Menu::PrimaryKey.Value);
+		U::KeyHandler.StoreKey(Vars::Menu::SecondaryKey.Value);
 		U::KeyHandler.StoreKey(VK_F11);
 	}
-	if (U::KeyHandler.Pressed(Vars::Menu::MenuPrimaryKey.Value) || U::KeyHandler.Pressed(Vars::Menu::MenuSecondaryKey.Value))
+	if (U::KeyHandler.Pressed(Vars::Menu::PrimaryKey.Value) || U::KeyHandler.Pressed(Vars::Menu::SecondaryKey.Value))
 		I::MatSystemSurface->SetCursorAlwaysVisible(m_bIsOpen = !m_bIsOpen);
 
 	PushFont(F::Render.FontRegular);
@@ -4804,6 +5613,7 @@ void CMenu::Render()
 	DrawBinds();
 	if (m_bIsOpen)
 	{
+		ManageVars();
 		DrawMenu();
 
 		AddDraggable("Ticks", Vars::Menu::TicksDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::Ticks);
@@ -4813,7 +5623,6 @@ void CMenu::Render()
 		AddDraggable("Conditions", Vars::Menu::ConditionsDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::Conditions);
 		AddDraggable("Seed prediction", Vars::Menu::SeedPredictionDisplay, FGet(Vars::Menu::Indicators) & Vars::Menu::IndicatorsEnum::SeedPrediction);
 		AddResizableDraggable("Camera", Vars::Visuals::Simulation::ProjectileWindow, FGet(Vars::Visuals::Simulation::ProjectileCamera));
-		AddResizableDraggable("Radar", Vars::Radar::Main::Window, FGet(Vars::Radar::Main::Enabled), { H::Draw.Scale(100), H::Draw.Scale(100) }, { H::Draw.Scale(1000), H::Draw.Scale(1000) }, SquareConstraints);
 
 		F::Render.Cursor = GetMouseCursor();
 		m_bWindowHovered = IsWindowHovered(ImGuiHoveredFlags_AnyWindow | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
@@ -4837,7 +5646,7 @@ void CMenu::Render()
 	PopFont();
 }
 
-void CMenu::AddOutput(const std::string& sFunction, const std::string& sLog, const Color_t& tColor)
+void CMenu::AddOutput(const char* sFunction, const char* sLog, Color_t tColor)
 {
 	static size_t iID = 0;
 

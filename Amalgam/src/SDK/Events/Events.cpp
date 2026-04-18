@@ -62,8 +62,10 @@ void CEventListener::FireGameEvent(IGameEvent* pEvent)
 	switch (uHash)
 	{
 	case FNV1A::Hash32Const("player_hurt"):
+	{
 		F::Resolver.PlayerHurt(pEvent);
 		F::CheaterDetection.ReportDamage(pEvent);
+<<<<<<< HEAD
 		F::CritHeals.OnPlayerHurt(I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")));
 		F::FocusFire.OnPlayerHurt(I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")), I::EngineClient->GetPlayerForUserID(pEvent->GetInt("attacker")));
 		break;
@@ -74,16 +76,31 @@ void CEventListener::FireGameEvent(IGameEvent* pEvent)
 		F::AutoDisguise.Event(pEvent, uHash, pLocal);
 		F::SpectateAll.OnPlayerDeath(pEvent);
 		break;
+=======
+		return;
+	}
+	case FNV1A::Hash32Const("player_spawn"):
+	{
+		if (I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")) != I::EngineClient->GetLocalPlayer())
+			return;
+
+		F::Backtrack.SetLerp();
+		return;
+	}
+>>>>>>> upstream/master
 	case FNV1A::Hash32Const("revive_player_notify"):
 	{
 		if (!Vars::Misc::MannVsMachine::InstantRevive.Value || pEvent->GetInt("entindex") != I::EngineClient->GetLocalPlayer())
-			break;
+			return;
 
+<<<<<<< HEAD
 		KeyValues* kv = CKeyValuesPool::Alloc("MVM_Revive_Response");
 		kv->SetInt("accepted", 1);
+=======
+		KeyValues* kv = new KeyValues("MVM_Revive_Response");
+		kv->SetBool("accepted", true);
+>>>>>>> upstream/master
 		I::EngineClient->ServerCmdKeyValues(kv);
 	}
 	}
-
-	return;
 }

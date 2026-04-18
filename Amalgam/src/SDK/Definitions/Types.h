@@ -275,8 +275,18 @@ public:
 		return x * v.x + y * v.y;
 	}
 
+<<<<<<< HEAD
 	inline bool IsZero(float flEpsilon = 0.001f) const
 	{
+=======
+	inline float DotNormalized(const Vec2& v) const
+	{
+		return (x * v.x + y * v.y) / (Length() * v.Length());
+	}
+
+	inline bool IsZero(float flEpsilon = 0.001f) const
+	{
+>>>>>>> upstream/master
 		return fabsf(x) < flEpsilon &&
 			   fabsf(y) < flEpsilon;
 	}
@@ -434,7 +444,7 @@ public:
 		x = X; y = Y; z = Z;
 	}
 
-	inline Vec3 To2D()
+	inline Vec3 To2D() const
 	{
 		return { x, y };
 	}
@@ -615,6 +625,11 @@ public:
 	inline float Dot(const Vec3& v) const
 	{
 		return x * v.x + y * v.y + z * v.z;
+	}
+
+	inline float DotNormalized(const Vec3& v) const
+	{
+		return (x * v.x + y * v.y + z * v.z) / (Length() * v.Length());
 	}
 
 	inline Vec3 Cross(const Vec3& v) const
@@ -808,14 +823,14 @@ struct IntRange_t
 {
 	int Min = 0, Max = 0;
 
-	inline bool operator==(IntRange_t other) const
+	inline bool operator==(const IntRange_t& t) const
 	{
-		return Min == other.Min && Max == other.Max;
+		return Min == t.Min && Max == t.Max;
 	}
 
-	inline bool operator!=(IntRange_t other) const
+	inline bool operator!=(const IntRange_t& t) const
 	{
-		return Min != other.Min || Max != other.Max;
+		return Min != t.Min || Max != t.Max;
 	}
 };
 
@@ -823,14 +838,14 @@ struct FloatRange_t
 {
 	float Min = 0, Max = 0;
 
-	inline bool operator==(FloatRange_t other) const
+	inline bool operator==(const FloatRange_t& t) const
 	{
-		return Min == other.Min && Max == other.Max;
+		return Min == t.Min && Max == t.Max;
 	}
 
-	inline bool operator!=(FloatRange_t other) const
+	inline bool operator!=(const FloatRange_t& t) const
 	{
-		return Min != other.Min || Max != other.Max;
+		return Min != t.Min || Max != t.Max;
 	}
 };
 
@@ -866,7 +881,7 @@ struct Color_t
 			flR = flG = flB = flV;
 		else
 		{
-			int i = int(floor(flH /= 60));
+			int i = int(flH /= 60);
 			float flF = flH - i;
 			float flP = flV * (1 - flS);
 			float flQ = flV * (1 - flF * flS);
@@ -889,11 +904,11 @@ struct Color_t
 		a = byte(std::clamp(flA, 0.f, 255.f));
 	}
 
-	inline void GetHSV(float& flH, float& flS, float& flV)
+	inline void GetHSV(float& flH, float& flS, float& flV) const
 	{
-		float flR = this->r / 255.f;
-		float flG = this->g / 255.f;
-		float flB = this->b / 255.f;
+		float flR = r / 255.f;
+		float flG = g / 255.f;
+		float flB = b / 255.f;
 
 		float flK = 0.f;
 		if (flG < flB)
@@ -920,18 +935,18 @@ struct Color_t
 	inline Color_t HueShift(float flShift)
 	{
 		float flH, flS, flV; GetHSV(flH, flS, flV);
-		Color_t tOut; tOut.SetHSV(fmodf(flH + flShift, 360.f), flS, flV, this->a);
+		Color_t tOut; tOut.SetHSV(fmodf(flH + flShift, 360.f), flS, flV, a);
 		return tOut;
 	}
 
-	inline bool operator==(Color_t other) const
+	inline bool operator==(const Color_t t) const
 	{
-		return r == other.r && g == other.g && b == other.b && a == other.a;
+		return r == t.r && g == t.g && b == t.b && a == t.a;
 	}
 
-	inline bool operator!=(Color_t other) const
+	inline bool operator!=(const Color_t t) const
 	{
-		return r != other.r || g != other.g || b != other.b || a != other.a;
+		return r != t.r || g != t.g || b != t.b || a != t.a;
 	}
 
 	inline std::string ToHex() const
@@ -973,9 +988,29 @@ struct Color_t
 		}
 	}
 
+	inline Color_t Blend(Color_t to) const
+	{
+		return Lerp(to, to.a / 255.f);
+	}
+
 	inline Color_t Alpha(byte to) const
 	{
 		return { r, g, b, to };
+	}
+
+	inline float Brightness(float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f) const
+	{
+		return r * flRed + g * flGreen + b * flBlue;
+	}
+
+	inline bool IsColorBright(float flValue = 175, float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f) const
+	{
+		return Brightness(flRed, flGreen, flBlue) > flValue;
+	}
+
+	inline bool IsColorDark(float flValue = 80, float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f)const
+	{
+		return Brightness(flRed, flGreen, flBlue) < flValue;
 	}
 };
 
@@ -984,14 +1019,14 @@ struct Gradient_t
 	Color_t StartColor = {};
 	Color_t EndColor = {};
 
-	inline bool operator==(Gradient_t other) const
+	inline bool operator==(const Gradient_t& t) const
 	{
-		return StartColor == other.StartColor && EndColor == other.EndColor;
+		return StartColor == t.StartColor && EndColor == t.EndColor;
 	}
 
-	inline bool operator!=(Gradient_t other) const
+	inline bool operator!=(const Gradient_t& t) const
 	{
-		return StartColor != other.StartColor || EndColor != other.EndColor;
+		return StartColor != t.StartColor || EndColor != t.EndColor;
 	}
 };
 
@@ -999,16 +1034,41 @@ struct Chams_t
 {
 	std::vector<std::pair<std::string, Color_t>> Visible = { { "Original", Color_t() } };
 	std::vector<std::pair<std::string, Color_t>> Occluded = {};
+
+	inline bool operator==(const Chams_t& t) const
+	{
+		return Visible == t.Visible && Occluded == t.Occluded;
+	}
+
+	inline bool operator!=(const Chams_t& t) const
+	{
+		return Visible != t.Visible || Occluded != t.Occluded;
+	}
+
+	inline bool operator()(bool bVisibleOnly = false) const
+	{
+		return Visible != std::vector<std::pair<std::string, Color_t>>{ { "Original", Color_t() } } || !bVisibleOnly && !Occluded.empty();
+	}
 };
 
 struct Glow_t
 {
-	int		Stencil = 0;
-	int		Blur = 0;
+	int Stencil = 0;
+	float Blur = 0;
 
-	inline bool operator==(const Glow_t& other) const
+	inline bool operator==(const Glow_t& t) const
 	{
-		return Stencil == other.Stencil && Blur == other.Blur;
+		return Stencil == t.Stencil && Blur == t.Blur;
+	}
+
+	inline bool operator!=(const Glow_t& t) const
+	{
+		return Stencil != t.Stencil || Blur != t.Blur;
+	}
+
+	inline bool operator()() const
+	{
+		return Stencil || Blur;
 	}
 };
 
@@ -1017,14 +1077,14 @@ struct DragBox_t
 	int x = 150;
 	int y = 100;
 
-	inline bool operator==(DragBox_t other) const
+	inline bool operator==(const DragBox_t& t) const
 	{
-		return x == other.x && y == other.y;
+		return x == t.x && y == t.y;
 	}
 
-	inline bool operator!=(DragBox_t other) const
+	inline bool operator!=(const DragBox_t& t) const
 	{
-		return x != other.x || y != other.y;
+		return x != t.x || y != t.y;
 	}
 };
 
@@ -1035,13 +1095,13 @@ struct WindowBox_t
 	int w = 200;
 	int h = 200;
 
-	inline bool operator==(WindowBox_t other) const
+	inline bool operator==(const WindowBox_t& t) const
 	{
-		return x == other.x && y == other.y && w == other.w && h == other.h;
+		return x == t.x && y == t.y && w == t.w && h == t.h;
 	}
 
-	inline bool operator!=(WindowBox_t other) const
+	inline bool operator!=(const WindowBox_t& t) const
 	{
-		return x != other.x || y != other.y || w != other.w || h != other.h;
+		return x != t.x || y != t.y || w != t.w || h != t.h;
 	}
 };

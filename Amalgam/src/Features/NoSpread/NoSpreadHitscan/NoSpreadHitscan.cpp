@@ -30,9 +30,13 @@ bool CNoSpreadHitscan::ShouldRun(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, bool
 
 int CNoSpreadHitscan::GetSeed(CUserCmd* pCmd)
 {
+	static auto sv_usercmd_custom_random_seed = H::ConVars.FindVar("sv_usercmd_custom_random_seed");
+	if (!sv_usercmd_custom_random_seed->GetBool())
+		return pCmd->random_seed & 255;
+
 	double dFloatTime = SDK::PlatFloatTime() + m_dTimeDelta;
 	float flTime = float(dFloatTime * 1000.0);
-	return std::bit_cast<int32_t>(flTime) & 255;
+	return *reinterpret_cast<int*>((char*)&flTime) & 255;
 }
 
 float CNoSpreadHitscan::CalcMantissaStep(float flV)
@@ -77,19 +81,19 @@ void CNoSpreadHitscan::AskForPlayerPerf()
 	}
 }
 
-bool CNoSpreadHitscan::ParsePlayerPerf(std::string sMsg)
+bool CNoSpreadHitscan::ParsePlayerPerf(const std::string& sMsg)
 {
 	if (!Vars::Aimbot::General::NoSpread.Value)
 		return false;
 
-	std::smatch match; std::regex_match(sMsg, match, std::regex(R"((\d+.\d+)\s\d+\s\d+\s\d+.\d+\s\d+.\d+\svel\s\d+.\d+)"));
+	std::smatch tMatch; std::regex_match(sMsg, tMatch, std::regex(R"((\d+.\d+)\s\d+\s\d+\s\d+.\d+\s\d+.\d+\svel\s\d+.\d+)"));
 
-	if (match.size() == 2)
+	if (tMatch.size() == 2)
 	{
 		m_bWaitingForPlayerPerf = false;
 
 		// credits to kgb for idea
-		float flNewServerTime = std::stof(match[1].str());
+		float flNewServerTime = std::stof(tMatch[1].str());
 		if (flNewServerTime < m_flServerTime)
 			return true;
 
@@ -193,9 +197,9 @@ void CNoSpreadHitscan::Draw(CTFPlayer* pLocal)
 	if (!(Vars::Menu::Indicators.Value & Vars::Menu::IndicatorsEnum::SeedPrediction) || !Vars::Aimbot::General::NoSpread.Value || !pLocal->IsAlive())
 		return;
 
-	auto pWeapon = H::Entities.GetWeapon();
-	if (!pWeapon || !ShouldRun(pLocal, pWeapon))
-		return;
+	//auto pWeapon = H::Entities.GetWeapon();
+	//if (!pWeapon || !ShouldRun(pLocal, pWeapon))
+	//	return;
 
 	int x = Vars::Menu::SeedPredictionDisplay.Value.x;
 	int y = Vars::Menu::SeedPredictionDisplay.Value.y + 8;
@@ -219,5 +223,9 @@ void CNoSpreadHitscan::Draw(CTFPlayer* pLocal)
 	H::Draw.String(fFont, x, y, cColor, align, std::format("Uptime {}", GetFormat(m_flServerTime)).c_str());
 	H::Draw.String(fFont, x, y += nTall, cColor, align, std::format("Mantissa step {}", m_flMantissaStep).c_str());
 	if (Vars::Debug::Info.Value)
+<<<<<<< HEAD
 		H::Draw.String(fFont, x, y += nTall, cColor, align, std::format("Delta {:.6f}", m_dTimeDelta).c_str());
+=======
+		H::Draw.StringOutlined(fFont, x, y += nTall, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Delta {:.3f}", m_dTimeDelta).c_str());
+>>>>>>> upstream/master
 }

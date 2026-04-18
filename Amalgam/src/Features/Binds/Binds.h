@@ -1,13 +1,14 @@
 #pragma once
 #include "../../SDK/SDK.h"
 
-Enum(Bind, Key, Class, WeaponType, ItemSlot)
+Enum(Bind, Key, Class, WeaponType, ItemSlot, Misc)
 namespace BindEnum
 {
 	Enum(Key, Hold, Toggle, DoubleClick)
 	Enum(Class, Scout, Soldier, Pyro, Demoman, Heavy, Engineer, Medic, Sniper, Spy)
 	Enum(WeaponType, Hitscan, Projectile, Melee, Throwable)
 	//Enum(ItemType, First, Second, Third, Fourth, Fifth, Sixth, Seventh, Eighth, Ninth)
+	Enum(Misc, Spectated, SpectatedFirst, SpectatedThird, Zoomed, Aiming)
 }
 Enum(BindVisibility, Always, WhileActive, Hidden)
 
@@ -35,7 +36,8 @@ struct Bind_t
 class CBinds
 {
 public:
-	void Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
+	void Run();
+	void SetVars(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, bool bManage = true);
 
 	bool GetBind(int iID, Bind_t* pBind);
 
@@ -45,7 +47,10 @@ public:
 	bool HasChildren(int iBind);
 	bool WillBeEnabled(int iBind);
 
+	void Move(int i1, int i2);
+
 	std::vector<Bind_t> m_vBinds = {};
+	bool m_bDisplay = false;
 };
 
 ADD_FEATURE(CBinds, Binds);

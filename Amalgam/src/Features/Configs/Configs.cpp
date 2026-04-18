@@ -1,243 +1,343 @@
 #include "Configs.h"
 
 #include "../Binds/Binds.h"
+#include "../Visuals/Groups/Groups.h"
 #include "../Visuals/Materials/Materials.h"
 #include "../Chat/Chat.h"
 
-boost::property_tree::ptree CConfigs::ColorToTree(const Color_t& color)
+template <class T> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const T& v)
 {
-	boost::property_tree::ptree colorTree;
-	colorTree.put("r", color.r);
-	colorTree.put("g", color.g);
-	colorTree.put("b", color.b);
-	colorTree.put("a", color.a);
-
-	return colorTree;
+	t.put(s, v);
 }
 
-void CConfigs::TreeToColor(const boost::property_tree::ptree& tree, Color_t& out)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const IntRange_t& v)
 {
-	if (auto v = tree.get_optional<byte>("r")) { out.r = *v; }
-	if (auto v = tree.get_optional<byte>("g")) { out.g = *v; }
-	if (auto v = tree.get_optional<byte>("b")) { out.b = *v; }
-	if (auto v = tree.get_optional<byte>("a")) { out.a = *v; }
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "Min", v.Min);
+	SaveJson(tChild, "Max", v.Max);
+
+	t.put_child(s, tChild);
 }
 
-
-
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, bool bVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const FloatRange_t& v)
 {
-	mapTree.put(sName, bVal);
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "Min", v.Min);
+	SaveJson(tChild, "Max", v.Max);
+
+	t.put_child(s, tChild);
 }
 
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, int iVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const Color_t& v)
 {
-	mapTree.put(sName, iVal);
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "r", v.r);
+	SaveJson(tChild, "g", v.g);
+	SaveJson(tChild, "b", v.b);
+	SaveJson(tChild, "a", v.a);
+
+	t.put_child(s, tChild);
 }
 
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, float flVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const std::vector<std::pair<std::string, Color_t>>& v)
 {
-	mapTree.put(sName, flVal);
-}
-
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const IntRange_t& irVal)
-{
-	boost::property_tree::ptree rangeTree;
-	rangeTree.put("Min", irVal.Min);
-	rangeTree.put("Max", irVal.Max);
-
-	mapTree.put_child(sName, rangeTree);
-}
-
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const FloatRange_t& frVal)
-{
-	boost::property_tree::ptree rangeTree;
-	rangeTree.put("Min", frVal.Min);
-	rangeTree.put("Max", frVal.Max);
-
-	mapTree.put_child(sName, rangeTree);
-}
-
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const std::string& sVal)
-{
-	mapTree.put(sName, sVal);
-}
-
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const std::vector<std::pair<std::string, Color_t>>& vVal)
-{
-	boost::property_tree::ptree vectorTree;
-	for (auto& pair : vVal)
+	boost::property_tree::ptree tChild;
+	for (auto& [m, c] : v)
 	{
-		boost::property_tree::ptree materialTree;
-		materialTree.put("Material", pair.first);
-		materialTree.put_child("Color", ColorToTree(pair.second));
-		vectorTree.push_back(std::make_pair("", materialTree));
+		boost::property_tree::ptree tLayer;
+		SaveJson(tLayer, "Material", m);
+		SaveJson(tLayer, "Color", c);
+
+		tChild.push_back({ "", tLayer });
 	}
-	mapTree.put_child(sName, vectorTree);
+
+	t.put_child(s, tChild);
 }
 
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const Color_t& tVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const Gradient_t& v)
 {
-	mapTree.put_child(sName, ColorToTree(tVal));
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "StartColor", v.StartColor);
+	SaveJson(tChild, "EndColor", v.EndColor);
+
+	t.put_child(s, tChild);
 }
 
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const Gradient_t& tVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const DragBox_t& v)
 {
-	boost::property_tree::ptree gradientTree;
-	gradientTree.put_child("StartColor", ColorToTree(tVal.StartColor));
-	gradientTree.put_child("EndColor", ColorToTree(tVal.EndColor));
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "x", v.x);
+	SaveJson(tChild, "y", v.y);
 
-	mapTree.put_child(sName, gradientTree);
+	t.put_child(s, tChild);
 }
 
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const DragBox_t& tVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const WindowBox_t& v)
 {
-	boost::property_tree::ptree dragBoxTree;
-	dragBoxTree.put("x", tVal.x);
-	dragBoxTree.put("y", tVal.y);
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "x", v.x);
+	SaveJson(tChild, "y", v.y);
+	SaveJson(tChild, "w", v.w);
+	SaveJson(tChild, "h", v.h);
 
-	mapTree.put_child(sName, dragBoxTree);
+	t.put_child(s, tChild);
 }
 
-void CConfigs::SaveJson(boost::property_tree::ptree& mapTree, std::string sName, const WindowBox_t& tVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const Chams_t& v)
 {
-	boost::property_tree::ptree dragBoxTree;
-	dragBoxTree.put("x", tVal.x);
-	dragBoxTree.put("y", tVal.y);
-	dragBoxTree.put("w", tVal.w);
-	dragBoxTree.put("h", tVal.h);
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "Visible", v.Visible);
+	SaveJson(tChild, "Occluded", v.Occluded);
 
-	mapTree.put_child(sName, dragBoxTree);
+	t.put_child(s, tChild);
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, bool& bVal)
+template <> void CConfigs::SaveJson(boost::property_tree::ptree& t, const std::string& s, const Glow_t& v)
 {
-	if (auto getValue = mapTree.get_optional<bool>(sName))
-		bVal = *getValue;
+	boost::property_tree::ptree tChild;
+	SaveJson(tChild, "Stencil", v.Stencil);
+	SaveJson(tChild, "Blur", v.Blur);
+
+	t.put_child(s, tChild);
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, int& iVal)
+
+
+template <class T> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, T& v)
 {
-	if (auto getValue = mapTree.get_optional<int>(sName))
-		iVal = *getValue;
+	if (auto o = t.get_optional<T>(s))
+		v = *o;
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, float& flVal)
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, IntRange_t& v)
 {
-	if (auto getValue = mapTree.get_optional<float>(sName))
-		flVal = *getValue;
-}
-
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, IntRange_t& irVal)
-{
-	if (const auto getChild = mapTree.get_child_optional(sName))
+	if (auto tChild = t.get_child_optional(s))
 	{
-		if (auto getValue = getChild->get_optional<int>("Min")) { irVal.Min = *getValue; }
-		if (auto getValue = getChild->get_optional<int>("Max")) { irVal.Max = *getValue; }
+		LoadJson(*tChild, "Min", v.Min);
+		LoadJson(*tChild, "Max", v.Max);
 	}
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, FloatRange_t& frVal)
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, FloatRange_t& v)
 {
-	if (const auto getChild = mapTree.get_child_optional(sName))
+	if (auto tChild = t.get_child_optional(s))
 	{
-		if (auto getValue = getChild->get_optional<int>("Min")) { frVal.Min = *getValue; }
-		if (auto getValue = getChild->get_optional<int>("Max")) { frVal.Max = *getValue; }
+		LoadJson(*tChild, "Min", v.Min);
+		LoadJson(*tChild, "Max", v.Max);
 	}
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, std::string& sVal)
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, Color_t& v)
 {
-	if (auto getValue = mapTree.get_optional<std::string>(sName))
-		sVal = *getValue;
+	if (auto tChild = t.get_child_optional(s))
+	{
+		LoadJson(*tChild, "r", v.r);
+		LoadJson(*tChild, "g", v.g);
+		LoadJson(*tChild, "b", v.b);
+		LoadJson(*tChild, "a", v.a);
+	}
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, std::vector<std::pair<std::string, Color_t>>& vVal)
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, std::vector<std::pair<std::string, Color_t>>& v)
 {
-	auto getMaterials = [&](std::vector<std::pair<std::string, Color_t>>& val, const boost::optional<boost::property_tree::ptree&> getVector)
+	if (auto tChild = t.get_child_optional(s))
+	{
+		v.clear();
+		for (auto& [_, tLayer] : *tChild)
 		{
-			if (!getVector)
-				return;
-
-			val.clear();
-			for (auto& [_, tree] : *getVector)
+			if (auto o = tLayer.get_optional<std::string>("Material"))
 			{
-				auto getValue = tree.get_optional<std::string>("Material");
-				if (!getValue)
-					continue;
-
-				std::string sMat = *getValue;
-				Color_t tColor;
-
-				if (const auto getChild = tree.get_child_optional("Color"))
-					TreeToColor(*getChild, tColor);
-
-				bool bFound = false; // ensure no duplicates are assigned
-				for (auto& pair : val)
-				{
-					if (FNV1A::Hash32(pair.first.c_str()) == FNV1A::Hash32(sMat.c_str()))
-					{
-						bFound = true;
-						break;
-					}
-				}
-				if (bFound)
-					continue;
-
-				val.emplace_back(sMat, tColor);
+				std::string& m = *o;
+				Color_t c; LoadJson(tLayer, "Color", c);
+				v.emplace_back(m, c);
 			}
+		}
+	}
 
-			// remove invalid materials
-			for (auto it = val.begin(); it != val.end();)
+	// remove invalid/duplicate materials
+	for (auto it = v.begin(); it != v.end();)
+	{
+		auto uHash = FNV1A::Hash32(it->first.c_str());
+		bool bValid = uHash != FNV1A::Hash32Const("None") && (uHash == FNV1A::Hash32Const("Original") || F::Materials.m_mMaterials.contains(uHash));
+		if (bValid)
+		{
+			int i = 0; for (auto& [s, _] : v)
 			{
-				auto uHash = FNV1A::Hash32(it->first.c_str());
-				if (uHash == FNV1A::Hash32Const("None")
-					|| uHash != FNV1A::Hash32Const("Original") && !F::Materials.m_mMaterials.contains(uHash))
-					it = val.erase(it);
-				else
-					++it;
+				auto uHash2 = FNV1A::Hash32(s.c_str());
+				if (uHash == uHash2)
+					i++;
 			}
-		};
+			bValid = i <= 1;
+		}
 
-	getMaterials(vVal, mapTree.get_child_optional(sName));
-}
-
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, Color_t& tVal)
-{
-	if (const auto getChild = mapTree.get_child_optional(sName))
-		TreeToColor(*getChild, tVal);
-}
-
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, Gradient_t& tVal)
-{
-	if (const auto getChild = mapTree.get_child_optional(sName))
-	{
-		if (const auto getStartColor = getChild->get_child_optional("StartColor"))
-			TreeToColor(*getStartColor, tVal.StartColor);
-		if (const auto endColor = getChild->get_child_optional("EndColor"))
-			TreeToColor(*endColor, tVal.EndColor);
+		if (bValid)
+			++it;
+		else
+			it = v.erase(it);
 	}
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, DragBox_t& tVal)
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, Gradient_t& v)
 {
-	if (const auto getChild = mapTree.get_child_optional(sName))
+	if (auto tChild = t.get_child_optional(s))
 	{
-		if (auto getValue = getChild->get_optional<int>("x")) { tVal.x = *getValue; }
-		if (auto getValue = getChild->get_optional<int>("y")) { tVal.y = *getValue; }
+		LoadJson(*tChild, "StartColor", v.StartColor);
+		LoadJson(*tChild, "EndColor", v.EndColor);
 	}
 }
 
-void CConfigs::LoadJson(boost::property_tree::ptree& mapTree, std::string sName, WindowBox_t& tVal)
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, DragBox_t& v)
 {
-	if (const auto getChild = mapTree.get_child_optional(sName))
+	if (auto tChild = t.get_child_optional(s))
 	{
-		if (auto getValue = getChild->get_optional<int>("x")) { tVal.x = *getValue; }
-		if (auto getValue = getChild->get_optional<int>("y")) { tVal.y = *getValue; }
-		if (auto getValue = getChild->get_optional<int>("w")) { tVal.w = *getValue; }
-		if (auto getValue = getChild->get_optional<int>("h")) { tVal.h = *getValue; }
+		LoadJson(*tChild, "x", v.x);
+		LoadJson(*tChild, "y", v.y);
 	}
 }
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, WindowBox_t& v)
+{
+	if (auto tChild = t.get_child_optional(s))
+	{
+		LoadJson(*tChild, "x", v.x);
+		LoadJson(*tChild, "y", v.y);
+		LoadJson(*tChild, "w", v.w);
+		LoadJson(*tChild, "h", v.h);
+	}
+}
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, Chams_t& v)
+{
+	if (auto tChild = t.get_child_optional(s))
+	{
+		LoadJson(*tChild, "Visible", v.Visible);
+		LoadJson(*tChild, "Occluded", v.Occluded);
+	}
+}
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, Glow_t& v)
+{
+	if (auto tChild = t.get_child_optional(s))
+	{
+		LoadJson(*tChild, "Stencil", v.Stencil);
+		LoadJson(*tChild, "Blur", v.Blur);
+	}
+}
+
+
+
+template <class T> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, ConfigVar<T>* c, int i)
+{
+	LoadJson(t, s, c->Map[i]);
+}
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, ConfigVar<int>* c, int i)
+{
+	auto& v = c->Map[i];
+	LoadJson(t, s, v);
+
+	if (!c->m_vValues.empty())
+	{
+		if (c->m_iFlags & DROPDOWN_NOSANITIZATION)
+			return;
+
+		if (!(c->m_iFlags & DROPDOWN_MULTI))
+			v = std::clamp(v, 0, int(c->m_vValues.size() - 1));
+		else
+		{
+			for (int i = 0; i < sizeof(int) * 8; i++)
+			{
+				bool bFound = v & (1 << i) && i < c->m_vValues.size();
+				if (!bFound)
+					v &= ~(1 << i);
+			}
+		}
+	}
+	else if (c->m_sExtra)
+	{
+		if (!(c->m_iFlags & SLIDER_PRECISION))
+			v = float(v) - fnmodf(float(v) - c->m_unStep.i / 2.f, c->m_unStep.i) + c->m_unStep.i / 2.f;
+		if (c->m_iFlags & SLIDER_CLAMP)
+			v = std::clamp(v, c->m_unMin.i, c->m_unMax.i);
+		else if (c->m_iFlags & SLIDER_MIN)
+			v = std::max(v, c->m_unMin.i);
+		else if (c->m_iFlags & SLIDER_MAX)
+			v = std::min(v, c->m_unMax.i);
+	}
+}
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, ConfigVar<float>* c, int i)
+{
+	auto& v = c->Map[i];
+	LoadJson(t, s, v);
+
+	if (!(c->m_iFlags & SLIDER_PRECISION))
+		v = v - fnmodf(v - c->m_unStep.f / 2, c->m_unStep.f) + c->m_unStep.f / 2;
+	if (c->m_iFlags & SLIDER_CLAMP)
+		v = std::clamp(v, c->m_unMin.f, c->m_unMax.f);
+	else if (c->m_iFlags & SLIDER_MIN)
+		v = std::max(v, c->m_unMin.f);
+	else if (c->m_iFlags & SLIDER_MAX)
+		v = std::min(v, c->m_unMax.f);
+}
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, ConfigVar<IntRange_t>* c, int i)
+{
+	auto& v = c->Map[i];
+	LoadJson(t, s, v);
+
+	if (!(c->m_iFlags & SLIDER_PRECISION))
+	{
+		v.Min = float(v.Min) - fnmodf(float(v.Min) - c->m_unStep.i / 2.f, c->m_unStep.i) + c->m_unStep.i / 2.f;
+		v.Max = float(v.Max) - fnmodf(float(v.Max) - c->m_unStep.i / 2.f, c->m_unStep.i) + c->m_unStep.i / 2.f;
+	}
+	if (c->m_iFlags & SLIDER_CLAMP)
+	{
+		v.Min = std::clamp(v.Min, c->m_unMin.i, c->m_unMax.i - c->m_unStep.i);
+		v.Max = std::clamp(v.Max, c->m_unMin.i + c->m_unStep.i, c->m_unMax.i);
+	}
+	else if (c->m_iFlags & SLIDER_MIN)
+	{
+		v.Min = std::max(v.Min, c->m_unMin.i);
+		v.Max = std::max(v.Max, c->m_unMin.i + c->m_unStep.i);
+	}
+	else if (c->m_iFlags & SLIDER_MAX)
+	{
+		v.Min = std::min(v.Min, c->m_unMax.i - c->m_unStep.i);
+		v.Max = std::min(v.Max, c->m_unMax.i);
+	}
+	v.Max = std::max(v.Max, v.Min + c->m_unStep.i);
+}
+
+template <> void CConfigs::LoadJson(const boost::property_tree::ptree& t, const std::string& s, ConfigVar<FloatRange_t>* c, int i)
+{
+	auto& v = c->Map[i];
+	LoadJson(t, s, v);
+
+	if (!(c->m_iFlags & SLIDER_PRECISION))
+	{
+		v.Min = v.Min - fnmodf(v.Min - c->m_unStep.f / 2, c->m_unStep.f) + c->m_unStep.f / 2;
+		v.Max = v.Max - fnmodf(v.Max - c->m_unStep.f / 2, c->m_unStep.f) + c->m_unStep.f / 2;
+	}
+	if (c->m_iFlags & SLIDER_CLAMP)
+	{
+		v.Min = std::clamp(v.Min, c->m_unMin.f, c->m_unMax.f - c->m_unStep.f);
+		v.Max = std::clamp(v.Max, c->m_unMin.f + c->m_unStep.f, c->m_unMax.f);
+	}
+	else if (c->m_iFlags & SLIDER_MIN)
+	{
+		v.Min = std::max(v.Min, c->m_unMin.f);
+		v.Max = std::max(v.Max, c->m_unMin.f + c->m_unStep.f);
+	}
+	else if (c->m_iFlags & SLIDER_MAX)
+	{
+		v.Min = std::min(v.Min, c->m_unMax.f - c->m_unStep.f);
+		v.Max = std::min(v.Max, c->m_unMax.f);
+	}
+	v.Max = std::max(v.Max, v.Min + c->m_unStep.f);
+}
+
+
 
 CConfigs::CConfigs()
 {
@@ -259,15 +359,19 @@ CConfigs::CConfigs()
 		std::filesystem::create_directory(m_sMaterialsPath);
 }
 
-#define IsType(type) pVar->m_iType == typeid(type).hash_code()
+#define IsType(t) pBase->m_iType == typeid(t).hash_code()
 
-#define SaveCond(type, tree)\
-{\
-	boost::property_tree::ptree mapTree;\
-	for (auto& [iBind, tValue] : pVar->As<type>()->Map)\
-		SaveJson(mapTree, std::to_string(iBind), tValue);\
-	tree.put_child(pVar->m_sName, mapTree);\
+template <class T>
+static inline void SaveMain(BaseVar*& pBase, boost::property_tree::ptree& tTree)
+{
+	auto pVar = pBase->As<T>();
+
+	boost::property_tree::ptree tMap;
+	for (auto& [iBind, tValue] : pVar->Map)
+		F::Configs.SaveJson(tMap, std::to_string(iBind), tValue);
+	tTree.put_child(pVar->Name(), tMap);
 }
+<<<<<<< HEAD
 #define SaveMain(type, tree) if (IsType(type)) SaveCond(type, tree)
 #define LoadCond(type, tree)\
 {\
@@ -320,44 +424,71 @@ CConfigs::CConfigs()
 		if (!bSuppressWarning)\
 			SDK::Output("Amalgam", std::format("{} not found", pVar->m_sName).c_str(), { 175, 150, 255, 127 }, true, true);\
 	}\
+=======
+#define Save(t, j) if (IsType(t)) SaveMain<t>(pBase, j);
+
+template <class T>
+static inline void LoadMain(BaseVar*& pBase, boost::property_tree::ptree& tTree)
+{
+	auto pVar = pBase->As<T>();
+
+	pVar->Map = { { DEFAULT_BIND, pVar->Default } };
+	if (auto tMap = tTree.get_child_optional(pVar->Name()))
+	{
+		for (auto& [sKey, _] : *tMap)
+		{
+			int iBind = std::stoi(sKey);
+			if (iBind == DEFAULT_BIND || F::Binds.m_vBinds.size() > iBind && !(pVar->m_iFlags & NOBIND))
+			{
+				F::Configs.LoadJson(*tMap, sKey, pVar, iBind);
+				if (iBind != DEFAULT_BIND)
+					std::next(F::Binds.m_vBinds.begin(), iBind)->m_vVars.push_back(pVar);
+			}
+		}
+	}
+	else if (!(pVar->m_iFlags & NOSAVE))
+		SDK::Output("Amalgam", std::format("{} not found", pVar->Name()).c_str(), ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
+>>>>>>> upstream/master
 }
-#define LoadMain(type, tree) if (IsType(type)) LoadCond(type, tree)
+#define Load(t, j) if (IsType(t)) LoadMain<t>(pBase, j);
 
 bool CConfigs::SaveConfig(const std::string& sConfigName, bool bNotify)
 {
 	try
 	{
-		const bool bLoadNosave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		boost::property_tree::ptree tWrite;
 
-		boost::property_tree::ptree writeTree;
-
-		boost::property_tree::ptree bindTree;
-		for (auto it = F::Binds.m_vBinds.begin(); it != F::Binds.m_vBinds.end(); it++)
 		{
-			int iID = std::distance(F::Binds.m_vBinds.begin(), it);
-			auto& tBind = *it;
+			boost::property_tree::ptree tSub;
+			for (int iID = 0; iID < F::Binds.m_vBinds.size(); iID++)
+			{
+				auto& tBind = F::Binds.m_vBinds[iID];
 
-			boost::property_tree::ptree bindTree2;
-			bindTree2.put("Name", tBind.m_sName);
-			bindTree2.put("Type", tBind.m_iType);
-			bindTree2.put("Info", tBind.m_iInfo);
-			bindTree2.put("Key", tBind.m_iKey);
-			bindTree2.put("Enabled", tBind.m_bEnabled);
-			bindTree2.put("Visibility", tBind.m_iVisibility);
-			bindTree2.put("Not", tBind.m_bNot);
-			bindTree2.put("Active", tBind.m_bActive);
-			bindTree2.put("Parent", tBind.m_iParent);
+				boost::property_tree::ptree tChild;
+				SaveJson(tChild, "Name", tBind.m_sName);
+				SaveJson(tChild, "Type", tBind.m_iType);
+				SaveJson(tChild, "Info", tBind.m_iInfo);
+				SaveJson(tChild, "Key", tBind.m_iKey);
+				SaveJson(tChild, "Enabled", tBind.m_bEnabled);
+				SaveJson(tChild, "Visibility", tBind.m_iVisibility);
+				SaveJson(tChild, "Not", tBind.m_bNot);
+				SaveJson(tChild, "Active", tBind.m_bActive);
+				SaveJson(tChild, "Parent", tBind.m_iParent);
 
-			bindTree.put_child(std::to_string(iID), bindTree2);
+				tSub.put_child(std::to_string(iID), tChild);
+			}
+			tWrite.put_child("Binds", tSub);
 		}
-		writeTree.put_child("Binds", bindTree);
 
-		boost::property_tree::ptree varTree;
-		for (auto& pVar : G::Vars)
 		{
-			if (!bLoadNosave && pVar->m_iFlags & NOSAVE)
-				continue;
+			boost::property_tree::ptree tSub;
+			bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+			for (auto& pBase : G::Vars)
+			{
+				if (!bNoSave && pBase->m_iFlags & NOSAVE)
+					continue;
 
+<<<<<<< HEAD
 			// Special handling for Chat credentials - encrypt password and clear others when SaveCredentials is disabled
 			if ((pVar->m_sName == "Vars::Chat::Password" || pVar->m_sName == "Vars::Chat::Username" || 
 				 pVar->m_sName == "Vars::Chat::Email" || pVar->m_sName == "Vars::Chat::Server" ||
@@ -446,17 +577,67 @@ bool CConfigs::SaveConfig(const std::string& sConfigName, bool bNotify)
 				else SaveMain(DragBox_t, varTree)
 				else SaveMain(WindowBox_t, varTree)
 			}
+=======
+				Save(bool, tSub)
+				else Save(int, tSub)
+				else Save(float, tSub)
+				else Save(IntRange_t, tSub)
+				else Save(FloatRange_t, tSub)
+				else Save(std::string, tSub)
+				else Save(VA_LIST(std::vector<std::pair<std::string, Color_t>>), tSub)
+				else Save(Color_t, tSub)
+				else Save(Gradient_t, tSub)
+				else Save(DragBox_t, tSub)
+				else Save(WindowBox_t, tSub)
+			}
+			tWrite.put_child("Vars", tSub);
+>>>>>>> upstream/master
 		}
-		writeTree.put_child("ConVars", varTree);
 
-		write_json(m_sConfigPath + sConfigName + m_sConfigExtension, writeTree);
+		{
+			boost::property_tree::ptree tSub;
+			for (int iID = 0; iID < F::Groups.m_vGroups.size(); iID++)
+			{
+				auto& tGroup = F::Groups.m_vGroups[iID];
+
+				boost::property_tree::ptree tChild;
+				SaveJson(tChild, "Name", tGroup.m_sName);
+				SaveJson(tChild, "Color", tGroup.m_tColor);
+				SaveJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				SaveJson(tChild, "Targets", tGroup.m_iTargets);
+				SaveJson(tChild, "Conditions", tGroup.m_iConditions);
+				SaveJson(tChild, "Players", tGroup.m_iPlayers);
+				SaveJson(tChild, "Buildings", tGroup.m_iBuildings);
+				SaveJson(tChild, "Projectiles", tGroup.m_iProjectiles);
+				SaveJson(tChild, "ESP", tGroup.m_iESP);
+				SaveJson(tChild, "Chams", tGroup.m_tChams);
+				SaveJson(tChild, "Glow", tGroup.m_tGlow);
+				SaveJson(tChild, "OffscreenArrows", tGroup.m_bOffscreenArrows);
+				SaveJson(tChild, "OffscreenArrowsOffset", tGroup.m_iOffscreenArrowsOffset);
+				SaveJson(tChild, "OffscreenArrowsMaxDistance", tGroup.m_flOffscreenArrowsMaxDistance);
+				SaveJson(tChild, "PickupTimer", tGroup.m_bPickupTimer);
+				SaveJson(tChild, "Backtrack", tGroup.m_iBacktrack);
+				SaveJson(tChild, "BacktrackChams", tGroup.m_vBacktrackChams);
+				SaveJson(tChild, "BacktrackGlow", tGroup.m_tBacktrackGlow);
+				SaveJson(tChild, "Trajectory", tGroup.m_iTrajectory);
+				SaveJson(tChild, "Sightlines", tGroup.m_iSightlines);
+
+				tSub.put_child(std::to_string(iID), tChild);
+				if (F::Groups.m_vGroups.size() >= sizeof(int) * 8)
+					break;
+			}
+			tWrite.put_child("Groups", tSub);
+		}
+
+		write_json(m_sConfigPath + sConfigName + m_sConfigExtension, tWrite);
+
 		m_sCurrentConfig = sConfigName; m_sCurrentVisuals = "";
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} saved", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Config {} saved", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Save config failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Save config failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 		return false;
 	}
 
@@ -465,96 +646,65 @@ bool CConfigs::SaveConfig(const std::string& sConfigName, bool bNotify)
 
 bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 {
-	// Check if the config exists
-	if (!std::filesystem::exists(m_sConfigPath + sConfigName + m_sConfigExtension))
-	{
-		// Save default config if one doesn't yet exist
-		if (sConfigName == std::string("default"))
-			SaveConfig("default", false);
-
-		return false;
-	}
-
-	// Read ptree from json
 	try
 	{
-		const bool bLoadNosave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
-
-		boost::property_tree::ptree readTree;
-		read_json(m_sConfigPath + sConfigName + m_sConfigExtension, readTree);
-		
-		bool bLegacy = false;
-		if (const auto condTree = readTree.get_child_optional("Binds"))
+		if (!std::filesystem::exists(m_sConfigPath + sConfigName + m_sConfigExtension))
 		{
-			F::Binds.m_vBinds.clear();
+			if (sConfigName == std::string("default"))
+			{
+				SaveConfig("default", false);
 
-			for (auto& it : *condTree)
+				H::Fonts.Reload(Vars::Menu::Scale[DEFAULT_BIND]);
+			}
+			return false;
+		}
+
+		boost::property_tree::ptree tRead;
+		read_json(m_sConfigPath + sConfigName + m_sConfigExtension, tRead);
+
+		F::Binds.m_vBinds.clear();
+		F::Groups.m_vGroups.clear();
+
+		if (auto tSub = tRead.get_child_optional("Binds"))
+		{
+			for (const auto& [_, tChild] : *tSub)
 			{
 				Bind_t tBind = {};
-				if (auto getValue = it.second.get_optional<std::string>("Name")) { tBind.m_sName = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Type")) { tBind.m_iType = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Info")) { tBind.m_iInfo = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Key")) { tBind.m_iKey = *getValue; }
-				if (auto getValue = it.second.get_optional<bool>("Enabled")) { tBind.m_bEnabled = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Visibility")) { tBind.m_iVisibility = *getValue; }
-				else if (auto getValue = it.second.get_optional<bool>("Visible")) { tBind.m_iVisibility = *getValue ? BindVisibilityEnum::Always : BindVisibilityEnum::Hidden; }
-				if (auto getValue = it.second.get_optional<bool>("Not")) { tBind.m_bNot = *getValue; }
-				if (auto getValue = it.second.get_optional<bool>("Active")) { tBind.m_bActive = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Parent"))
-				{
-					tBind.m_iParent = *getValue;
-					if (F::Binds.m_vBinds.size() == tBind.m_iParent)
-						tBind.m_iParent = DEFAULT_BIND - 1; // prevent infinite loop
-				}
+				LoadJson(tChild, "Name", tBind.m_sName);
+				LoadJson(tChild, "Type", tBind.m_iType);
+				LoadJson(tChild, "Info", tBind.m_iInfo);
+				LoadJson(tChild, "Key", tBind.m_iKey);
+				LoadJson(tChild, "Enabled", tBind.m_bEnabled);
+				LoadJson(tChild, "Visibility", tBind.m_iVisibility);
+				LoadJson(tChild, "Not", tBind.m_bNot);
+				LoadJson(tChild, "Active", tBind.m_bActive);
+				LoadJson(tChild, "Parent", tBind.m_iParent);
+				if (F::Binds.m_vBinds.size() == tBind.m_iParent)
+					tBind.m_iParent = DEFAULT_BIND - 1; // prevent infinite loop
 
 				F::Binds.m_vBinds.push_back(tBind);
 			}
 		}
-		else if (const auto condTree = readTree.get_child_optional("Conditions"))
-		{	// support old string based indexing
-			bLegacy = true;
+		else
+			SDK::Output("Amalgam", "Config binds not found", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 
-			F::Binds.m_vBinds.clear();
-
-			for (auto& it : *condTree)
-			{
-				if (FNV1A::Hash32(it.first.c_str()) == FNV1A::Hash32Const("default"))
-					continue;
-
-				Bind_t tBind = { it.first };
-				if (auto getValue = it.second.get_optional<int>("Type")) { tBind.m_iType = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Info")) { tBind.m_iInfo = *getValue; }
-				if (auto getValue = it.second.get_optional<int>("Key")) { tBind.m_iKey = *getValue; }
-				if (auto getValue = it.second.get_optional<bool>("Visible")) { tBind.m_iVisibility = *getValue ? BindVisibilityEnum::Always : BindVisibilityEnum::Hidden; }
-				if (auto getValue = it.second.get_optional<bool>("Not")) { tBind.m_bNot = *getValue; }
-				if (auto getValue = it.second.get_optional<bool>("Active")) { tBind.m_bActive = *getValue; }
-				if (auto getValue = it.second.get_optional<std::string>("Parent"))
-				{
-					auto uHash = FNV1A::Hash32(getValue->c_str());
-					for (auto it = F::Binds.m_vBinds.begin(); it != F::Binds.m_vBinds.end(); it++)
-					{
-						if (FNV1A::Hash32(it->m_sName.c_str()) == uHash)
-						{
-							tBind.m_iParent = std::distance(F::Binds.m_vBinds.begin(), it);
-							break;
-						}
-					}
-				}
-
-				F::Binds.m_vBinds.push_back(tBind);
-			}
-		}
-
-		if (const auto conVars = readTree.get_child_optional("ConVars"))
+		if (auto tSub = tRead.get_child_optional("Vars");
+			tSub || (tSub = tRead.get_child_optional("ConVars")))
 		{
+<<<<<<< HEAD
 			auto& varTree = *conVars;
 			
 			// First pass: Load all variables normally
 			for (auto& pVar : G::Vars)
+=======
+			bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+			for (auto& pBase : G::Vars)
+>>>>>>> upstream/master
 			{
-				if (!bLoadNosave && pVar->m_iFlags & NOSAVE)
+				if (!bNoSave && pBase->m_iFlags & NOSAVE)
 					continue;
 
+<<<<<<< HEAD
 				// Standard variable loading for all variables (including chat credentials)
 				LoadMain(bool, varTree)
 				else LoadMain(int, varTree)
@@ -567,6 +717,19 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 				else LoadMain(Gradient_t, varTree)
 				else LoadMain(DragBox_t, varTree)
 				else LoadMain(WindowBox_t, varTree)
+=======
+				Load(bool, *tSub)
+				else Load(int, *tSub)
+				else Load(float, *tSub)
+				else Load(IntRange_t, *tSub)
+				else Load(FloatRange_t, *tSub)
+				else Load(std::string, *tSub)
+				else Load(VA_LIST(std::vector<std::pair<std::string, Color_t>>), *tSub)
+				else Load(Color_t, *tSub)
+				else Load(Gradient_t, *tSub)
+				else Load(DragBox_t, *tSub)
+				else Load(WindowBox_t, *tSub)
+>>>>>>> upstream/master
 			}
 			
 			// Second pass: Handle chat credential decryption and clearing
@@ -743,22 +906,58 @@ bool CConfigs::LoadConfig(const std::string& sConfigName, bool bNotify)
 				}
 			}
 		}
+		else
+			SDK::Output("Amalgam", "Config vars not found", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 
+		if (auto tSub = tRead.get_child_optional("Groups"))
+		{
+			for (auto& [_, tChild] : *tSub)
+			{
+				Group_t tGroup = {};
+				LoadJson(tChild, "Name", tGroup.m_sName);
+				LoadJson(tChild, "Color", tGroup.m_tColor);
+				LoadJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				LoadJson(tChild, "Targets", tGroup.m_iTargets);
+				LoadJson(tChild, "Conditions", tGroup.m_iConditions);
+				LoadJson(tChild, "Players", tGroup.m_iPlayers);
+				LoadJson(tChild, "Buildings", tGroup.m_iBuildings);
+				LoadJson(tChild, "Projectiles", tGroup.m_iProjectiles);
+				LoadJson(tChild, "ESP", tGroup.m_iESP);
+				LoadJson(tChild, "Chams", tGroup.m_tChams);
+				LoadJson(tChild, "Glow", tGroup.m_tGlow);
+				LoadJson(tChild, "OffscreenArrows", tGroup.m_bOffscreenArrows);
+				LoadJson(tChild, "OffscreenArrowsOffset", tGroup.m_iOffscreenArrowsOffset);
+				LoadJson(tChild, "OffscreenArrowsMaxDistance", tGroup.m_flOffscreenArrowsMaxDistance);
+				LoadJson(tChild, "PickupTimer", tGroup.m_bPickupTimer);
+				LoadJson(tChild, "Backtrack", tGroup.m_iBacktrack);
+				LoadJson(tChild, "BacktrackChams", tGroup.m_vBacktrackChams);
+				LoadJson(tChild, "BacktrackGlow", tGroup.m_tBacktrackGlow);
+				LoadJson(tChild, "Trajectory", tGroup.m_iTrajectory);
+				LoadJson(tChild, "Sightlines", tGroup.m_iSightlines);
+
+				F::Groups.m_vGroups.push_back(tGroup);
+			}
+		}
+		else
+			SDK::Output("Amalgam", "Config groups not found", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
+
+		F::Binds.SetVars(nullptr, nullptr, false);
 		H::Fonts.Reload(Vars::Menu::Scale[DEFAULT_BIND]);
 
 		m_sCurrentConfig = sConfigName; m_sCurrentVisuals = "";
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} loaded", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Config {} loaded", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Load config failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Load config failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 		return false;
 	}
 
 	return true;
 }
 
+<<<<<<< HEAD
 bool CConfigs::SaveChatCredentials(const std::string& sConfigName)
 {
 	try
@@ -1002,40 +1201,94 @@ bool CConfigs::SaveChatCredentials(const std::string& sConfigName, const std::st
 #define SaveMisc(type, tree) if (IsType(type)) SaveRegular(type, tree);
 #define LoadRegular(type, tree) LoadJson(tree, pVar->m_sName, pVar->As<type>()->Map[DEFAULT_BIND])
 #define LoadMisc(type, tree) if (IsType(type)) LoadRegular(type, tree);
+=======
+template <class T>
+static inline void SaveMiscMain(BaseVar*& pBase, boost::property_tree::ptree& tTree)
+{
+	F::Configs.SaveJson(tTree, pBase->Name(), pBase->As<T>()->Map[DEFAULT_BIND]);
+}
+#define SaveMisc(t, j) if (IsType(t)) SaveMiscMain<t>(pBase, j);
+
+template <class T>
+static inline void LoadMiscMain(BaseVar*& pBase, boost::property_tree::ptree& tTree)
+{
+	F::Configs.LoadJson(tTree, pBase->Name(), pBase->As<T>(), DEFAULT_BIND);
+}
+#define LoadMisc(t, j) if (IsType(t)) LoadMiscMain<t>(pBase, j);
+>>>>>>> upstream/master
 
 bool CConfigs::SaveVisual(const std::string& sConfigName, bool bNotify)
 {
 	try
 	{
-		const bool bLoadNosave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		boost::property_tree::ptree tWrite;
 
-		boost::property_tree::ptree writeTree;
-
-		for (auto& pVar : G::Vars)
 		{
-			if (!(pVar->m_iFlags & VISUAL) || !bLoadNosave && pVar->m_iFlags & NOSAVE)
-				continue;
+			boost::property_tree::ptree tSub;
+			bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+			for (auto& pBase : G::Vars)
+			{
+				if (!(pBase->m_iFlags & VISUAL) || !bNoSave && pBase->m_iFlags & NOSAVE)
+					continue;
 
-			SaveMisc(bool, writeTree)
-			else SaveMisc(int, writeTree)
-			else SaveMisc(float, writeTree)
-			else SaveMisc(IntRange_t, writeTree)
-			else SaveMisc(FloatRange_t, writeTree)
-			else SaveMisc(std::string, writeTree)
-			else SaveMisc(VA_LIST(std::vector<std::pair<std::string, Color_t>>), writeTree)
-			else SaveMisc(Color_t, writeTree)
-			else SaveMisc(Gradient_t, writeTree)
-			else SaveMisc(DragBox_t, writeTree)
-			else SaveMisc(WindowBox_t, writeTree)
+				SaveMisc(bool, tSub)
+				else SaveMisc(int, tSub)
+				else SaveMisc(float, tSub)
+				else SaveMisc(IntRange_t, tSub)
+				else SaveMisc(FloatRange_t, tSub)
+				else SaveMisc(std::string, tSub)
+				else SaveMisc(VA_LIST(std::vector<std::pair<std::string, Color_t>>), tSub)
+				else SaveMisc(Color_t, tSub)
+				else SaveMisc(Gradient_t, tSub)
+				else SaveMisc(DragBox_t, tSub)
+				else SaveMisc(WindowBox_t, tSub)
+			}
+			tWrite.put_child("Vars", tSub);
 		}
 
-		write_json(m_sVisualsPath + sConfigName + m_sConfigExtension, writeTree);
+		{
+			boost::property_tree::ptree tSub;
+			for (int iID = 0; iID < F::Groups.m_vGroups.size(); iID++)
+			{
+				auto& tGroup = F::Groups.m_vGroups[iID];
+
+				boost::property_tree::ptree tChild;
+				SaveJson(tChild, "Name", tGroup.m_sName);
+				SaveJson(tChild, "Color", tGroup.m_tColor);
+				SaveJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				SaveJson(tChild, "Targets", tGroup.m_iTargets);
+				SaveJson(tChild, "Conditions", tGroup.m_iConditions);
+				SaveJson(tChild, "Players", tGroup.m_iPlayers);
+				SaveJson(tChild, "Buildings", tGroup.m_iBuildings);
+				SaveJson(tChild, "Projectiles", tGroup.m_iProjectiles);
+				SaveJson(tChild, "ESP", tGroup.m_iESP);
+				SaveJson(tChild, "Chams", tGroup.m_tChams);
+				SaveJson(tChild, "Glow", tGroup.m_tGlow);
+				SaveJson(tChild, "OffscreenArrows", tGroup.m_bOffscreenArrows);
+				SaveJson(tChild, "OffscreenArrowsOffset", tGroup.m_iOffscreenArrowsOffset);
+				SaveJson(tChild, "OffscreenArrowsMaxDistance", tGroup.m_flOffscreenArrowsMaxDistance);
+				SaveJson(tChild, "PickupTimer", tGroup.m_bPickupTimer);
+				SaveJson(tChild, "Backtrack", tGroup.m_iBacktrack);
+				SaveJson(tChild, "BacktrackChams", tGroup.m_vBacktrackChams);
+				SaveJson(tChild, "BacktrackGlow", tGroup.m_tBacktrackGlow);
+				SaveJson(tChild, "Trajectory", tGroup.m_iTrajectory);
+				SaveJson(tChild, "Sightlines", tGroup.m_iSightlines);
+
+				tSub.put_child(std::to_string(iID), tChild);
+				if (F::Groups.m_vGroups.size() >= sizeof(int) * 8)
+					break;
+			}
+			tWrite.put_child("Groups", tSub);
+		}
+
+		write_json(m_sVisualsPath + sConfigName + m_sConfigExtension, tWrite);
+
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} saved", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Visual config {} saved", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Save visuals failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Save visuals failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 		return false;
 	}
 	return true;
@@ -1043,74 +1296,116 @@ bool CConfigs::SaveVisual(const std::string& sConfigName, bool bNotify)
 
 bool CConfigs::LoadVisual(const std::string& sConfigName, bool bNotify)
 {
-	// Check if the visual config exists
-	if (!std::filesystem::exists(m_sVisualsPath + sConfigName + m_sConfigExtension))
-	{
-		//if (sConfigName == std::string("default"))
-		//	SaveVisual("default");
-		return false;
-	}
-
 	try
 	{
-		const bool bLoadNosave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		if (!std::filesystem::exists(m_sVisualsPath + sConfigName + m_sConfigExtension))
+			return false;
 
-		boost::property_tree::ptree readTree;
-		read_json(m_sVisualsPath + sConfigName + m_sConfigExtension, readTree);
+		boost::property_tree::ptree tRead;
+		read_json(m_sVisualsPath + sConfigName + m_sConfigExtension, tRead);
 
-		for (auto& pVar : G::Vars)
+		F::Groups.m_vGroups.clear();
+
+		if (auto tSub = tRead.get_child_optional("Vars");
+			tSub || (tSub = tRead))
 		{
-			if (!(pVar->m_iFlags & VISUAL) || !bLoadNosave && pVar->m_iFlags & NOSAVE)
-				continue;
+			bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+			for (auto& pBase : G::Vars)
+			{
+				if (!(pBase->m_iFlags & VISUAL) || !bNoSave && pBase->m_iFlags & NOSAVE)
+					continue;
 
-			LoadMisc(bool, readTree)
-			else LoadMisc(int, readTree)
-			else LoadMisc(float, readTree)
-			else LoadMisc(IntRange_t, readTree)
-			else LoadMisc(FloatRange_t, readTree)
-			else LoadMisc(std::string, readTree)
-			else LoadMisc(VA_LIST(std::vector<std::pair<std::string, Color_t>>), readTree)
-			else LoadMisc(Color_t, readTree)
-			else LoadMisc(Gradient_t, readTree)
-			else LoadMisc(DragBox_t, readTree)
-			else LoadMisc(WindowBox_t, readTree)
+				LoadMisc(bool, *tSub)
+				else LoadMisc(int, *tSub)
+				else LoadMisc(float, *tSub)
+				else LoadMisc(IntRange_t, *tSub)
+				else LoadMisc(FloatRange_t, *tSub)
+				else LoadMisc(std::string, *tSub)
+				else LoadMisc(VA_LIST(std::vector<std::pair<std::string, Color_t>>), *tSub)
+				else LoadMisc(Color_t, *tSub)
+				else LoadMisc(Gradient_t, *tSub)
+				else LoadMisc(DragBox_t, *tSub)
+				else LoadMisc(WindowBox_t, *tSub)
+			}
 		}
+		else
+			SDK::Output("Amalgam", "Config vars not found", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
+
+		if (auto tSub = tRead.get_child_optional("Groups"))
+		{
+			for (auto& [_, tChild] : *tSub)
+			{
+				Group_t tGroup = {};
+				LoadJson(tChild, "Name", tGroup.m_sName);
+				LoadJson(tChild, "Color", tGroup.m_tColor);
+				LoadJson(tChild, "TagsOverrideColor", tGroup.m_bTagsOverrideColor);
+				LoadJson(tChild, "Targets", tGroup.m_iTargets);
+				LoadJson(tChild, "Conditions", tGroup.m_iConditions);
+				LoadJson(tChild, "Players", tGroup.m_iPlayers);
+				LoadJson(tChild, "Buildings", tGroup.m_iBuildings);
+				LoadJson(tChild, "Projectiles", tGroup.m_iProjectiles);
+				LoadJson(tChild, "ESP", tGroup.m_iESP);
+				LoadJson(tChild, "Chams", tGroup.m_tChams);
+				LoadJson(tChild, "Glow", tGroup.m_tGlow);
+				LoadJson(tChild, "OffscreenArrows", tGroup.m_bOffscreenArrows);
+				LoadJson(tChild, "OffscreenArrowsOffset", tGroup.m_iOffscreenArrowsOffset);
+				LoadJson(tChild, "OffscreenArrowsMaxDistance", tGroup.m_flOffscreenArrowsMaxDistance);
+				LoadJson(tChild, "PickupTimer", tGroup.m_bPickupTimer);
+				LoadJson(tChild, "Backtrack", tGroup.m_iBacktrack);
+				LoadJson(tChild, "BacktrackChams", tGroup.m_vBacktrackChams);
+				LoadJson(tChild, "BacktrackGlow", tGroup.m_tBacktrackGlow);
+				LoadJson(tChild, "Trajectory", tGroup.m_iTrajectory);
+				LoadJson(tChild, "Sightlines", tGroup.m_iSightlines);
+
+				F::Groups.m_vGroups.push_back(tGroup);
+			}
+		}
+		else
+			SDK::Output("Amalgam", "Config groups not found", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
+
+		F::Binds.SetVars(nullptr, nullptr, false);
 
 		m_sCurrentVisuals = sConfigName;
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} loaded", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Visual config {} loaded", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Load visuals failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Load visuals failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 		return false;
 	}
 	return true;
 }
 
-#define ResetType(type) pVar->As<type>()->Map = { { DEFAULT_BIND, pVar->As<type>()->Default } };
-#define ResetT(type) if (IsType(type)) ResetType(type)
+template <class T>
+static inline void ResetMain(BaseVar*& pBase)
+{
+	auto pVar = pBase->As<T>();
+
+	pVar->Map = { { DEFAULT_BIND, pVar->Default } };
+}
+#define Reset(t) if (IsType(t)) ResetMain<t>(pBase);
 
 void CConfigs::DeleteConfig(const std::string& sConfigName, bool bNotify)
 {
 	try
 	{
-		if (FNV1A::Hash32(sConfigName.c_str()) != FNV1A::Hash32Const("default"))
+		if (FNV1A::Hash32(sConfigName.c_str()) == FNV1A::Hash32Const("default"))
 		{
-			std::filesystem::remove(m_sConfigPath + sConfigName + m_sConfigExtension);
-
-			if (FNV1A::Hash32(m_sCurrentConfig.c_str()) == FNV1A::Hash32(sConfigName.c_str()))
-				LoadConfig("default", false);
-
-			if (bNotify)
-				SDK::Output("Amalgam", std::format("Config {} deleted", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
-		}
-		else
 			ResetConfig(sConfigName);
+			return;
+		}
+
+		std::filesystem::remove(m_sConfigPath + sConfigName + m_sConfigExtension);
+		if (FNV1A::Hash32(m_sCurrentConfig.c_str()) == FNV1A::Hash32(sConfigName.c_str()))
+			LoadConfig("default", false);
+
+		if (bNotify)
+			SDK::Output("Amalgam", std::format("Config {} deleted", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Remove config failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Remove config failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 }
 
@@ -1118,36 +1413,38 @@ void CConfigs::ResetConfig(const std::string& sConfigName, bool bNotify)
 {
 	try
 	{
-		const bool bLoadNosave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
-
 		F::Binds.m_vBinds.clear();
+		F::Groups.m_vGroups.clear();
 
-		for (auto& pVar : G::Vars)
+		bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		for (auto& pBase : G::Vars)
 		{
-			if (!bLoadNosave && pVar->m_iFlags & NOSAVE)
+			if (!bNoSave && pBase->m_iFlags & NOSAVE)
 				continue;
 
-			ResetT(bool)
-			else ResetT(int)
-			else ResetT(float)
-			else ResetT(IntRange_t)
-			else ResetT(FloatRange_t)
-			else ResetT(std::string)
-			else ResetT(std::vector<std::string>)
-			else ResetT(Color_t)
-			else ResetT(Gradient_t)
-			else ResetT(DragBox_t)
-			else ResetT(WindowBox_t)
+			Reset(bool)
+			else Reset(int)
+			else Reset(float)
+			else Reset(IntRange_t)
+			else Reset(FloatRange_t)
+			else Reset(std::string)
+			else Reset(std::vector<std::string>)
+			else Reset(Color_t)
+			else Reset(Gradient_t)
+			else Reset(DragBox_t)
+			else Reset(WindowBox_t)
 		}
 
 		SaveConfig(sConfigName, false);
+		F::Binds.SetVars(nullptr, nullptr, false);
+		H::Fonts.Reload(Vars::Menu::Scale[DEFAULT_BIND]);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Config {} reset", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Config {} reset", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Reset config failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Reset config failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 }
 
@@ -1158,11 +1455,11 @@ void CConfigs::DeleteVisual(const std::string& sConfigName, bool bNotify)
 		std::filesystem::remove(m_sVisualsPath + sConfigName + m_sConfigExtension);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} deleted", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Visual config {} deleted", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Remove visuals failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Remove visuals failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 }
 
@@ -1170,33 +1467,35 @@ void CConfigs::ResetVisual(const std::string& sConfigName, bool bNotify)
 {
 	try
 	{
-		const bool bLoadNosave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		F::Groups.m_vGroups.clear();
 
-		for (auto& pVar : G::Vars)
+		bool bNoSave = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		for (auto& pBase : G::Vars)
 		{
-			if (!(pVar->m_iFlags & VISUAL) || !bLoadNosave && pVar->m_iFlags & NOSAVE)
+			if (!(pBase->m_iFlags & VISUAL) || !bNoSave && pBase->m_iFlags & NOSAVE)
 				continue;
 
-			ResetT(bool)
-			else ResetT(int)
-			else ResetT(float)
-			else ResetT(IntRange_t)
-			else ResetT(FloatRange_t)
-			else ResetT(std::string)
-			else ResetT(std::vector<std::string>)
-			else ResetT(Color_t)
-			else ResetT(Gradient_t)
-			else ResetT(DragBox_t)
-			else ResetT(WindowBox_t)
+			Reset(bool)
+			else Reset(int)
+			else Reset(float)
+			else Reset(IntRange_t)
+			else Reset(FloatRange_t)
+			else Reset(std::string)
+			else Reset(std::vector<std::string>)
+			else Reset(Color_t)
+			else Reset(Gradient_t)
+			else Reset(DragBox_t)
+			else Reset(WindowBox_t)
 		}
 
 		SaveVisual(sConfigName, false);
+		F::Binds.SetVars(nullptr, nullptr, false);
 
 		if (bNotify)
-			SDK::Output("Amalgam", std::format("Visual config {} reset", sConfigName).c_str(), { 175, 150, 255 }, true, true, true);
+			SDK::Output("Amalgam", std::format("Visual config {} reset", sConfigName).c_str(), DEFAULT_COLOR, OUTPUT_CONSOLE | OUTPUT_TOAST | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 	catch (...)
 	{
-		SDK::Output("Amalgam", "Reset visuals failed", { 175, 150, 255, 127 }, true, true);
+		SDK::Output("Amalgam", "Reset visuals failed", ALTERNATE_COLOR, OUTPUT_CONSOLE | OUTPUT_MENU | OUTPUT_DEBUG);
 	}
 }

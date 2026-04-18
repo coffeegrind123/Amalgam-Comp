@@ -3,6 +3,7 @@
 
 class CMisc
 {
+private:
 	void AutoJump(CTFPlayer* pLocal, CUserCmd* pCmd);
 	void AutoJumpbug(CTFPlayer* pLocal, CUserCmd* pCmd);
 	void AutoStrafe(CTFPlayer* pLocal, CUserCmd* pCmd);
@@ -10,6 +11,7 @@ class CMisc
 	void BreakJump(CTFPlayer* pLocal, CUserCmd* pCmd);
 	void AntiAFK(CTFPlayer* pLocal, CUserCmd* pCmd);
 	void InstantRespawnMVM(CTFPlayer* pLocal);
+	void NoisemakerSpam(CTFPlayer* pLocal);
 
 	void CheatsBypass();
 	void WeaponSway();
@@ -27,7 +29,7 @@ class CMisc
 
 public:
 	void RunPre(CTFPlayer* pLocal, CUserCmd* pCmd);
-	void RunPost(CTFPlayer* pLocal, CUserCmd* pCmd, bool pSendPacket);
+	void RunPost(CTFPlayer* pLocal, CUserCmd* pCmd);
 
 	void Event(IGameEvent* pEvent, uint32_t uNameHash);
 	int AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket);
@@ -35,7 +37,6 @@ public:
 	void PingReducer();
 	void UnlockAchievements();
 	void LockAchievements();
-	bool SteamRPC();
 
 	int m_iWishCmdrate = -1;
 	int m_iWishUpdaterate = -1;

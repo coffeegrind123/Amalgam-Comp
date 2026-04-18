@@ -6,17 +6,11 @@
 MAKE_HOOK(CClientModeShared_OverrideView, U::Memory.GetVirtual(I::ClientModeShared, 16), void,
 	void* rcx, CViewSetup* pView)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CClientModeShared_OverrideView[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx, pView);
-#endif
+	DEBUG_RETURN(CClientModeShared_OverrideView, rcx, pView);
 
 	CALL_ORIGINAL(rcx, pView);
-	if (Vars::Visuals::UI::CleanScreenshots.Value && I::EngineClient->IsTakingScreenshot())
-		return;
 
-	auto pLocal = H::Entities.GetLocal();
-	if (pLocal && pView)
+	if (auto pLocal = H::Entities.GetLocal(); pLocal && pView)
 	{
 		F::SpectateAll.OverrideView(pView);
 		F::Visuals.FOV(pLocal, pView);

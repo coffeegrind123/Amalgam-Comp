@@ -1,5 +1,9 @@
 #pragma once
+<<<<<<< HEAD
 #include "../Feature/Feature.h"
+=======
+#include "../Macros/Macros.h"
+>>>>>>> upstream/master
 #include <vector>
 
 class CSignature

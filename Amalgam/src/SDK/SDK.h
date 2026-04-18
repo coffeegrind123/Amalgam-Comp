@@ -2,9 +2,9 @@
 
 #include "Vars.h"
 #include "Globals.h"
+#include "Helpers/ConVars/ConVars.h"
 #include "Helpers/Entities/Entities.h"
 #include "Helpers/Draw/Draw.h"
-#include "Helpers/Color/Color.h"
 #include "Helpers/TraceFilters/TraceFilters.h"
 #include "Helpers/Particles/Particles.h"
 #include "Definitions/Types.h"
@@ -14,16 +14,24 @@
 #include "../Utils/Interfaces/Interfaces.h"
 #include "../Utils/Hooks/Hooks.h"
 #include "../Utils/Memory/Memory.h"
+<<<<<<< HEAD
 #include "Helpers/ConVars/ConVars.h"
+=======
+>>>>>>> upstream/master
 #include "../Utils/KeyHandler/KeyHandler.h"
 #include "../Utils/Hash/FNV1A.h"
 #include "../Utils/Math/Math.h"
 #include "../Utils/Timer/Timer.h"
-#include "../Utils/Feature/Feature.h"
+#include "../Utils/Macros/Macros.h"
 #include <intrin.h>
 
+<<<<<<< HEAD
 #define DEFAULT_COLOR    Color_t(175, 150, 255, 255)
 #define ALTERNATE_COLOR  Color_t(175, 150, 255, 127)
+=======
+#define DEFAULT_COLOR		Color_t(175, 150, 255, 255)
+#define ALTERNATE_COLOR		Color_t(175, 150, 255, 127)
+>>>>>>> upstream/master
 
 #define VK_0              0x30
 #define VK_1              0x31
@@ -62,28 +70,46 @@
 #define VK_Y              0x59
 #define VK_Z              0x5A
 
-template <typename T> int sign(T val)
+#define OUTPUT_CONSOLE 1 << 0
+#define OUTPUT_DEBUG 1 << 1
+#define OUTPUT_TOAST 1 << 2
+#define OUTPUT_MENU 1 << 3
+#define OUTPUT_CHAT 1 << 4
+#define OUTPUT_PARTY 1 << 5
+
+template <class T> int sign(T val)
 {
 	return (val > T(0)) - (val < T(0));
 }
 
+inline float fnmodf(float flX, float flY)
+{	// silly fix for negative values
+	return fmodf(flX, flY) + (flX < 0 ? flY : 0);
+}
+
 namespace SDK
 {
-	void Output(const char* cFunction, const char* cLog = nullptr, Color_t tColor = { 255, 255, 255, 255 },
-		bool bConsole = true, bool bDebug = false, bool bToast = false, bool bMenu = false, bool bChat = false, bool bParty = false, int iMessageBox = -1,
+	void Output(const char* sFunction, const char* sLog = nullptr, Color_t tColor = { 255, 255, 255, 255 },
+		int iTo = OUTPUT_CONSOLE, int iMessageBox = -1,
 		const char* sLeft = "[", const char* sRight = "]");
 
-	void SetClipboard(std::string sString);
+	void SetClipboard(const std::string& sString);
 	std::string GetClipboard();
 
 	std::string GetDate();
 	std::string GetTime();
+<<<<<<< HEAD
 
 	HWND GetTeamFortressWindow();
 	bool IsGameWindowInFocus();
+=======
+>>>>>>> upstream/master
 
 	std::wstring ConvertUtf8ToWide(const std::string& source);
 	std::string ConvertWideToUTF8(const std::wstring& source);
+
+	HWND GetTeamFortressWindow();
+	bool IsGameWindowInFocus();
 
 	double PlatFloatTime();
 	int StdRandomInt(int iMin, int iMax);
@@ -92,23 +118,27 @@ namespace SDK
 	int SeedFileLineHash(int iSeed, const char* sName, int iAdditionalSeed);
 	int SharedRandomInt(unsigned iSeed, const char* sName, int iMinVal, int iMaxVal, int iAdditionalSeed);
 	void RandomSeed(int iSeed);
-	int RandomInt(int iMinVal = 0, int iMaxVal = 0x7FFF);
+	int RandomInt(int iMinVal = 0, int iMaxVal = VALVE_RAND_MAX);
 	float RandomFloat(float flMinVal = 0.f, float flMaxVal = 1.f);
-	
+
 	bool W2S(const Vec3& vOrigin, Vec3& vScreen, bool bAlways = false);
 	bool IsOnScreen(CBaseEntity* pEntity, const matrix3x4& mTransform, float* pLeft = nullptr, float* pRight = nullptr, float* pTop = nullptr, float* pBottom = nullptr, bool bAll = false);
+<<<<<<< HEAD
 	bool IsOnScreen(CBaseEntity* pEntity, Vec3 vOrigin, bool bAll = false);
+=======
+	bool IsOnScreen(CBaseEntity* pEntity, const Vec3& vOrigin, bool bAll = false);
+>>>>>>> upstream/master
 	bool IsOnScreen(CBaseEntity* pEntity, bool bShouldGetOwner = true);
 
-	void Trace(const Vec3& vecStart, const Vec3& vecEnd, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace);
-	void TraceHull(const Vec3& vecStart, const Vec3& vecEnd, const Vec3& vecHullMin, const Vec3& vecHullMax, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace);
+	void Trace(const Vec3& vStart, const Vec3& vEnd, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace);
+	void TraceHull(const Vec3& vStart, const Vec3& vEnd, const Vec3& vHullMin, const Vec3& vHullMax, unsigned int nMask, ITraceFilter* pFilter, CGameTrace* pTrace);
 
 	bool VisPos(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFrom, const Vec3& vTo, unsigned int nMask = MASK_SHOT | CONTENTS_GRATE);
 	bool VisPosCollideable(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFrom, const Vec3& vTo, unsigned int nMask = MASK_SHOT | CONTENTS_GRATE);
 	bool VisPosWorld(CBaseEntity* pSkip, const CBaseEntity* pEntity, const Vec3& vFrom, const Vec3& vTo, unsigned int nMask = MASK_SHOT | CONTENTS_GRATE);
 
-	Vec3 PredictOrigin(Vec3& vOrigin, Vec3 vVelocity, float flLatency, bool bTrace = true, Vec3 vMins = {}, Vec3 vMaxs = {}, unsigned int nMask = MASK_SOLID, float flNormal = 0.f);
-	bool PredictOrigin(Vec3& vOut, Vec3& vOrigin, Vec3 vVelocity, float flLatency, bool bTrace = true, Vec3 vMins = {}, Vec3 vMaxs = {}, unsigned int nMask = MASK_SOLID, float flNormal = 0.f);
+	Vec3 PredictOrigin(const Vec3& vOrigin, const Vec3& vVelocity, float flLatency, bool bTrace = true, const Vec3& vMins = {}, const Vec3& vMaxs = {}, unsigned int nMask = MASK_SOLID, float flNormal = 0.f);
+	bool PredictOrigin(Vec3& vOut, const Vec3& vOrigin, const Vec3& vVelocity, float flLatency, bool bTrace = true, const Vec3& vMins = {}, const Vec3& vMaxs = {}, unsigned int nMask = MASK_SOLID, float flNormal = 0.f);
 
 	bool IsLoopback();
 	int GetRoundState();
@@ -124,11 +154,15 @@ namespace SDK
 	void FixMovement(CUserCmd* pCmd, const Vec3& vTargetAngle);
 	bool StopMovement(CTFPlayer* pLocal, CUserCmd* pCmd);
 
-	Vec3 ComputeMove(const CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vFrom, Vec3& vTo);
-	void WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vFrom, Vec3& vTo, float flScale = 1.f);
-	void WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, Vec3& vTo, float flScale = 1.f);
+	Vec3 ComputeMove(const CUserCmd* pCmd, CTFPlayer* pLocal, const Vec3& vFrom, const Vec3& vTo);
+	void WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, const Vec3& vFrom, const Vec3& vTo, float flScale = 1.f);
+	void WalkTo(CUserCmd* pCmd, CTFPlayer* pLocal, const Vec3& vTo, float flScale = 1.f);
 
+<<<<<<< HEAD
 	void GetProjectileFireSetup(CTFPlayer* pPlayer, const Vec3& vAngIn, Vec3 vOffset, Vec3& vPosOut, Vec3& vAngOut, float flForward = 0.f, float flCutoff = 0.f, bool bInterp = false, bool bAllowFlip = true);
+=======
+	void GetProjectileFireSetup(CTFPlayer* pPlayer, const Vec3& vAngIn, Vec3 vOffset, Vec3& vPosOut, Vec3& vAngOut, float flForward = 0.f, float flCutoff = 0.1f, bool bInterp = false, bool bAllowFlip = true);
+>>>>>>> upstream/master
 
 	bool CleanScreenshot();
 }

@@ -1,11 +1,10 @@
 #include "../SDK/SDK.h"
 #include "../Features/Visuals/ChatBubbles/ChatBubbles.h"
 
-#include <boost/algorithm/string.hpp>
-
 MAKE_SIGNATURE(CSoundEmitterSystem_EmitSound, "client.dll", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 41 56 48 81 EC ? ? ? ? 49 8B D9", 0x0);
 //MAKE_SIGNATURE(S_StartDynamicSound, "engine.dll", "4C 8B DC 57 48 81 EC", 0x0);
 MAKE_SIGNATURE(S_StartSound, "engine.dll", "40 53 48 83 EC ? 48 83 79 ? ? 48 8B D9 75 ? 33 C0", 0x0);
+MAKE_SIGNATURE(CBaseEntity_EmitSound, "client.dll", "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B 3D", 0x0);
 
 class IRecipientFilter
 {
@@ -92,48 +91,41 @@ struct EmitSound_t
 	mutable short		m_hSoundScriptHandle;
 };
 
-const static std::vector<const char*> vFootsteps = { "footsteps", "flesh_impact_hard", "body_medium_impact_soft", "glass_sheet_step", "rubber_tire_impact_soft", "plastic_box_impact_soft", "plastic_barrel_impact_soft", "cardboard_box_impact_soft" };
-const static std::vector<const char*> vNoisemaker = { "items\\halloween", "items\\football_manager", "items\\japan_fundraiser", "items\\samurai\\tf_samurai_noisemaker", "items\\summer", "misc\\happy_birthday_tf", "misc\\jingle_bells" };
-const static std::vector<const char*> vFryingPan = { "pan_" };
-const static std::vector<const char*> vWater = { "ambient_mp3\\water\\water_splash", "slosh", "wade" };
+const static std::vector<const char*> s_vFootsteps = { "footstep", "flesh_impact_hard", "body_medium_impact_soft", "glass_sheet_step", "rubber_tire_impact_soft", "plastic_box_impact_soft", "plastic_barrel_impact_soft", "cardboard_box_impact_soft", "ceiling_tile_step" };
+const static std::vector<const char*> s_vNoisemaker = { "items\\halloween", "items\\football_manager", "items\\japan_fundraiser", "items\\samurai\\tf_samurai_noisemaker", "items\\summer", "misc\\happy_birthday_tf", "misc\\jingle_bells" };
+const static std::vector<const char*> s_vFryingPan = { "pan_" };
+const static std::vector<const char*> s_vWater = { "ambient_mp3\\water\\water_splash", "slosh", "wade" };
 
-static bool ShouldBlockSound(const char* pSound)
+static inline bool ShouldBlockSound(const char* pSound)
 {
-	if (!pSound)
+	if (!Vars::Misc::Sound::Block.Value || !pSound)
 		return false;
 
 	std::string sSound = pSound;
-	boost::algorithm::to_lower(sSound);
-
-	if (Vars::Misc::Sound::Block.Value)
-	{
-		auto CheckSound = [&](int iFlag, const std::vector<const char*>& vSounds)
+	std::transform(sSound.begin(), sSound.end(), sSound.begin(), ::tolower);
+	auto CheckSound = [&](const std::vector<const char*>& vSounds, int iFlag = -1)
+		{
+			if (/*iFlag == -1 ||*/ Vars::Misc::Sound::Block.Value & iFlag)
 			{
-				if (Vars::Misc::Sound::Block.Value & iFlag)
+				for (auto& sNoise : vSounds)
 				{
-					for (auto& sNoise : vSounds)
-					{
-						if (sSound.find(sNoise) != std::string::npos)
-							return true;
-					}
+					if (sSound.find(sNoise) != std::string::npos)
+						return true;
 				}
-				return false;
-			};
+			}
+			return false;
+		};
 
-		if (CheckSound(Vars::Misc::Sound::BlockEnum::Footsteps, vFootsteps))
-			return true;
+	if (CheckSound(s_vFootsteps, Vars::Misc::Sound::BlockEnum::Footsteps))
+		return true;
 
-		if (CheckSound(Vars::Misc::Sound::BlockEnum::Noisemaker, vNoisemaker))
-			return true;
+	if (CheckSound(s_vNoisemaker, Vars::Misc::Sound::BlockEnum::Noisemaker))
+		return true;
 
-		if (CheckSound(Vars::Misc::Sound::BlockEnum::FryingPan, vFryingPan))
-			return true;
+	if (CheckSound(s_vFryingPan, Vars::Misc::Sound::BlockEnum::FryingPan))
+		return true;
 
-		if (CheckSound(Vars::Misc::Sound::BlockEnum::Water, vWater))
-			return true;
-	}
-
-	if (FNV1A::Hash32(pSound) == FNV1A::Hash32Const("Physics.WaterSplash")) // temporary fix for duplicate water sounds
+	if (CheckSound(s_vWater, Vars::Misc::Sound::BlockEnum::Water))
 		return true;
 
 	return false;
@@ -142,10 +134,7 @@ static bool ShouldBlockSound(const char* pSound)
 MAKE_HOOK(CSoundEmitterSystem_EmitSound, S::CSoundEmitterSystem_EmitSound(), void,
 	void* rcx, IRecipientFilter& filter, int entindex, const EmitSound_t& ep)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CSoundEmitterSystem_EmitSound[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx, filter, entindex, ep);
-#endif
+	DEBUG_RETURN(CSoundEmitterSystem_EmitSound, rcx, filter, entindex, ep);
 
 	if (ShouldBlockSound(ep.m_pSoundName))
 		return;
@@ -178,10 +167,7 @@ MAKE_HOOK(CSoundEmitterSystem_EmitSound, S::CSoundEmitterSystem_EmitSound(), voi
 MAKE_HOOK(S_StartDynamicSound, S::S_StartDynamicSound(), int,
 	StartSoundParams_t& params)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CSoundEmitterSystem_EmitSound[DEFAULT_BIND])
-		return CALL_ORIGINAL(params);
-#endif
+	DEBUG_RETURN(S_StartDynamicSound, params);
 
 	H::Entities.ManualNetwork(params);
 	if (params.pSfx && ShouldBlockSound(params.pSfx->getname()))
@@ -194,10 +180,7 @@ MAKE_HOOK(S_StartDynamicSound, S::S_StartDynamicSound(), int,
 MAKE_HOOK(S_StartSound, S::S_StartSound(), int,
 	StartSoundParams_t& params)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CSoundEmitterSystem_EmitSound[DEFAULT_BIND])
-		return CALL_ORIGINAL(params);
-#endif
+	DEBUG_RETURN(S_StartSound, params);
 
 	if (!params.staticsound)
 		H::Entities.ManualNetwork(params);
@@ -226,4 +209,25 @@ MAKE_HOOK(S_StartSound, S::S_StartSound(), int,
 	}
 
 	return CALL_ORIGINAL(params);
+}
+
+MAKE_HOOK(CBaseEntity_EmitSound, S::CBaseEntity_EmitSound(), void,
+	void* rcx, const char* soundname, float soundtime, float* duration)
+{
+	DEBUG_RETURN(CBaseEntity_EmitSound, rcx, soundname, soundtime, duration);
+
+	if (soundname)
+	{
+		switch (FNV1A::Hash32(soundname))
+		{
+		case FNV1A::Hash32Const("BumperCar.Jump"):
+		case FNV1A::Hash32Const("BumperCar.JumpLand"):
+		case FNV1A::Hash32Const("BumperCar.Bump"):
+		case FNV1A::Hash32Const("BumperCar.BumpHard"):
+			if (I::Prediction->InPrediction() && !I::Prediction->m_bFirstTimePredicted)
+				return;
+		}
+	}
+
+	CALL_ORIGINAL(rcx, soundname, soundtime, duration);
 }

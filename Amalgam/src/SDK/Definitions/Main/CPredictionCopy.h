@@ -53,6 +53,7 @@ public:
 
 	int TransferData(const char* operation, int entindex, datamap_t* dmap)
 	{
+<<<<<<< HEAD
 		// File-based logging that works in Release builds
 		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
 		if (log_file) {
@@ -78,6 +79,8 @@ public:
 			fclose(log_file2);
 		}
 
+=======
+>>>>>>> upstream/master
 		return S::CPredictionCopy_TransferData.Call<int>(this, operation, entindex, dmap);
 	}
 

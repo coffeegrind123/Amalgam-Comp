@@ -68,18 +68,27 @@ int CBacktrack::GetAnticipatedChoke(int iMethod)
 	return iAnticipatedChoke;
 }
 
+<<<<<<< HEAD
 void CBacktrack::CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
+=======
+void CBacktrack::CreateMove(CUserCmd* pCmd)
+>>>>>>> upstream/master
 {
 	if (Vars::Misc::Game::AntiCheatCompatibility.Value)
 		return;
 
 	// correct tick_count for fakeinterp / nointerp
 	pCmd->tick_count += TIME_TO_TICKS(GetFakeInterp());
+<<<<<<< HEAD
 	if (!Vars::Visuals::Removals::Interpolation.Value)
 		pCmd->tick_count -= TIME_TO_TICKS(G::Lerp);
 
 	// Performs tick_count manipulations if aiming at a record manually
 	BacktrackToCrosshair(pLocal, pWeapon, pCmd);
+=======
+	if (!Vars::Visuals::Removals::Lerp.Value && !Vars::Visuals::Removals::Interpolation.Value)
+		pCmd->tick_count -= TIME_TO_TICKS(G::Lerp);
+>>>>>>> upstream/master
 }
 
 void CBacktrack::SendLerp()
@@ -108,10 +117,9 @@ void CBacktrack::SendLerp()
 	}
 }
 
-void CBacktrack::SetLerp(IGameEvent* pEvent)
+void CBacktrack::SetLerp()
 {
-	if (I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")) == I::EngineClient->GetLocalPlayer())
-		m_flFakeInterp = m_flSentInterp;
+	m_flFakeInterp = m_flSentInterp;
 }
 
 void CBacktrack::UpdateDatagram()
@@ -211,17 +219,26 @@ std::vector<TickRecord*> CBacktrack::GetValidRecords(std::vector<TickRecord*>& v
 	return vReturn;
 }
 
+matrix3x4* CBacktrack::GetBones(CBaseEntity* pEntity)
+{
+	std::vector<TickRecord*> vRecords = {};
+	if (F::Backtrack.GetRecords(pEntity, vRecords) && !vRecords.empty())
+		return vRecords.front()->m_aBones;
+	return nullptr;
+}
+
 
 
 void CBacktrack::MakeRecords()
 {
-	for (auto& pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
+	for (auto& pEntity : H::Entities.GetGroup(EntityEnum::PlayerAll))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
-		if (pPlayer->entindex() == I::EngineClient->GetLocalPlayer() || pPlayer->IsDormant() || !pPlayer->IsAlive() || pPlayer->IsAGhost()
+		if (pPlayer->entindex() == I::EngineClient->GetLocalPlayer() || !pPlayer->IsAlive() || pPlayer->IsAGhost()
 			|| !H::Entities.GetDeltaTime(pPlayer->entindex()))
 			continue;
 
+<<<<<<< HEAD
 		auto aBones = H::Entities.GetBones(pPlayer->entindex());
 		if (!aBones)
 			continue;
@@ -260,21 +277,42 @@ void CBacktrack::MakeRecords()
 
 		const TickRecord* pLastRecord = !vRecords.empty() ? &vRecords.front() : nullptr;
 		TickRecord tCurRecord = {
+=======
+		auto& vRecords = m_mRecords[pPlayer];
+
+		TickRecord* pLastRecord = !vRecords.empty() ? &vRecords.front() : nullptr;
+		vRecords.emplace_front(
+>>>>>>> upstream/master
 			pPlayer->m_flSimulationTime(),
 			pPlayer->m_vecOrigin(),
 			pPlayer->m_vecMins(),
 			pPlayer->m_vecMaxs(),
+<<<<<<< HEAD
 			*reinterpret_cast<BoneMatrix*>(aBones),
 			std::move(vHitboxInfos),
 			m_mDidShoot[pPlayer->entindex()],
 			pPlayer->m_vecOrigin()
 		};
 		vRecords.emplace_front(std::move(tCurRecord));
+=======
+			m_mDidShoot[pPlayer->entindex()]
+		);
+		TickRecord& tCurRecord = vRecords.front();
+
+		m_bSettingUpBones = true;
+		bool bSetup = pPlayer->SetupBones(tCurRecord.m_aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, tCurRecord.m_flSimTime);
+		m_bSettingUpBones = false;
+		if (!bSetup)
+		{
+			vRecords.pop_front();
+			continue;
+		}
+>>>>>>> upstream/master
 
 		bool bLagComp = false;
 		if (pLastRecord)
 		{
-			const Vec3 vDelta = tCurRecord.m_vBreak - pLastRecord->m_vBreak;
+			const Vec3 vDelta = tCurRecord.m_vOrigin - pLastRecord->m_vOrigin;
 			
 			static auto sv_lagcompensation_teleport_dist = H::ConVars.FindVar("sv_lagcompensation_teleport_dist");
 			const float flDist = powf(sv_lagcompensation_teleport_dist->GetFloat(), 2.f);
@@ -282,11 +320,8 @@ void CBacktrack::MakeRecords()
 			{
 				bLagComp = true;
 				if (!H::Entities.GetLagCompensation(pPlayer->entindex()))
-				{
 					vRecords.resize(1);
-					vRecords.front().m_flSimTime = std::numeric_limits<float>::max(); // hack
-				}
-				std::for_each(vRecords.begin(), vRecords.end(), [](auto& tRecord) { tRecord.m_bInvalid = true; });
+				std::for_each(vRecords.begin() + 1, vRecords.end(), [](auto& tRecord) { tRecord.m_bInvalid = true; });
 			}
 
 			for (auto& tRecord : vRecords)
@@ -297,9 +332,13 @@ void CBacktrack::MakeRecords()
 				tRecord.m_vOrigin = tCurRecord.m_vOrigin;
 				tRecord.m_vMins = tCurRecord.m_vMins;
 				tRecord.m_vMaxs = tCurRecord.m_vMaxs;
+<<<<<<< HEAD
 				tRecord.m_BoneMatrix = tCurRecord.m_BoneMatrix;
 				tRecord.m_vHitboxInfos = tCurRecord.m_vHitboxInfos;
+=======
+>>>>>>> upstream/master
 				tRecord.m_bOnShot = tCurRecord.m_bOnShot;
+				memcpy(tRecord.m_aBones, tCurRecord.m_aBones, sizeof(tRecord.m_aBones));
 			}
 		}
 
@@ -310,7 +349,7 @@ void CBacktrack::MakeRecords()
 
 void CBacktrack::CleanRecords()
 {
-	for (auto& pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
+	for (auto& pEntity : H::Entities.GetGroup(EntityEnum::PlayerAll))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
 		if (pPlayer->entindex() == I::EngineClient->GetLocalPlayer())
@@ -318,7 +357,7 @@ void CBacktrack::CleanRecords()
 
 		auto& vRecords = m_mRecords[pPlayer];
 
-		if (pPlayer->IsDormant() || !pPlayer->IsAlive() || pPlayer->IsAGhost())
+		if (!pPlayer->IsAlive() || pPlayer->IsAGhost())
 		{
 			vRecords.clear();
 			continue;
@@ -532,7 +571,7 @@ void CBacktrack::Draw(CTFPlayer* pLocal)
 	if (!(Vars::Menu::Indicators.Value & Vars::Menu::IndicatorsEnum::Ping) || !pLocal->IsAlive())
 		return;
 
-	auto pResource = H::Entities.GetPR();
+	auto pResource = H::Entities.GetResource();
 	auto pNetChan = I::EngineClient->GetNetChannelInfo();
 	if (!pResource || !pNetChan)
 		return;
@@ -547,7 +586,7 @@ void CBacktrack::Draw(CTFPlayer* pLocal)
 
 	float flFake = std::min(flFakeLatency + flFakeLerp, m_flMaxUnlag) * 1000;
 	float flLatency = std::max(pNetChan->GetLatency(FLOW_INCOMING) + pNetChan->GetLatency(FLOW_OUTGOING) - flFakeLatency, 0.f) * 1000;
-	int iLatencyScoreboard = pResource->m_iPing(pLocal->entindex());
+	int iLatencyScoreboard = pResource->m_iPing(I::EngineClient->GetLocalPlayer());
 
 	int x = Vars::Menu::PingDisplay.Value.x;
 	int y = Vars::Menu::PingDisplay.Value.y + 8;

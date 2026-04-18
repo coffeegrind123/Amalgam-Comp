@@ -7,17 +7,22 @@ void CEnginePrediction::AdjustPlayers(CBaseEntity* pLocal)
 {
 	m_mRestore.clear();
 
-	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
+	for (auto pEntity : H::Entities.GetGroup(EntityEnum::PlayerAll))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
-		if (pPlayer == pLocal || pPlayer->IsDormant() || !pPlayer->IsAlive() || pPlayer->IsAGhost())
+		if (pPlayer == pLocal || !pPlayer->IsAlive() || pPlayer->IsAGhost())
 			continue;
 
 		m_mRestore[pPlayer] = { pPlayer->GetAbsOrigin(), pPlayer->m_vecMins(), pPlayer->m_vecMaxs() };
 
 		pPlayer->SetAbsOrigin(pPlayer->m_vecOrigin());
+<<<<<<< HEAD
 		pPlayer->m_vecMins() += 0.125f;
 		pPlayer->m_vecMaxs() -= 0.125f;
+=======
+		pPlayer->m_vecMins() += PLAYER_ORIGIN_COMPRESSION;
+		pPlayer->m_vecMaxs() -= PLAYER_ORIGIN_COMPRESSION;
+>>>>>>> upstream/master
 	}
 }
 void CEnginePrediction::RestorePlayers()
@@ -32,6 +37,7 @@ void CEnginePrediction::RestorePlayers()
 
 void CEnginePrediction::Simulate(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
+<<<<<<< HEAD
 	FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file) {
 		fprintf(log_file, "EnginePrediction::Simulate - Function called\n");
@@ -48,18 +54,21 @@ void CEnginePrediction::Simulate(CTFPlayer* pLocal, CUserCmd* pCmd)
 		return;
 	}
 
+=======
+>>>>>>> upstream/master
 	const int nOldTickBase = pLocal->m_nTickBase();
 	const bool bOldIsFirstPrediction = I::Prediction->m_bFirstTimePredicted;
 	const bool bOldInPrediction = I::Prediction->m_bInPrediction;
 
 	I::MoveHelper->SetHost(pLocal);
 	pLocal->m_pCurrentCommand() = pCmd;
-	*G::RandomSeed() = MD5_PseudoRandom(pCmd->command_number) & std::numeric_limits<int>::max();
+	G::RandomSeed() = MD5_PseudoRandom(pCmd->command_number) & std::numeric_limits<int>::max();
 
 	I::Prediction->m_bFirstTimePredicted = false;
 	I::Prediction->m_bInPrediction = true;
 	I::Prediction->SetLocalViewAngles(pCmd->viewangles);
 
+<<<<<<< HEAD
 	Vec2 vOriginalMove; int iOriginalButtons;
 	if (m_bDoubletap = m_bInPrediction && (F::Ticks.m_bAntiWarp || F::Ticks.GetTicks(H::Entities.GetWeapon()) && Vars::Doubletap::AntiWarp.Value && pLocal->m_hGroundEntity()))
 	{
@@ -74,28 +83,33 @@ void CEnginePrediction::Simulate(CTFPlayer* pLocal, CUserCmd* pCmd)
 		F::Ticks.m_bAntiWarp = bOriginalWarp;
 	}
 
+=======
+>>>>>>> upstream/master
 	AdjustPlayers(pLocal);
 	I::Prediction->SetupMove(pLocal, pCmd, I::MoveHelper, &m_MoveData);
 	I::GameMovement->ProcessMovement(pLocal, &m_MoveData);
 	I::Prediction->FinishMove(pLocal, pCmd, &m_MoveData);
 	RestorePlayers();
+<<<<<<< HEAD
 
 	if (m_bDoubletap)
 	{
 		pCmd->forwardmove = vOriginalMove.x, pCmd->sidemove = vOriginalMove.y;
 		pCmd->buttons = iOriginalButtons;
 	}
+=======
+>>>>>>> upstream/master
 
 	I::MoveHelper->SetHost(nullptr);
 	pLocal->m_pCurrentCommand() = nullptr;
-	*G::RandomSeed() = -1;
+	G::RandomSeed() = -1;
 
 	pLocal->m_nTickBase() = nOldTickBase;
 	I::Prediction->m_bFirstTimePredicted = bOldIsFirstPrediction;
 	I::Prediction->m_bInPrediction = bOldInPrediction;
 
-	m_vOrigin = pLocal->m_vecOrigin();
-	m_vVelocity = pLocal->m_vecVelocity();
+	m_vOrigin = m_MoveData.m_vecAbsOrigin;
+	m_vVelocity = m_MoveData.m_vecVelocity;
 	m_vDirection = { m_MoveData.m_flForwardMove, -m_MoveData.m_flSideMove, m_MoveData.m_flUpMove };
 	m_vAngles = m_MoveData.m_vecViewAngles;
 }
@@ -112,6 +126,7 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 	}
 
 	m_bInPrediction = true;
+<<<<<<< HEAD
 	if (!pLocal || !pLocal->IsAlive())
 	{
 		FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
@@ -121,6 +136,10 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 		}
 		return;
 	}
+=======
+	if (!pLocal->IsAlive())
+		return;
+>>>>>>> upstream/master
 
 	auto pMap = pLocal->GetPredDescMap();
 	if (!pMap)
@@ -135,6 +154,7 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 	I::GlobalVars->frametime = I::Prediction->m_bEnginePaused ? 0.f : TICK_INTERVAL;
 
 	size_t iSize = pLocal->GetIntermediateDataSize();
+<<<<<<< HEAD
 	if (!I::MemAlloc)
 	{
 		// MemAlloc interface not initialized - skip prediction
@@ -142,6 +162,9 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 	}
 
 	if (!m_tLocal.m_pData)
+=======
+	if (!m_tLocal.m_pData) 
+>>>>>>> upstream/master
 	{
 		m_tLocal.m_pData = reinterpret_cast<byte*>(I::MemAlloc->Alloc(iSize));
 		m_tLocal.m_iSize = iSize;
@@ -153,6 +176,7 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 	}
 
 	CPredictionCopy copy = { PC_EVERYTHING, m_tLocal.m_pData, PC_DATA_PACKED, pLocal, PC_DATA_NORMAL };
+<<<<<<< HEAD
 	FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file1) {
 		fprintf(log_file1, "EnginePrediction::Start - About to call TransferData START\n");
@@ -189,13 +213,21 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 		fprintf(log_file2, "EnginePrediction::Start - TransferData START success, calling Simulate\n");
 		fclose(log_file2);
 	}
+=======
+	copy.TransferData("EnginePredictionStart", pLocal->entindex(), pMap);
+
+>>>>>>> upstream/master
 	Simulate(pLocal, pCmd);
 }
 
 void CEnginePrediction::End(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
 	m_bInPrediction = false;
-	if (!pLocal || !pLocal->IsAlive())
+	if (!pLocal->IsAlive())
+		return;
+
+	auto pMap = pLocal->GetPredDescMap();
+	if (!pMap)
 		return;
 
 	auto pMap = pLocal->GetPredDescMap();
@@ -207,6 +239,7 @@ void CEnginePrediction::End(CTFPlayer* pLocal, CUserCmd* pCmd)
 	I::GlobalVars->frametime = m_flOldFrameTime;
 
 	CPredictionCopy copy = { PC_EVERYTHING, pLocal, PC_DATA_NORMAL, m_tLocal.m_pData, PC_DATA_PACKED };
+<<<<<<< HEAD
 	FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file1) {
 		fprintf(log_file1, "EnginePrediction::End - About to call TransferData END\n");
@@ -247,6 +280,14 @@ void CEnginePrediction::End(CTFPlayer* pLocal, CUserCmd* pCmd)
 void CEnginePrediction::Unload()
 {
 	if (m_tLocal.m_pData && I::MemAlloc)
+=======
+	copy.TransferData("EnginePredictionEnd", pLocal->entindex(), pMap);
+}
+
+void CEnginePrediction::Unload()
+{
+	if (m_tLocal.m_pData)
+>>>>>>> upstream/master
 	{
 		I::MemAlloc->Free(m_tLocal.m_pData);
 		m_tLocal = {};

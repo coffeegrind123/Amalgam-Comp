@@ -2,6 +2,7 @@
 #include "../../../SDK/SDK.h"
 #include "../Render.h"
 #include <ImGui/TextEditor.h>
+#include <mutex>
 
 struct Output_t
 {
@@ -14,6 +15,7 @@ struct Output_t
 
 class CMenu
 {
+private:
 	void DrawMenu();
 
 	void MenuAimbot(int iTab);
@@ -34,11 +36,13 @@ class CMenu
 
 public:
 	void Render();
-	void AddOutput(const std::string& sFunction, const std::string& sLog, const Color_t& tColor = Vars::Menu::Theme::Accent.Value);
+	void AddOutput(const char* sFunction, const char* sLog, Color_t tColor = Vars::Menu::Theme::Accent.Value);
 
 	bool m_bIsOpen = false;
 	bool m_bInKeybind = false;
 	bool m_bWindowHovered = false;
+
+	std::mutex m_tMutex;
 };
 
 ADD_FEATURE(CMenu, Menu);

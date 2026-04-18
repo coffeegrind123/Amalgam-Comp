@@ -4,6 +4,7 @@
 #include "CCollisionProperty.h"
 #include "CParticleProperty.h"
 #include "../Main/UtlVector.h"
+#include "../Misc/CInterpolatedVar.h"
 #include "../Definitions.h"
 #include "../../../Utils/Memory/Memory.h"
 #include "../../../Utils/Signatures/Signatures.h"
@@ -94,7 +95,14 @@ public:
 	NETVAR_OFF(m_MoveType, byte, "CTFPlayer", "m_nWaterLevel", -4);
 	NETVAR_OFF(m_MoveCollide, byte, "CTFPlayer", "m_nWaterLevel", -3);
 	NETVAR_OFF(m_nWaterType, byte, "CTFPlayer", "m_nWaterLevel", 1);
+<<<<<<< HEAD
 	NETVAR_EMBED_OFF(m_Particles, CParticleProperty*, "CBaseEntity", "m_flElasticity", -56);
+=======
+	NETVAR_OFF_EMBED(m_Particles, CParticleProperty*, "CBaseEntity", "m_flElasticity", -56);
+	NETVAR_OFF(m_iv_vecVelocity, CInterpolatedVar<Vec3>, "CBaseEntity", "m_iTeamNum", 156);
+	NETVAR_OFF(m_iv_vecOrigin, CInterpolatedVar<Vec3>, "CBaseEntity", "m_flShadowCastDistance", 84);
+	NETVAR_OFF(m_iv_angRotation, CInterpolatedVar<Vec3>, "CBaseEntity", "m_vecOrigin", -128);
+>>>>>>> upstream/master
 	inline CBaseEntity* GetMoveParent()
 	{
 		static int nOffset = U::NetVars.GetNetVar("CBaseEntity", "moveparent") - 8;
@@ -116,11 +124,18 @@ public:
 
 		return m_pMoveChild ? m_pMoveChild->Get() : nullptr;
 	}
+	inline CBaseEntity* const GetRootMoveParent()
+	{
+		CBaseEntity* ent = this;
+		CBaseEntity* parent = GetMoveParent();
 
+<<<<<<< HEAD
 	inline CBaseEntity* GetRootMoveParent()
 	{
 		CBaseEntity* ent = this;
 		CBaseEntity* parent = ent->GetMoveParent();
+=======
+>>>>>>> upstream/master
 		while (parent)
 		{
 			ent = parent;
@@ -287,6 +302,10 @@ public:
 	}
 
 	int GetIntermediateDataSize();
+<<<<<<< HEAD
+=======
+	Vec3 GetOrigin(float flCompression);
+>>>>>>> upstream/master
 	Vec3 GetSize();
 	Vec3 GetOffset();
 	Vec3 GetCenter();

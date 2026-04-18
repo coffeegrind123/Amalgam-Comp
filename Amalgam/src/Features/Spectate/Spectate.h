@@ -3,20 +3,24 @@
 
 class CSpectate
 {
+private:
+	int m_iTarget = -1;
+	int m_iIntendedTarget = -1;
+
 public:
 	void NetUpdateEnd(CTFPlayer* pLocal);
 	void NetUpdateStart(CTFPlayer* pLocal);
-	void CreateMove(CTFPlayer* pLocal, CUserCmd* pCmd);
+	void CreateMove(CUserCmd* pCmd);
+	void Reset();
+
 	void SetTarget(int iTarget);
+	int GetTarget(bool bIntended = false);
+	inline bool HasTarget(bool bIntended = false) { return (bIntended ? m_iIntendedTarget : m_iTarget) != -1; }
 
-	int m_iTarget = -1;
-	int m_iIntendedTarget = -1;
-	Vec3 m_vOldView = {}; // don't let spectating change viewangles
-
-	CBaseEntity* m_pOriginalTarget;
+	EHANDLE m_hOriginalTarget;
 	int m_iOriginalMode = OBS_MODE_NONE;
-	CBaseEntity* m_pTargetTarget;
-	int m_iTargetMode = OBS_MODE_NONE;
+
+	Vec3 m_vOldView = {}; // don't let spectating change viewangles
 };
 
 ADD_FEATURE(CSpectate, Spectate);

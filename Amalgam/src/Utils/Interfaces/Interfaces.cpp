@@ -24,6 +24,7 @@ InterfaceInit_t::InterfaceInit_t(void** pPtr, const char* sDLL, const char* sNam
 
 bool CInterfaces::Initialize()
 {
+<<<<<<< HEAD
 	// File-based logging for interface debugging
 	FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file) {
@@ -59,10 +60,18 @@ bool CInterfaces::Initialize()
 			fclose(log_file3);
 		}
 
+=======
+	for (auto& Interface : m_vInterfaces)
+	{
+		const char* sModule = nullptr;
+		std::vector<std::string> vModules;
+		boost::split(vModules, Interface->m_sDLL, boost::is_any_of(", "));
+>>>>>>> upstream/master
 		if (vModules.size() == 1)
 			sModule = vModules.front().c_str();
 		else
 		{
+<<<<<<< HEAD
 			FILE* log_file4 = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file4) {
 				fprintf(log_file4, "Interfaces::Initialize: Searching for module in multiple options\n");
@@ -85,6 +94,13 @@ bool CInterfaces::Initialize()
 						fprintf(log_file6, "Interfaces::Initialize: Found module: %s\n", sName.c_str());
 						fclose(log_file6);
 					}
+=======
+			for (auto& sName : vModules)
+			{
+				if (GetModuleHandle(sName.c_str()))
+				{
+					sModule = sName.c_str();
+>>>>>>> upstream/master
 					break;
 				}
 			}
@@ -100,16 +116,20 @@ bool CInterfaces::Initialize()
 			}
 		}
 
+<<<<<<< HEAD
 		FILE* log_file7 = fopen("C:\\temp\\amalgam_debug.log", "a");
 		if (log_file7) {
 			fprintf(log_file7, "Interfaces::Initialize: Module resolved to: %s, about to process type %d\n", sModule, Interface->m_nType);
 			fclose(log_file7);
 		}
 
+=======
+>>>>>>> upstream/master
 		switch (Interface->m_nType)
 		{
 		case 0:
 		{
+<<<<<<< HEAD
 			FILE* log_file8 = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file8) {
 				fprintf(log_file8, "Interfaces::Initialize: Type 0 - About to call FindInterface for %s::%s\n", sModule, Interface->m_sName);
@@ -123,10 +143,14 @@ bool CInterfaces::Initialize()
 				fprintf(log_file9, "Interfaces::Initialize: Type 0 - FindInterface returned %p\n", *Interface->m_pPtr);
 				fclose(log_file9);
 			}
+=======
+			*Interface->m_pPtr = U::Memory.FindInterface(sModule, Interface->m_sName);
+>>>>>>> upstream/master
 			break;
 		}
 		case 1:
 		{
+<<<<<<< HEAD
 			FILE* log_file10 = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file10) {
 				fprintf(log_file10, "Interfaces::Initialize: Type 1 - About to call GetModuleExport for %s::%s\n", sModule, Interface->m_sName);
@@ -140,10 +164,14 @@ bool CInterfaces::Initialize()
 				fprintf(log_file11, "Interfaces::Initialize: Type 1 - GetModuleExport returned %p\n", *Interface->m_pPtr);
 				fclose(log_file11);
 			}
+=======
+			*Interface->m_pPtr = U::Memory.GetModuleExport<void*>(sModule, Interface->m_sName);
+>>>>>>> upstream/master
 			break;
 		}
 		case 2:
 		{
+<<<<<<< HEAD
 			FILE* log_file12 = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file12) {
 				fprintf(log_file12, "Interfaces::Initialize: Type 2 - About to call FindSignature for %s::%s\n", sModule, Interface->m_sName);
@@ -158,10 +186,16 @@ bool CInterfaces::Initialize()
 					fprintf(log_file13, "Interfaces::Initialize: Type 2 - FindSignature FAILED for %s::%s\n", sModule, Interface->m_sName);
 					fclose(log_file13);
 				}
+=======
+			auto dwDest = U::Memory.FindSignature(sModule, Interface->m_sName);
+			if (!dwDest)
+			{
+>>>>>>> upstream/master
 				U::Core.AppendFailText(std::format("CInterfaces::Initialize() failed to find signature").c_str());
 				break;
 			}
 
+<<<<<<< HEAD
 			FILE* log_file14 = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file14) {
 				fprintf(log_file14, "Interfaces::Initialize: Type 2 - FindSignature returned 0x%llx, calling RelToAbs\n", dwDest);
@@ -201,6 +235,17 @@ bool CInterfaces::Initialize()
 		if (log_file20) {
 			fprintf(log_file20, "Interfaces::Initialize: Final check - Interface %d ptr: %p\n", interfaceIndex, *Interface->m_pPtr);
 			fclose(log_file20);
+=======
+			*Interface->m_pPtr = reinterpret_cast<void*>(U::Memory.RelToAbs(dwDest) + Interface->m_nOffset);
+			break;
+		}
+		}
+
+		for (int n = 0; n < Interface->m_nDereferenceCount; n++)
+		{
+			if (Interface->m_pPtr)
+				*Interface->m_pPtr = *reinterpret_cast<void**>(*Interface->m_pPtr);
+>>>>>>> upstream/master
 		}
 
 		if (!*Interface->m_pPtr)

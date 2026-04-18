@@ -1,10 +1,10 @@
 #include <Windows.h>
 #include "Core/Core.h"
-#include "Utils/CrashLog/CrashLog.h"
+#include "Utils/ExceptionHandler/ExceptionHandler.h"
 
 DWORD WINAPI MainThread(LPVOID lpParam)
 {
-	// File-based logging for startup debugging
+	// File-based logging for startup debugging - OUR ENHANCEMENT
 	FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
 	if (log_file) {
 		fprintf(log_file, "MainThread: Entry\n");
@@ -13,7 +13,8 @@ DWORD WINAPI MainThread(LPVOID lpParam)
 
 	try
 	{
-		U::CrashLog.Initialize(lpParam);
+		// Use upstream's ExceptionHandler instead of CrashLog
+		U::ExceptionHandler.Initialize(lpParam);
 
 		FILE* log_file1 = fopen("C:\\temp\\amalgam_debug.log", "a");
 		if (log_file1) {
@@ -39,7 +40,7 @@ DWORD WINAPI MainThread(LPVOID lpParam)
 
 		U::Core.Unload();
 
-		U::CrashLog.Unload();
+		U::ExceptionHandler.Unload();
 
 		// Check if this is manual mapping or native injection
 		HMODULE hModule = static_cast<HMODULE>(lpParam);
@@ -75,7 +76,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (fdwReason == DLL_PROCESS_ATTACH)
 		{
-			// File-based logging for DLL attach debugging
+			// File-based logging for DLL attach debugging - OUR ENHANCEMENT
 			FILE* log_file = fopen("C:\\temp\\amalgam_debug.log", "a");
 			if (log_file) {
 				fprintf(log_file, "DllMain: DLL_PROCESS_ATTACH called\n");

@@ -1,14 +1,31 @@
 #include "PlayerUtils.h"
 
-#include "../../SDK/Definitions/Types.h"
+#include "../ImGui/Menu/Menu.h"
 #include "../Output/Output.h"
+<<<<<<< HEAD
 #include "../../SDK/Helpers/Cache/CacheManager.h"
+=======
+#include "../../SDK/Definitions/Types.h"
+>>>>>>> upstream/master
 
-uint32_t CPlayerlistUtils::GetFriendsID(int iIndex)
+uint32_t CPlayerlistUtils::GetAccountID(int iIndex)
 {
-	PlayerInfo_t pi{};
-	if (I::EngineClient->GetPlayerInfo(iIndex, &pi) && !pi.fakeplayer)
-		return pi.friendsID;
+	auto pResource = H::Entities.GetResource();
+	if (pResource && pResource->m_bValid(iIndex) && !pResource->IsFakePlayer(iIndex))
+		return pResource->m_iAccountID(iIndex);
+	return 0;
+}
+
+int CPlayerlistUtils::GetIndex(uint32_t uAccountID)
+{
+	auto pResource = H::Entities.GetResource();
+	if (!pResource)
+		return 0;
+	for (int n = 1; n <= I::EngineClient->GetMaxClients(); n++)
+	{
+		if (pResource->m_bValid(n) && !pResource->IsFakePlayer(n) && pResource->m_iAccountID(n) == uAccountID)
+			return n;
+	}
 	return 0;
 }
 
@@ -20,7 +37,7 @@ PriorityLabel_t* CPlayerlistUtils::GetTag(int iID)
 	return nullptr;
 }
 
-int CPlayerlistUtils::GetTag(std::string sTag)
+int CPlayerlistUtils::GetTag(const std::string& sTag)
 {
 	auto uHash = FNV1A::Hash32(sTag.c_str());
 
@@ -37,104 +54,100 @@ int CPlayerlistUtils::GetTag(std::string sTag)
 
 
 
-void CPlayerlistUtils::AddTag(uint32_t uFriendsID, int iID, bool bSave, std::string sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
+void CPlayerlistUtils::AddTag(uint32_t uAccountID, int iID, bool bSave, const char* sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	if (!uFriendsID)
+	if (!uAccountID)
 		return;
 
-	if (!HasTag(uFriendsID, iID))
+	if (!HasTag(uAccountID, iID))
 	{
-		mPlayerTags[uFriendsID].push_back(iID);
+		mPlayerTags[uAccountID].push_back(iID);
 		m_bSave = bSave;
-		if (sName.length())
-		{
-			if (PriorityLabel_t* pTag = GetTag(iID))
-				F::Output.TagsChanged(sName, "Added", pTag->m_tColor.ToHexA(), pTag->m_sName);
-		}
+		if (auto pTag = GetTag(iID); pTag && sName)
+			F::Output.TagsChanged(sName, "Added", pTag->m_tColor.ToHexA().c_str(), pTag->m_sName.c_str());
 	}
 }
-void CPlayerlistUtils::AddTag(int iIndex, int iID, bool bSave, std::string sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
+void CPlayerlistUtils::AddTag(int iIndex, int iID, bool bSave, const char* sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	AddTag(GetFriendsID(iIndex), iID, bSave, sName, mPlayerTags);
+	AddTag(GetAccountID(iIndex), iID, bSave, sName, mPlayerTags);
 }
-void CPlayerlistUtils::AddTag(uint32_t uFriendsID, int iID, bool bSave, std::string sName)
+void CPlayerlistUtils::AddTag(uint32_t uAccountID, int iID, bool bSave, const char* sName)
 {
-	AddTag(uFriendsID, iID, bSave, sName, m_mPlayerTags);
+	AddTag(uAccountID, iID, bSave, sName, m_mPlayerTags);
 }
-void CPlayerlistUtils::AddTag(int iIndex, int iID, bool bSave, std::string sName)
+void CPlayerlistUtils::AddTag(int iIndex, int iID, bool bSave, const char* sName)
 {
 	AddTag(iIndex, iID, bSave, sName, m_mPlayerTags);
 }
 
-void CPlayerlistUtils::RemoveTag(uint32_t uFriendsID, int iID, bool bSave, std::string sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
+void CPlayerlistUtils::RemoveTag(uint32_t uAccountID, int iID, bool bSave, const char* sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	if (!uFriendsID)
+	if (!uAccountID)
 		return;
 
-	auto& _vTags = mPlayerTags[uFriendsID];
-	for (auto it = _vTags.begin(); it != _vTags.end(); it++)
+	auto& vTags = mPlayerTags[uAccountID];
+	for (auto it = vTags.begin(); it != vTags.end(); it++)
 	{
 		if (iID == *it)
 		{
-			_vTags.erase(it);
+			vTags.erase(it);
 			m_bSave = bSave;
-			if (sName.length())
-			{
-				if (auto pTag = GetTag(iID))
-					F::Output.TagsChanged(sName, "Removed", pTag->m_tColor.ToHexA(), pTag->m_sName);
-			}
+			if (auto pTag = GetTag(iID); pTag && sName)
+				F::Output.TagsChanged(sName, "Removed", pTag->m_tColor.ToHexA().c_str(), pTag->m_sName.c_str());
 			break;
 		}
 	}
+	if (vTags.empty())
+		mPlayerTags.erase(uAccountID);
 }
-void CPlayerlistUtils::RemoveTag(int iIndex, int iID, bool bSave, std::string sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
+void CPlayerlistUtils::RemoveTag(int iIndex, int iID, bool bSave, const char* sName, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	RemoveTag(GetFriendsID(iIndex), iID, bSave, sName, mPlayerTags);
+	RemoveTag(GetAccountID(iIndex), iID, bSave, sName, mPlayerTags);
 }
-void CPlayerlistUtils::RemoveTag(uint32_t uFriendsID, int iID, bool bSave, std::string sName)
+void CPlayerlistUtils::RemoveTag(uint32_t uAccountID, int iID, bool bSave, const char* sName)
 {
-	RemoveTag(uFriendsID, iID, bSave, sName, m_mPlayerTags);
+	RemoveTag(uAccountID, iID, bSave, sName, m_mPlayerTags);
 }
-void CPlayerlistUtils::RemoveTag(int iIndex, int iID, bool bSave, std::string sName)
+void CPlayerlistUtils::RemoveTag(int iIndex, int iID, bool bSave, const char* sName)
 {
 	RemoveTag(iIndex, iID, bSave, sName, m_mPlayerTags);
 }
 
-bool CPlayerlistUtils::HasTags(uint32_t uFriendsID, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
+bool CPlayerlistUtils::HasTags(uint32_t uAccountID, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	if (!uFriendsID)
+	if (!uAccountID)
 		return false;
 
-	return !mPlayerTags[uFriendsID].empty();
+	return !mPlayerTags[uAccountID].empty();
 }
 bool CPlayerlistUtils::HasTags(int iIndex, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	return HasTags(GetFriendsID(iIndex), mPlayerTags);
+	return HasTags(GetAccountID(iIndex), mPlayerTags);
 }
-bool CPlayerlistUtils::HasTags(uint32_t uFriendsID)
+bool CPlayerlistUtils::HasTags(uint32_t uAccountID)
 {
-	return HasTags(uFriendsID, m_mPlayerTags);
+	return HasTags(uAccountID, m_mPlayerTags);
 }
 bool CPlayerlistUtils::HasTags(int iIndex)
 {
 	return HasTags(iIndex, m_mPlayerTags);
 }
 
-bool CPlayerlistUtils::HasTag(uint32_t uFriendsID, int iID, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
+bool CPlayerlistUtils::HasTag(uint32_t uAccountID, int iID, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	if (!uFriendsID)
+	if (!uAccountID)
 		return false;
 
-	auto it = std::ranges::find_if(mPlayerTags[uFriendsID], [iID](const auto& _iID) { return iID == _iID; });
-	return it != mPlayerTags[uFriendsID].end();
+	auto it = std::ranges::find_if(mPlayerTags[uAccountID], [iID](const auto& _iID) { return iID == _iID; });
+	return it != mPlayerTags[uAccountID].end();
 }
 bool CPlayerlistUtils::HasTag(int iIndex, int iID, std::unordered_map<uint32_t, std::vector<int>>& mPlayerTags)
 {
-	return HasTag(GetFriendsID(iIndex), iID, mPlayerTags);
+	return HasTag(GetAccountID(iIndex), iID, mPlayerTags);
 }
-bool CPlayerlistUtils::HasTag(uint32_t uFriendsID, int iID)
+bool CPlayerlistUtils::HasTag(uint32_t uAccountID, int iID)
 {
-	return HasTag(uFriendsID, iID, m_mPlayerTags);
+	return HasTag(uAccountID, iID, m_mPlayerTags);
 }
 bool CPlayerlistUtils::HasTag(int iIndex, int iID)
 {
@@ -143,38 +156,41 @@ bool CPlayerlistUtils::HasTag(int iIndex, int iID)
 
 
 
-int CPlayerlistUtils::GetPriority(uint32_t uFriendsID, bool bCache)
+int CPlayerlistUtils::GetPriority(uint32_t uAccountID, bool bCache)
 {
 	if (bCache)
-		return H::Entities.GetPriority(uFriendsID);
+		return H::Entities.GetPriority(uAccountID);
 
 	const int iDefault = m_vTags[TagToIndex(DEFAULT_TAG)].m_iPriority;
-	if (!uFriendsID)
+	if (!uAccountID)
 		return iDefault;
 
-	if (HasTag(uFriendsID, TagToIndex(IGNORED_TAG)))
+	if (HasTag(uAccountID, TagToIndex(IGNORED_TAG)))
 		return m_vTags[TagToIndex(IGNORED_TAG)].m_iPriority;
 
 	std::vector<int> vPriorities;
-	for (auto& iID : m_mPlayerTags[uFriendsID])
+	if (m_mPlayerTags.contains(uAccountID))
 	{
-		auto pTag = GetTag(iID);
-		if (pTag && !pTag->m_bLabel)
-			vPriorities.push_back(pTag->m_iPriority);
+		for (auto& iID : m_mPlayerTags[uAccountID])
+		{
+			auto pTag = GetTag(iID);
+			if (pTag && !pTag->m_bLabel)
+				vPriorities.push_back(pTag->m_iPriority);
+		}
 	}
-	if (H::Entities.IsFriend(uFriendsID))
+	if (H::Entities.IsFriend(uAccountID))
 	{
 		auto& tTag = m_vTags[TagToIndex(FRIEND_TAG)];
 		if (!tTag.m_bLabel)
 			vPriorities.push_back(tTag.m_iPriority);
 	}
-	if (H::Entities.InParty(uFriendsID))
+	if (H::Entities.InParty(uAccountID))
 	{
 		auto& tTag = m_vTags[TagToIndex(PARTY_TAG)];
 		if (!tTag.m_bLabel)
 			vPriorities.push_back(tTag.m_iPriority);
 	}
-	if (H::Entities.IsF2P(uFriendsID))
+	if (H::Entities.IsF2P(uAccountID))
 	{
 		auto& tTag = m_vTags[TagToIndex(F2P_TAG)];
 		if (!tTag.m_bLabel)
@@ -191,39 +207,42 @@ int CPlayerlistUtils::GetPriority(int iIndex, bool bCache)
 	if (bCache)
 		return H::Entities.GetPriority(iIndex);
 
-	return GetPriority(GetFriendsID(iIndex));
+	return GetPriority(GetAccountID(iIndex));
 }
 
-PriorityLabel_t* CPlayerlistUtils::GetSignificantTag(uint32_t uFriendsID, int iMode)
+PriorityLabel_t* CPlayerlistUtils::GetSignificantTag(uint32_t uAccountID, int iMode)
 {
-	if (!uFriendsID)
+	if (!uAccountID)
 		return nullptr;
 
 	std::vector<PriorityLabel_t*> vTags;
 	if (!iMode || iMode == 1)
 	{
-		if (HasTag(uFriendsID, TagToIndex(IGNORED_TAG)))
+		if (HasTag(uAccountID, TagToIndex(IGNORED_TAG)))
 			return &m_vTags[TagToIndex(IGNORED_TAG)];
 
-		for (auto& iID : m_mPlayerTags[uFriendsID])
+		if (m_mPlayerTags.contains(uAccountID))
 		{
-			PriorityLabel_t* _pTag = GetTag(iID);
-			if (_pTag && !_pTag->m_bLabel)
-				vTags.push_back(_pTag);
+			for (auto& iID : m_mPlayerTags[uAccountID])
+			{
+				PriorityLabel_t* _pTag = GetTag(iID);
+				if (_pTag && !_pTag->m_bLabel)
+					vTags.push_back(_pTag);
+			}
 		}
-		if (H::Entities.IsFriend(uFriendsID))
+		if (H::Entities.IsFriend(uAccountID))
 		{
 			auto _pTag = &m_vTags[TagToIndex(FRIEND_TAG)];
 			if (!_pTag->m_bLabel)
 				vTags.push_back(_pTag);
 		}
-		if (H::Entities.InParty(uFriendsID))
+		if (H::Entities.InParty(uAccountID))
 		{
 			auto _pTag = &m_vTags[TagToIndex(PARTY_TAG)];
 			if (!_pTag->m_bLabel)
 				vTags.push_back(_pTag);
 		}
-		if (H::Entities.IsF2P(uFriendsID))
+		if (H::Entities.IsF2P(uAccountID))
 		{
 			auto _pTag = &m_vTags[TagToIndex(F2P_TAG)];
 			if (!_pTag->m_bLabel)
@@ -232,25 +251,28 @@ PriorityLabel_t* CPlayerlistUtils::GetSignificantTag(uint32_t uFriendsID, int iM
 	}
 	if ((!iMode || iMode == 2) && !vTags.size())
 	{
-		for (auto& iID : m_mPlayerTags[uFriendsID])
+		if (m_mPlayerTags.contains(uAccountID))
 		{
-			PriorityLabel_t* _pTag = GetTag(iID);
-			if (_pTag && _pTag->m_bLabel)
-				vTags.push_back(_pTag);
+			for (auto& iID : m_mPlayerTags[uAccountID])
+			{
+				PriorityLabel_t* _pTag = GetTag(iID);
+				if (_pTag && _pTag->m_bLabel)
+					vTags.push_back(_pTag);
+			}
 		}
-		if (H::Entities.IsFriend(uFriendsID))
+		if (H::Entities.IsFriend(uAccountID))
 		{
 			auto _pTag = &m_vTags[TagToIndex(FRIEND_TAG)];
 			if (_pTag->m_bLabel)
 				vTags.push_back(_pTag);
 		}
-		if (H::Entities.InParty(uFriendsID))
+		if (H::Entities.InParty(uAccountID))
 		{
 			auto _pTag = &m_vTags[TagToIndex(PARTY_TAG)];
 			if (_pTag->m_bLabel)
 				vTags.push_back(_pTag);
 		}
-		if (H::Entities.IsF2P(uFriendsID))
+		if (H::Entities.IsF2P(uAccountID))
 		{
 			auto _pTag = &m_vTags[TagToIndex(F2P_TAG)];
 			if (_pTag->m_bLabel)
@@ -272,100 +294,167 @@ PriorityLabel_t* CPlayerlistUtils::GetSignificantTag(uint32_t uFriendsID, int iM
 }
 PriorityLabel_t* CPlayerlistUtils::GetSignificantTag(int iIndex, int iMode)
 {
-	return GetSignificantTag(GetFriendsID(iIndex), iMode);
+	return GetSignificantTag(GetAccountID(iIndex), iMode);
 }
 
-bool CPlayerlistUtils::IsIgnored(uint32_t uFriendsID)
+bool CPlayerlistUtils::IsIgnored(uint32_t uAccountID)
 {
-	const int iPriority = GetPriority(uFriendsID);
+	const int iPriority = GetPriority(uAccountID);
 	const int iIgnored = m_vTags[TagToIndex(IGNORED_TAG)].m_iPriority;
 	return iPriority <= iIgnored;
 }
 bool CPlayerlistUtils::IsIgnored(int iIndex)
 {
-	return IsIgnored(GetFriendsID(iIndex));
+	return IsIgnored(GetAccountID(iIndex));
 }
 
-bool CPlayerlistUtils::IsPrioritized(uint32_t uFriendsID)
+bool CPlayerlistUtils::IsPrioritized(uint32_t uAccountID)
 {
-	if (!uFriendsID)
+	if (!uAccountID)
 		return false;
 
-	const int iPriority = GetPriority(uFriendsID);
+	const int iPriority = GetPriority(uAccountID);
 	const int iDefault = m_vTags[TagToIndex(DEFAULT_TAG)].m_iPriority;
 	return iPriority > iDefault;
 }
 bool CPlayerlistUtils::IsPrioritized(int iIndex)
 {
-	return IsPrioritized(GetFriendsID(iIndex));
+	return IsPrioritized(GetAccountID(iIndex));
 }
 
-const char* CPlayerlistUtils::GetPlayerName(int iIndex, const char* sDefault, int* pType)
+
+
+int CPlayerlistUtils::GetNameType(int iIndex)
 {
 	if (Vars::Visuals::UI::StreamerMode.Value)
 	{
 		if (iIndex == I::EngineClient->GetLocalPlayer())
 		{
 			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Local)
-			{
-				if (pType) *pType = 1;
-				return "Local";
-			}
+				return NameTypeEnum::Local;
 		}
 		else if (H::Entities.IsFriend(iIndex))
 		{
 			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Friends)
-			{
-				if (pType) *pType = 1;
-				return "Friend";
-			}
+				return NameTypeEnum::Friend;
 		}
 		else if (H::Entities.InParty(iIndex))
 		{
 			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Party)
-			{
-				if (pType) *pType = 1;
-				return "Party";
-			}
+				return NameTypeEnum::Party;
 		}
 		else if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::All)
-		{
-			if (auto pTag = GetSignificantTag(iIndex, 0))
-			{
-				if (pType) *pType = 1;
-				return pTag->m_sName.c_str();
-			}
-			else
-			{
-				if (pType) *pType = 1;
-				auto pResource = H::Entities.GetPR();
-				return !pResource || pResource->m_iTeam(I::EngineClient->GetLocalPlayer()) != pResource->m_iTeam(iIndex) ? "Enemy" : "Teammate";
-			}
-		}
+			return NameTypeEnum::Player;
 	}
-	if (const uint32_t uFriendsID = GetFriendsID(iIndex))
+	if (const uint32_t uAccountID = GetAccountID(iIndex); uAccountID && GetPlayerAlias(uAccountID))
+		return NameTypeEnum::Custom;
+	return NameTypeEnum::None;
+}
+
+int CPlayerlistUtils::GetNameType(uint32_t uAccountID)
+{
+	if (Vars::Visuals::UI::StreamerMode.Value)
 	{
-		if (m_mPlayerAliases.contains(uFriendsID))
+		if (uAccountID == I::SteamUser->GetSteamID().GetAccountID())
 		{
-			if (pType) *pType = 2;
-			return m_mPlayerAliases[uFriendsID].c_str();
+			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Local)
+				return NameTypeEnum::Local;
 		}
+		else if (H::Entities.IsFriend(uAccountID))
+		{
+			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Friends)
+				return NameTypeEnum::Friend;
+		}
+		else if (H::Entities.InParty(uAccountID))
+		{
+			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Party)
+				return NameTypeEnum::Party;
+		}
+		else if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::All)
+			return NameTypeEnum::Player;
+	}
+	if (GetPlayerAlias(uAccountID))
+		return NameTypeEnum::Custom;
+	return NameTypeEnum::None;
+}
+
+const char* CPlayerlistUtils::GetPlayerName(int iIndex, const char* sDefault, int* pType)
+{
+	int iType = GetNameType(iIndex);
+	if (pType) *pType = iType;
+
+	switch (iType)
+	{
+	case NameTypeEnum::Local:
+		return LOCAL;
+	case NameTypeEnum::Friend:
+		return FRIEND;
+	case NameTypeEnum::Party:
+		return PARTY;
+	case NameTypeEnum::Player:
+		if (auto pTag = GetSignificantTag(iIndex, 0))
+			return pTag->m_sName.c_str();
+		else if (auto pResource = H::Entities.GetResource(); pResource && pResource->m_bValid(iIndex))
+			return pResource->m_iTeam(I::EngineClient->GetLocalPlayer()) != pResource->m_iTeam(iIndex) ? ENEMY : TEAMMATE;
+		return PLAYER;
+	case NameTypeEnum::Custom:
+		if (auto sAlias = GetPlayerAlias(GetAccountID(iIndex)))
+			return sAlias->c_str();
 	}
 	return sDefault;
 }
 
+const char* CPlayerlistUtils::GetPlayerName(uint32_t uAccountID, const char* sDefault, int* pType)
+{
+	int iType = GetNameType(uAccountID);
+	if (pType) *pType = iType;
+
+	switch (iType)
+	{
+	case NameTypeEnum::Local:
+		return LOCAL;
+	case NameTypeEnum::Friend:
+		return FRIEND;
+	case NameTypeEnum::Party:
+		return PARTY;
+	case NameTypeEnum::Player:
+		if (auto pTag = GetSignificantTag(uAccountID, 0))
+			return pTag->m_sName.c_str();
+		else if (auto pResource = H::Entities.GetResource(); (iType = GetIndex(uAccountID)) && pResource && pResource->m_bValid(iType))
+			return pResource->m_iTeam(I::EngineClient->GetLocalPlayer()) != pResource->m_iTeam(iType) ? ENEMY : TEAMMATE;
+		return PLAYER;
+	case NameTypeEnum::Custom:
+		if (auto sAlias = GetPlayerAlias(uAccountID))
+			return sAlias->c_str();
+	}
+	return sDefault;
+}
+
+const char* CPlayerlistUtils::GetPlayerName(int iIndex)
+{
+	auto pResource = H::Entities.GetResource();
+	return pResource && pResource->IsValid(iIndex) ? pResource->GetName(iIndex) : PLAYER_ERROR_NAME;
+}
+
+const char* CPlayerlistUtils::GetPlayerName(uint32_t uAccountID)
+{
+	auto pResource = H::Entities.GetResource();
+	int iIndex = GetIndex(uAccountID);
+	return pResource && pResource->IsValid(iIndex) ? pResource->GetName(iIndex) : PLAYER_ERROR_NAME;
+}
 
 
-void CPlayerlistUtils::UpdatePlayers()
+
+void CPlayerlistUtils::Store()
 {
 	static Timer tTimer = {};
 	if (!tTimer.Run(1.f))
 		return;
 
-	std::lock_guard lock(m_mutex);
+	std::lock_guard tLock(F::Menu.m_tMutex);
 	m_vPlayerCache.clear();
 
-	auto pResource = H::Entities.GetPR();
+	auto pResource = H::Entities.GetResource();
 	if (!pResource)
 		return;
 
@@ -374,22 +463,20 @@ void CPlayerlistUtils::UpdatePlayers()
 		if (!pResource->m_bValid(n) || !pResource->m_bConnected(n))
 			continue;
 
-		PlayerInfo_t pi{};
-		uint32_t uFriendsID = pResource->m_iAccountID(n);
-		const char* sName = pResource->m_pszPlayerName(n);
+		uint32_t uAccountID = pResource->m_iAccountID(n);
 		m_vPlayerCache.emplace_back(
-			sName ? sName : "",
-			uFriendsID,
+			pResource->GetName(n),
+			uAccountID,
 			pResource->m_iUserID(n),
 			pResource->m_iTeam(n),
 			pResource->m_bAlive(n),
 			n == I::EngineClient->GetLocalPlayer(),
-			!I::EngineClient->GetPlayerInfo(n, &pi) || pi.fakeplayer,
-			H::Entities.IsFriend(uFriendsID),
-			H::Entities.InParty(uFriendsID),
-			H::Entities.IsF2P(uFriendsID),
-			H::Entities.GetLevel(uFriendsID),
-			H::Entities.GetParty(uFriendsID)
+			pResource->IsFakePlayer(n),
+			H::Entities.IsFriend(uAccountID),
+			H::Entities.InParty(uAccountID),
+			H::Entities.IsF2P(uAccountID),
+			H::Entities.GetLevel(uAccountID),
+			H::Entities.GetParty(uAccountID)
 		);
 	}
 }

@@ -8,10 +8,9 @@
 #include "../Features/Backtrack/Backtrack.h"
 #include "../Features/Visuals/PlayerConditions/PlayerConditions.h"
 #include "../Features/NoSpread/NoSpreadHitscan/NoSpreadHitscan.h"
-#include "../Features/Visuals/Radar/Radar.h"
 #include "../Features/Aimbot/Aimbot.h"
-#include "../Features/Visuals/PlayerArrows/PlayerArrows.h"
 #include "../Features/Visuals/ESP/ESP.h"
+#include "../Features/Visuals/OffscreenArrows/OffscreenArrows.h"
 #include "../Features/Visuals/CameraWindow/CameraWindow.h"
 #include "../Features/Visuals/Notifications/Notifications.h"
 #include "../Features/Aimbot/AutoHeal/AutoHeal.h"
@@ -39,15 +38,12 @@
 MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 	void* rcx, int iMode)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::IEngineVGui_Paint[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx, iMode);
-#endif
+	DEBUG_RETURN(IEngineVGui_Paint, rcx, iMode);
 
 	if (G::Unload)
 		return CALL_ORIGINAL(rcx, iMode);
 
-	if (iMode & PAINT_INGAMEPANELS && (!Vars::Visuals::UI::CleanScreenshots.Value || !I::EngineClient->IsTakingScreenshot()))
+	if (iMode & PAINT_INGAMEPANELS && !SDK::CleanScreenshot())
 	{
 		H::Draw.UpdateScreenSize();
 		H::Draw.UpdateW2SMatrix();
@@ -61,9 +57,8 @@ MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 
 			F::Visuals.DrawPickupTimers();
 			F::ESP.Draw();
-			F::PlayerArrows.Run(pLocal);
+			F::Arrows.Draw(pLocal);
 			F::Aimbot.Draw(pLocal);
-			F::Radar.Run(pLocal);
 
 #ifdef DEBUG_VACCINATOR
 			F::AutoHeal.Draw(pLocal);
@@ -100,7 +95,7 @@ MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 
 	CALL_ORIGINAL(rcx, iMode);
 
-	if (iMode & PAINT_UIPANELS && (!Vars::Visuals::UI::CleanScreenshots.Value || !I::EngineClient->IsTakingScreenshot()))
+	if (iMode & PAINT_UIPANELS && !SDK::CleanScreenshot())
 	{
 		H::Draw.UpdateScreenSize();
 		H::Draw.Start();

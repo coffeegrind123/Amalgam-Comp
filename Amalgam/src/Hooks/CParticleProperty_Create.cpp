@@ -2,24 +2,22 @@
 
 #include "../Features/Simulation/ProjectileSimulation/ProjectileSimulation.h"
 
-MAKE_SIGNATURE(CParticleProperty_CreateName, "client.dll", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B 59 ? 49 8B F1", 0x0);
-MAKE_SIGNATURE(CParticleProperty_CreatePoint, "client.dll", "44 89 4C 24 ? 44 89 44 24 ? 53", 0x0);
-MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects_CreateName_Call1, "client.dll", "E8 ? ? ? ? 49 8B CC F3 0F 11 74 24", 0x5);
-MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects_CreateName_Call2, "client.dll", "E8 ? ? ? ? 41 8B 14 24 48 8B D8", 0x5);
-MAKE_SIGNATURE(CWeaponMedigun_ManageChargeEffect_CreateName_Call, "client.dll", "E8 ? ? ? ? 48 89 86 ? ? ? ? 48 89 BE", 0x5);
+MAKE_SIGNATURE(CParticleProperty_Create_Name, "client.dll", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 48 8B 59 ? 49 8B F1", 0x0);
+MAKE_SIGNATURE(CParticleProperty_Create_Point, "client.dll", "44 89 4C 24 ? 44 89 44 24 ? 53", 0x0);
+MAKE_SIGNATURE(CParticleProperty_AddControlPoint_Pointer, "client.dll", "48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 55 41 56 41 57 48 83 EC ? 4C 8B BC 24", 0x0);
+MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects_CreateName_Call1, "client.dll", "49 8B CC F3 0F 11 74 24 ? 48 8B D8", 0x0);
+MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects_CreateName_Call2, "client.dll", "41 8B 14 24 48 8B D8", 0x0);
+MAKE_SIGNATURE(CWeaponMedigun_ManageChargeEffect_CreateName_Call, "client.dll", "48 89 86 ? ? ? ? 48 89 BE ? ? ? ? 48 83 BE", 0x0);
 
-MAKE_HOOK(CParticleProperty_CreateName, S::CParticleProperty_CreateName(), void*,
+MAKE_HOOK(CParticleProperty_Create_Name, S::CParticleProperty_Create_Name(), void*,
 	void* rcx, const char* pszParticleName, ParticleAttachment_t iAttachType, const char* pszAttachmentName)
 {
-#ifdef DEBUG_HOOKS
-    if (!Vars::Hooks::CParticleProperty_Create[DEFAULT_BIND])
-        return CALL_ORIGINAL(rcx, pszParticleName, iAttachType, pszAttachmentName);
-#endif
+    DEBUG_RETURN(CParticleProperty_Create_Name, rcx, pszParticleName, iAttachType, pszAttachmentName);
 
-    static const auto dwUpdateEffects1 = S::CWeaponMedigun_UpdateEffects_CreateName_Call1();
-    static const auto dwUpdateEffects2 = S::CWeaponMedigun_UpdateEffects_CreateName_Call2();
-    static const auto dwManageChargeEffect = S::CWeaponMedigun_ManageChargeEffect_CreateName_Call();
     const auto dwRetAddr = uintptr_t(_ReturnAddress());
+    const auto dwUpdateEffects1 = S::CWeaponMedigun_UpdateEffects_CreateName_Call1();
+    const auto dwUpdateEffects2 = S::CWeaponMedigun_UpdateEffects_CreateName_Call2();
+    const auto dwManageChargeEffect = S::CWeaponMedigun_ManageChargeEffect_CreateName_Call();
 
     bool bUpdateEffects = dwRetAddr == dwUpdateEffects1 || dwRetAddr == dwUpdateEffects2, bManageChargeEffect = dwRetAddr == dwManageChargeEffect;
     if (bUpdateEffects || bManageChargeEffect)
@@ -92,15 +90,22 @@ MAKE_HOOK(CParticleProperty_CreateName, S::CParticleProperty_CreateName(), void*
 	return CALL_ORIGINAL(rcx, pszParticleName, iAttachType, pszAttachmentName);
 }
 
-MAKE_HOOK(CParticleProperty_CreatePoint, S::CParticleProperty_CreatePoint(), void*,
+MAKE_HOOK(CParticleProperty_Create_Point, S::CParticleProperty_Create_Point(), void*,
 	void* rcx, const char* pszParticleName, ParticleAttachment_t iAttachType, int iAttachmentPoint, Vector vecOriginOffset)
 {
-#ifdef DEBUG_HOOKS
-    if (!Vars::Hooks::CParticleProperty_Create[DEFAULT_BIND])
-        return CALL_ORIGINAL(rcx, pszParticleName, iAttachType, iAttachmentPoint, vecOriginOffset);
-#endif
+    DEBUG_RETURN(CParticleProperty_Create_Point, rcx, pszParticleName, iAttachType, iAttachmentPoint, vecOriginOffset);
 
-    if (FNV1A::Hash32(Vars::Visuals::Effects::ProjectileTrail.Value.c_str()) != FNV1A::Hash32Const("Default"))
+    if (pszParticleName)
+    {
+        switch (FNV1A::Hash32(pszParticleName))
+        {
+        case FNV1A::Hash32Const("kart_impact_sparks"):
+            if (I::Prediction->InPrediction() && !I::Prediction->m_bFirstTimePredicted)
+                return nullptr;
+        }
+    }
+
+    if (FNV1A::Hash32(Vars::Visuals::Effects::ProjectileTrail.Value.c_str()) != FNV1A::Hash32Const("Default") && pszParticleName)
     {
         switch (FNV1A::Hash32(pszParticleName))
         {
@@ -142,7 +147,7 @@ MAKE_HOOK(CParticleProperty_CreatePoint, S::CParticleProperty_CreatePoint(), voi
                 return CALL_ORIGINAL(rcx, pszParticleName, iAttachType, iAttachmentPoint, vecOriginOffset);
 
             bool bValid = false;
-            for (auto pEntity : H::Entities.GetGroup(EGroupType::WORLD_PROJECTILES))
+            for (auto pEntity : H::Entities.GetGroup(EntityEnum::WorldProjectile))
             {
                 auto pOwner = F::ProjSim.GetEntities(pEntity).second;
                 if (bValid = pLocal == pOwner && rcx == pEntity->m_Particles())
@@ -193,10 +198,20 @@ MAKE_HOOK(CParticleProperty_CreatePoint, S::CParticleProperty_CreatePoint(), voi
         case FNV1A::Hash32Const("critical_grenade_blue"):
         case FNV1A::Hash32Const("critical_grenade_red"):
         */
-        case FNV1A::Hash32Const("rockettrail_airstrike_line"):
-            return nullptr;
+        case FNV1A::Hash32Const("rockettrail_airstrike_line"): return nullptr;
         }
     }
 
 	return CALL_ORIGINAL(rcx, pszParticleName, iAttachType, iAttachmentPoint, vecOriginOffset);
+}
+
+MAKE_HOOK(CParticleProperty_AddControlPoint_Pointer, S::CParticleProperty_AddControlPoint_Pointer(), void,
+    void* rcx, void* pEffect, int iPoint, CBaseEntity* pEntity, ParticleAttachment_t iAttachType, const char* pszAttachmentName, Vector vecOriginOffset)
+{
+    DEBUG_RETURN(CParticleProperty_AddControlPoint_Pointer, rcx, pEffect, iPoint, pEntity, iAttachType, pszAttachmentName, vecOriginOffset);
+
+    if (!pEffect)
+        return; // crash fix
+
+    CALL_ORIGINAL(rcx, pEffect, iPoint, pEntity, iAttachType, pszAttachmentName, vecOriginOffset);
 }

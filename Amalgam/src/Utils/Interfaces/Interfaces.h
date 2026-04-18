@@ -1,5 +1,9 @@
 #pragma once
+<<<<<<< HEAD
 #include "../Feature/Feature.h"
+=======
+#include "../Macros/Macros.h"
+>>>>>>> upstream/master
 #include <vector>
 
 struct InterfaceInit_t
@@ -97,6 +101,7 @@ public:
 	inline void AddInterface(InterfaceInit_t* pInterface)
 	{
 		m_vInterfaces.push_back(pInterface);
+<<<<<<< HEAD
 	}
 
 	// Enhanced interface access with caching and validation
@@ -183,6 +188,8 @@ public:
 			s_bCachedValid[i] = false;
 		}
 		ResetStats();
+=======
+>>>>>>> upstream/master
 	}
 };
 

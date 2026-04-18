@@ -1,11 +1,11 @@
 #pragma once
 #include "../../SDK/SDK.h"
 
-//#define TICKBASE_DEBUG
-
 class CTicks
 {
-	void CLMoveFunc(float accumulated_extra_samples, bool bFinalTick);
+private:
+	void MoveFunc(float accumulated_extra_samples, bool bFinalTick);
+	void MoveManage();
 
 	void Recharge(CTFPlayer* pLocal);
 	void Warp();
@@ -25,24 +25,34 @@ class CTicks
 	bool m_bTimingUnsure = false; // we aren't sure when we'll actually fire, hold aim
 
 public:
+<<<<<<< HEAD
 	void Move(float accumulated_extra_samples, bool bFinalTick, CTFPlayer* pLocal);
+=======
+	void Move(float accumulated_extra_samples, bool bFinalTick);
+>>>>>>> upstream/master
 	void CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, bool* pSendPacket);
 	void Draw(CTFPlayer* pLocal);
 	void Reset();
 
-	void CLMove(float accumulated_extra_samples, bool bFinalTick);
-	void CLMoveManage(CTFPlayer* pLocal);
+	void Start(CTFPlayer* pLocal, CUserCmd* pCmd);
+	void End(CTFPlayer* pLocal, CUserCmd* pCmd);
 
+<<<<<<< HEAD
 	void Start(CTFPlayer* pLocal, CUserCmd* pCmd);
 	void End(CTFPlayer* pLocal, CUserCmd* pCmd);
 
 	void AntiWarp(CTFPlayer* pLocal, float flYaw, float& flForwardMove, float& flSideMove, int iTicks = -1);
+=======
+	void AntiWarp(CTFPlayer* pLocal, float flYaw, float& flForwardMove, float& flSideMove, int iTicks);
+	void AntiWarp(CTFPlayer* pLocal, float flYaw, float& flForwardMove, float& flSideMove);
+>>>>>>> upstream/master
 	void AntiWarp(CTFPlayer* pLocal, CUserCmd* pCmd);
 
+	bool CanChoke(bool bCanShift, int iMaxTicks);
+	bool CanChoke(bool bCanShift = false);
 	int GetTicks(CTFWeaponBase* pWeapon = nullptr);
 	int GetShotsWithinPacket(CTFWeaponBase* pWeapon, int iTicks = Vars::Doubletap::TickLimit.Value);
 	int GetMinimumTicksNeeded(CTFWeaponBase* pWeapon);
-	bool CanChoke();
 
 	void SaveShootPos(CTFPlayer* pLocal);
 	Vec3 GetShootPos();
@@ -63,6 +73,7 @@ public:
 	bool m_bShifted = false;
 
 	int m_iWait = 0;
+	int m_iMaxUsrCmdProcessTicks = 24;
 	int m_iMaxShift = 24;
 	int m_iDeficit = 0;
 };

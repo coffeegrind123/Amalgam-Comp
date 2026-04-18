@@ -15,7 +15,7 @@ Enum(FButton, None = 0, Left = 1 << 0, Right = 1 << 1, Fit = 1 << 2, SameLine = 
 Enum(FKeybind, None = 0, AllowNone = 1 << 5);
 Enum(FToggle, None = 0, Left = 1 << 0, Right = 1 << 1, PlainColor = 1 << 2);
 Enum(FSlider, None = 0, Left = 1 << 0, Right = 1 << 1, Clamp = 1 << 2, Min = 1 << 3, Max = 1 << 4, Precision = 1 << 5, NoAutoUpdate = 1 << 6);
-Enum(FDropdown, None = 0, Left = 1 << 0, Right = 1 << 1, Multi = 1 << 2, Modifiable = 1 << 3);
+Enum(FDropdown, None = 0, Left = 1 << 0, Right = 1 << 1, Multi = 1 << 2, Modifiable = 1 << 3, NoSanitization = 1 << 4);
 Enum(FSDropdown, None = 0, Custom = 1 << 2, AutoUpdate = 1 << 3);
 Enum(FColorPicker, None = 0, Left = 1 << 0, Right = 1 << 1, Full = 1 << 2, SameLine = 1 << 3, Tooltip = 1 << 4, NoTooltip = 1 << 5, RetainPosition = 1 << 6, HoverContents = 1 << 7, RemoveVisuals = 1 << 8);
 Enum(FInputText, None = 0, Left = 1 << 0, Right = 1 << 1);
@@ -144,34 +144,23 @@ namespace ImGui
 		return flMax;
 	}
 
-	inline float fnmodf(float flX, float flY)
+	inline bool IsColorBright(ImColor tColor, float flValue = 0.686f, float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f)
 	{
-		// silly fix for negative values
-		return fmodf(flX, flY) + (flX < 0 ? flY : 0);
+		return tColor.Value.x * flRed + tColor.Value.y * flGreen + tColor.Value.z * flBlue > flValue;
 	}
-
-	inline bool IsColorBright(ImColor tColor)
+	inline bool IsColorDark(ImColor tColor, float flValue = 0.313f, float flRed = 0.299f, float flGreen = 0.587f, float flBlue = 0.114f)
 	{
-		return tColor.Value.x + tColor.Value.y + tColor.Value.z > 2.f;
-	}
-	inline bool IsColorDark(ImColor tColor)
-	{
-		return tColor.Value.x + tColor.Value.y + tColor.Value.z < 0.788f;
+		return tColor.Value.x * flRed + tColor.Value.y * flGreen + tColor.Value.z * flBlue < flValue;
 	}
 
 	inline ImVec4 ColorToVec(Color_t tColor)
 	{
-		return { float(tColor.r) / 255.f, float(tColor.g) / 255.f, float(tColor.b) / 255.f, float(tColor.a) / 255.f };
+		return { tColor.r / 255.f, tColor.g / 255.f, tColor.b / 255.f, tColor.a / 255.f };
 	}
 
 	inline Color_t VecToColor(ImVec4 tColor)
 	{
-		return {
-			static_cast<byte>(tColor.x * 256.0f > 255 ? 255 : tColor.x * 256.0f),
-			static_cast<byte>(tColor.y * 256.0f > 255 ? 255 : tColor.y * 256.0f),
-			static_cast<byte>(tColor.z * 256.0f > 255 ? 255 : tColor.z * 256.0f),
-			static_cast<byte>(tColor.w * 256.0f > 255 ? 255 : tColor.w * 256.0f)
-		};
+		return { byte(tColor.x * 255), byte(tColor.y * 255), byte(tColor.z * 255), byte(tColor.w * 255) };
 	}
 
 	inline void DebugDummy(ImVec2 vSize)
@@ -448,20 +437,24 @@ namespace ImGui
 		return vWrapped;
 	}
 
-	inline void FTooltip(const char* sTooltip, bool bCondition = IsItemHovered(), float flWrapWidth = 300, ImVec2* pPosOverride = nullptr, ImVec2* pSizeOverride = nullptr)
+	inline void FTooltip(const char* sTooltip, bool bCondition = IsItemHovered(), float flWrapWidth = 300, ImFont* pFont = F::Render.FontSmall, ImVec2* pPosOverride = nullptr, ImVec2* pSizeOverride = nullptr)
 	{
 		if (bCondition)
 		{
-			PushFont(F::Render.FontSmall);
+			PushFont(pFont);
 
 			ImDrawList* pDrawList = GetForegroundDrawList();
-			ImVec2 vPos = pPosOverride ? *pPosOverride : !vRowSizes.empty() ? vRowSizes.back().m_vPos : ImVec2();
+			ImVec2 vPos = pPosOverride ? *pPosOverride : !vRowSizes.empty() ? vRowSizes.back().m_vPos : ImVec2((GetItemRectMin().x + GetItemRectMax().x) / 2, GetItemRectMax().y);
 			ImVec2 vSize = pSizeOverride ? *pSizeOverride : !vRowSizes.empty() ? vRowSizes.back().m_vSize : ImVec2();
 
 			std::deque<std::string> vWraps = WrapText(sTooltip, H::Draw.Scale(flWrapWidth));
-			ImVec2 vText = { 0, H::Draw.Scale(9) + vWraps.size() * H::Draw.Scale(16) };
+			ImVec2 vText = { 0, H::Draw.Scale(9) };
 			for (auto& sText : vWraps)
-				vText.x = std::max(CalcTextSize(sText.c_str()).x, vText.x);
+			{
+				auto vSize = CalcTextSize(sText.c_str());
+				vText.x = std::max(vSize.x, vText.x);
+				vText.y += vSize.y + H::Draw.Scale(5);
+			}
 			vText.x += GetStyle().WindowPadding.x * 2;
 			if (fmodf(vText.x, 2.f))
 				vText.x += 1;
@@ -784,15 +777,13 @@ namespace ImGui
 			flTotalWidth += flWidth - GetStyle().WindowPadding.x;
 		}
 
-		/*
-		SetCursorPos({ 0, vOriginalPos.y - H::Draw.Scale(8) });
-		BeginChild("Split1", { GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, H::Draw.Scale(112) });
-
-		SetCursorPos({ GetWindowWidth() / 2 - GetStyle().WindowPadding.x / 2, vOriginalPos.y - H::Draw.Scale(8) });
-		BeginChild("Split2", { GetWindowWidth() / 2 + GetStyle().WindowPadding.x / 2, H::Draw.Scale(112) });
-		*/
-
 		return vReturn;
+	}
+
+	inline bool BeginWidgetTable(int iIndex, std::vector<WidgetWindow_t>& vTable)
+	{
+		SetCursorPos(vTable[iIndex].m_vPos);
+		return BeginChild(vTable[iIndex].m_sName.c_str(), vTable[iIndex].m_vSize, vTable[iIndex].m_iWindowFlags, vTable[iIndex].m_iChildFlags);
 	}
 
 	// widgets
@@ -1173,6 +1164,20 @@ namespace ImGui
 		return bReturn;
 	}
 
+	inline bool FToggle(const char* sLabel, int* pVar, int iBit, int iFlags = FToggleEnum::None, bool* pHovered = nullptr)
+	{
+		bool bActive = *pVar & iBit;
+		if (FToggle(sLabel, &bActive, iFlags, pHovered))
+		{
+			if (bActive)
+				*pVar |= iBit;
+			else
+				*pVar &= ~iBit;
+			return true;
+		}
+		return false;
+	}
+
 	inline bool FSlider(const char* sLabel, float* pVar1, float* pVar2, float flMin, float flMax, float flStep = 1.f, const char* fmt = "%g", int iFlags = FSliderEnum::None, bool* pHovered = nullptr)
 	{
 		auto uHash = FNV1A::Hash32Const(sLabel);
@@ -1207,7 +1212,7 @@ namespace ImGui
 #ifdef ALTERNATE_FULL_SLIDER
 		auto vWrapped = WrapText(StripDoubleHash(sLabel), bFull ? vSize.x / 2 - H::Draw.Scale(24) : vSize.x - flEntryWidth - H::Draw.Scale(20));
 #else
-		auto vWrapped = WrapText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(20) - flEntryWidth);
+		auto vWrapped = WrapText(StripDoubleHash(sLabel), vSize.x - H::Draw.Scale(14) - flEntryWidth);
 #endif
 		int iWraps = std::min(int(vWrapped.size()), 2); // prevent too many wraps
 #ifdef ALTERNATE_FULL_SLIDER
@@ -1246,14 +1251,19 @@ namespace ImGui
 				bool bEnter = U::KeyHandler.Pressed(VK_RETURN);
 				if (bEnter)
 				{
-					try // prevent the user from being a retard with invalid inputs
+					try
 					{
 						bool bVar1 = mActiveMap[uHash2] == 1;
 						float& pVar = bVar1 ? flSVar1 : flSVar2;
 
 						pVar = sText.length() ? std::stof(sText) : 0.f;
 						if (pVar2)
-							pVar = std::min(pVar, bVar1 ? *pVar2 - flStep : *pVar1 + flStep);
+						{
+							if (bVar1)
+								pVar = std::min(pVar, *pVar2 - flStep);
+							else
+								pVar = std::max(pVar, *pVar1 + flStep);
+						}
 						if (!(iFlags & FSliderEnum::Precision))
 							pVar = pVar - fnmodf(pVar - flStep / 2, flStep) + flStep / 2;
 						if (iFlags & FSliderEnum::Clamp)
@@ -1334,7 +1344,7 @@ namespace ImGui
 			{
 				if (bWithin && !mActiveMap[uHash])
 				{
-					int iVar = fabsf(vMouse.x - (vDrawPos.x + flLowerPos)) < fabsf(vMouse.x - (vDrawPos.x + flUpperPos)) ? 1 : 2;
+					int iVar = vMouse.x - vDrawPos.x < (flLowerPos + flUpperPos) / 2 ? 1 : 2;
 					if (IsMouseClicked(ImGuiMouseButton_Left))
 						mActiveMap[uHash] = iVar;
 					pDrawList->AddCircleFilled({ vDrawPos.x + (iVar == 1 ? flLowerPos : flUpperPos), vDrawPos.y + vMins.y + H::Draw.Scale(1) }, H::Draw.Scale(12), tTransparent);
@@ -1460,6 +1470,25 @@ namespace ImGui
 
 				vValues.push_back(iFlags & FDropdownEnum::Multi ? 1 << i : i);
 				i++;
+			}
+		}
+
+		if (!(iFlags & FDropdownEnum::NoSanitization) && !vValues.empty())
+		{
+			if (!(iFlags & FDropdownEnum::Multi))
+			{
+				bool bFound = std::find(vValues.begin(), vValues.end(), *pVar) != vValues.end();
+				if (!bFound)
+					*pVar = vValues.front();
+			}
+			else
+			{
+				for (int i = 0; i < sizeof(int) * 8; i++)
+				{
+					bool bFound = *pVar & (1 << i) && std::find(vValues.begin(), vValues.end(), (1 << i)) != vValues.end();
+					if (!bFound)
+						*pVar &= ~(1 << i);
+				}
 			}
 		}
 
@@ -1892,7 +1921,7 @@ namespace ImGui
 		if (bTooltip)
 		{
 			vOriginalPos += GetDrawPos();
-			FTooltip(StripDoubleHash(sLabel).c_str(), IsItemHovered(), 300, &vOriginalPos, &vSize);
+			FTooltip(StripDoubleHash(sLabel).c_str(), IsItemHovered(), 300, F::Render.FontSmall, &vOriginalPos, &vSize);
 		}
 
 		return bReturn;
@@ -2010,9 +2039,18 @@ namespace ImGui
 		case VK_MBUTTON: return "mouse3";
 		case VK_XBUTTON1: return "mouse4";
 		case VK_XBUTTON2: return "mouse5";
+<<<<<<< HEAD
 		case VK_CONTROL:
 		case VK_LCONTROL:
 		case VK_RCONTROL: return "control";
+=======
+		case VK_SHIFT: return "shift";
+		case VK_LSHIFT: return "lshift";
+		case VK_RSHIFT: return "rshift";
+		case VK_CONTROL: return "control";
+		case VK_LCONTROL: return "lcontrol";
+		case VK_RCONTROL: return "rcontrol";
+>>>>>>> upstream/master
 		case VK_MENU: return "alt";
 		case VK_LMENU: return "lalt";
 		case VK_RMENU: return "ralt";
@@ -2026,7 +2064,11 @@ namespace ImGui
 		case VK_NUMPAD7: return "num7";
 		case VK_NUMPAD8: return "num8";
 		case VK_NUMPAD9: return "num9";
+		case VK_ADD: return "num+";
+		case VK_SUBTRACT: return "num-";
+		case VK_MULTIPLY: return "num*";
 		case VK_DIVIDE: return "num/";
+		case VK_DECIMAL: return "num.";
 		case VK_INSERT: return "insert";
 		case VK_DELETE: return "delete";
 		case VK_PRIOR: return "pgup";
@@ -2053,32 +2095,29 @@ namespace ImGui
 		case VK_F24: return "f24";
 		case VK_LWIN:
 		case VK_RWIN: return "windows";
+		case VK_APPS: return "contextmenu";
 		case VK_PAUSE: return "pause";
-		case VK_APPS: return "apps";
 		case VK_VOLUME_MUTE: return "mute";
-		case VK_VOLUME_DOWN: return "volume down";
-		case VK_VOLUME_UP: return "volume up";
+		case VK_VOLUME_DOWN: return "volumedown";
+		case VK_VOLUME_UP: return "volumeup";
 		case VK_MEDIA_STOP: return "stop";
-		case VK_MEDIA_PLAY_PAUSE: return "play/pause";
-		case VK_MEDIA_PREV_TRACK: return "previous track";
-		case VK_MEDIA_NEXT_TRACK: return "next track";
+		case VK_MEDIA_PLAY_PAUSE: return "pause";
+		case VK_MEDIA_PREV_TRACK: return "previous";
+		case VK_MEDIA_NEXT_TRACK: return "next";
 		}
 
 		std::string str = "unknown";
-
-		CHAR output[16] = { "\0" };
-		if (GetKeyNameTextA(MapVirtualKeyW(key, MAPVK_VK_TO_VSC) << 16, output, 16))
-			str = output;
-
-		std::transform(str.begin(), str.end(), str.begin(), ::tolower);
-		str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
-
-		if (Vars::Debug::Info.Value && FNV1A::Hash32(str.c_str()) == FNV1A::Hash32Const("unknown"))
-			str = std::format("{:#x}", key);
-
+		if (char buffer[16]; GetKeyNameText(MapVirtualKey(key, MAPVK_VK_TO_VSC) << 16, buffer, sizeof(buffer)))
+		{
+			str = buffer;
+			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+			str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
+		}
+		//else if (Vars::Debug::Info.Value)
+		//	str = std::format("{:#x}", key);
 		return str;
 	}
-	inline void FKeybind(const char* sLabel, int& iOutput, int iFlags = FKeybindEnum::None, std::vector<int> vIgnore = { Vars::Menu::MenuPrimaryKey[DEFAULT_BIND], Vars::Menu::MenuSecondaryKey[DEFAULT_BIND] }, ImVec2 vSize = { 0, 30 }, int iSizeOffset = 0, bool* pHovered = nullptr)
+	inline void FKeybind(const char* sLabel, int& iOutput, int iFlags = FKeybindEnum::None, std::vector<int> vIgnore = { Vars::Menu::PrimaryKey[DEFAULT_BIND], Vars::Menu::SecondaryKey[DEFAULT_BIND] }, ImVec2 vSize = { 0, 30 }, int iSizeOffset = 0, bool* pHovered = nullptr)
 	{
 		ImGuiID uId = GetID(sLabel);
 		PushID(sLabel);
@@ -2136,9 +2175,9 @@ namespace ImGui
 
 		PopID();
 	}
-	inline void FKeybind(ConfigVar<int>& var, int iFlags = FKeybindEnum::None, std::vector<int> vIgnore = { Vars::Menu::MenuPrimaryKey[DEFAULT_BIND], Vars::Menu::MenuSecondaryKey[DEFAULT_BIND] }, ImVec2 vSize = { 0, 30 }, int iSizeOffset = 0, bool* pHovered = nullptr)
+	inline void FKeybind(ConfigVar<int>& var, int iFlags = FKeybindEnum::None, std::vector<int> vIgnore = { Vars::Menu::PrimaryKey[DEFAULT_BIND], Vars::Menu::SecondaryKey[DEFAULT_BIND] }, ImVec2 vSize = { 0, 30 }, int iSizeOffset = 0, bool* pHovered = nullptr)
 	{
-		FKeybind(var.m_vTitle.front(), var[DEFAULT_BIND], iFlags, vIgnore, vSize, iSizeOffset, pHovered);
+		FKeybind(var.m_vNames.front(), var[DEFAULT_BIND], iFlags, vIgnore, vSize, iSizeOffset, pHovered);
 	}
 
 	// dropdown for materials
@@ -2434,7 +2473,7 @@ namespace ImGui
 	}
 
 	template <class T>
-	inline void DrawBindInfo(ConfigVar<T>& var, T& val, std::string sBind, bool bNewPopup, bool& bLastHovered)
+	inline void DrawBindInfo(ConfigVar<T>& var, T& val, const std::string& sBind, bool bNewPopup, bool& bLastHovered)
 	{
 		TextUnformatted(std::format("Bind '{}'", sBind).c_str());
 
@@ -2525,38 +2564,39 @@ namespace ImGui
 			if (IconButton(tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(24), { 1, 1, 1, -1 }, &bHovered))
 				tBind.m_iVisibility = (tBind.m_iVisibility + 1) % 3;
 			PopTransparent(1, 1);
-			bLastHovered = bLastHovered || bHovered;
+			bLastHovered |= bHovered;
 
 			SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), H::Draw.Scale(36) });
 			if (IconButton(!tBind.m_bNot ? ICON_MD_CODE : ICON_MD_CODE_OFF, H::Draw.Scale(24), { 1, 1, 1, -1 }, &bHovered))
 				tBind.m_bNot = !tBind.m_bNot;
-			bLastHovered = bLastHovered || bHovered;
+			bLastHovered |= bHovered;
 
 			SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), H::Draw.Scale(36) });
 			if (IconButton(!tBind.m_bEnabled ? ICON_MD_TOGGLE_OFF : ICON_MD_TOGGLE_ON, H::Draw.Scale(24), { 1, 1, 1, -1 }, &bHovered))
 				tBind.m_bEnabled = !tBind.m_bEnabled;
-			bLastHovered = bLastHovered || bHovered;
+			bLastHovered |= bHovered;
 
 			PopTransparent(1, 1);
 
 			SetCursorPos(vOriginalPos);
 		}
 
-		FDropdown("Type", &tBind.m_iType, { "Key", "Class", "Weapon type", "Item slot" }, {}, FDropdownEnum::Left, 0, "None", &bHovered);
-		bLastHovered = bLastHovered || bHovered;
+		FDropdown("Type", &tBind.m_iType, { "Key", "Class", "Weapon type", "Item slot", "Misc" }, {}, FDropdownEnum::Left, 0, "None", &bHovered);
+		bLastHovered |= bHovered;
 		switch (tBind.m_iType)
 		{
-		case BindEnum::Key: tBind.m_iInfo = std::clamp(tBind.m_iInfo, 0, 2); FDropdown("Behavior", &tBind.m_iInfo, { "Hold", "Toggle", "Double click" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
-		case BindEnum::Class: tBind.m_iInfo = std::clamp(tBind.m_iInfo, 0, 8); FDropdown("Class", &tBind.m_iInfo, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
-		case BindEnum::WeaponType: tBind.m_iInfo = std::clamp(tBind.m_iInfo, 0, 3); FDropdown("Weapon type", &tBind.m_iInfo, { "Hitscan", "Projectile", "Melee", "Throwable" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
-		case BindEnum::ItemSlot: tBind.m_iInfo = std::max(tBind.m_iInfo, 0); FDropdown("Item slot", &tBind.m_iInfo, { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
+		case BindEnum::Key: FDropdown("Behavior", &tBind.m_iInfo, { "Hold", "Toggle", "Double click" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
+		case BindEnum::Class: FDropdown("Class", &tBind.m_iInfo, { "Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
+		case BindEnum::WeaponType: FDropdown("Weapon type", &tBind.m_iInfo, { "Hitscan", "Projectile", "Melee", "Throwable" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
+		case BindEnum::ItemSlot: FDropdown("Item slot", &tBind.m_iInfo, { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, {}, FDropdownEnum::Right, 0, "None", &bHovered); break;
+		case BindEnum::Misc: FDropdown("Misc", &tBind.m_iInfo, { "Spectated", "Spectated 1st", "Spectated 3rd", "##Divider", "Zoomed", "Aiming" }, {}, FDropdownEnum::Right); break;
 		}
-		bLastHovered = bLastHovered || bHovered;
+		bLastHovered |= bHovered;
 
 		if (tBind.m_iType == BindEnum::Key)
 		{
-			FKeybind("Key", tBind.m_iKey, FKeybindEnum::None, { Vars::Menu::MenuPrimaryKey[DEFAULT_BIND], Vars::Menu::MenuSecondaryKey[DEFAULT_BIND] }, { 0, 30 }, 0, &bHovered);
-			bLastHovered = bLastHovered || bHovered;
+			FKeybind("Key", tBind.m_iKey, FKeybindEnum::None, { Vars::Menu::PrimaryKey[DEFAULT_BIND], Vars::Menu::SecondaryKey[DEFAULT_BIND] }, { 0, 30 }, 0, &bHovered);
+			bLastHovered |= bHovered;
 		}
 
 		if (!Disabled && iBind != DEFAULT_BIND && iBind < F::Binds.m_vBinds.size())
@@ -2576,51 +2616,52 @@ namespace ImGui
 		DebugDummy({ 0, GetStyle().WindowPadding.y });
 	}
 
-	#define WRAPPER(function, type, parameters, arguments)\
-	inline bool function(ConfigVar<type>& var, parameters, bool* pHovered = nullptr, int iBindOverride = -1, int iLabelOverride = -1)\
-	{\
-		const char* sLabel = iLabelOverride != -1 ? var.m_vTitle[iLabelOverride] : var.m_vTitle.front();\
-		int iVarFlags = var.m_iFlags & ~(VISUAL | NOSAVE | NOBIND | DEBUGVAR);\
-		iFlags |= iVarFlags;\
-		auto val = FGet(var, true);\
-		bool bHovered = false;\
-		bool bReturn = function(std::format("{}## {}", sLabel, var.m_sName).c_str(), arguments, &bHovered);\
-		FSet(var, val);\
-		if (pHovered)\
-			*pHovered = bHovered;\
-		if (!(var.m_iFlags & (NOBIND | NOSAVE)) && !Disabled && CurrentBind == DEFAULT_BIND)\
-		{	/*probably a better way to do this*/\
-			static auto staticVal = val;\
-			bool bNewPopup = bHovered && IsMouseReleased(ImGuiMouseButton_Right) && !IsMouseDown(ImGuiMouseButton_Left) && !IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId);\
-			if (bNewPopup)\
-			{\
-				OpenPopup(var.m_sName.c_str());\
-				staticVal = val;\
-			}\
-			SetNextWindowSize({ H::Draw.Scale(300), 0 });\
-			bool bPopup = FBeginPopup(var.m_sName.c_str());\
-			if (bPopup)\
-			{\
-				std::string sBind = iBindOverride != -1 ? var.m_vTitle[iBindOverride] : var.m_vTitle.back();\
-				std::transform(sBind.begin(), sBind.end(), sBind.begin(), ::tolower);\
-				iFlags = iVarFlags; /*get rid of any visual flags*/\
-				if (FNV1A::Hash32Const(#function) == FNV1A::Hash32Const("FColorPicker"))\
-					iFlags |= FColorPickerEnum::Full | FColorPickerEnum::RemoveVisuals;\
-				PushTransparent(false);\
-				static bool bLastHovered = false;\
-				DrawBindInfo(var, staticVal, StripDoubleHash(sBind.c_str()), bNewPopup, bLastHovered);\
-				val = staticVal;\
-				function(std::format("{}## Bind", var.m_vTitle.front()).c_str(), arguments, &bHovered);\
-				bLastHovered = bLastHovered || bHovered;\
-				staticVal = val;\
-				PopTransparent(2);\
-				EndPopup();\
-			}\
-		}\
-		return bReturn;\
+	#define WRAPPER(function, type, parameters, arguments) \
+	inline bool function(ConfigVar<type>& var, parameters, bool* pHovered = nullptr, int iBindOverride = -1, int iLabelOverride = -1) \
+	{ \
+		const char* sLabel = iLabelOverride != -1 ? var.m_vNames[iLabelOverride] : var.m_vNames.front(); \
+		int iVarFlags = var.m_iFlags & ~(VISUAL | NOSAVE | NOBIND | DEBUGVAR); \
+		iFlags |= iVarFlags; \
+		auto val = FGet(var, true); \
+		bool bHovered = false; \
+		bool bReturn = function(std::format("{}## {}", sLabel, var.Name()).c_str(), arguments, &bHovered); \
+		FSet(var, val); \
+		if (pHovered) \
+			*pHovered = bHovered; \
+		if (!(var.m_iFlags & (NOBIND | NOSAVE)) && !Disabled && CurrentBind == DEFAULT_BIND) \
+		{	/*probably a better way to do this*/ \
+			static auto staticVal = val; \
+			bool bNewPopup = bHovered && IsMouseReleased(ImGuiMouseButton_Right) && !IsMouseDown(ImGuiMouseButton_Left) && !IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId); \
+			if (bNewPopup) \
+			{ \
+				OpenPopup(var.Name()); \
+				staticVal = val; \
+			} \
+			SetNextWindowSize({ H::Draw.Scale(300), 0 }); \
+			bool bPopup = FBeginPopup(var.Name()); \
+			if (bPopup) \
+			{ \
+				std::string sBind = iBindOverride != -1 ? var.m_vNames[iBindOverride] : var.m_vNames.back(); \
+				std::transform(sBind.begin(), sBind.end(), sBind.begin(), ::tolower); \
+				iFlags = iVarFlags; /*get rid of any visual flags*/ \
+				if (FNV1A::Hash32Const(#function) == FNV1A::Hash32Const("FColorPicker")) \
+					iFlags |= FColorPickerEnum::Full | FColorPickerEnum::RemoveVisuals; \
+				PushTransparent(false); \
+				static bool bLastHovered = false; \
+				DrawBindInfo(var, staticVal, StripDoubleHash(sBind.c_str()), bNewPopup, bLastHovered); \
+				val = staticVal; \
+				function(std::format("{}## Bind", var.m_vNames.front()).c_str(), arguments, &bHovered); \
+				bLastHovered |= bHovered; \
+				staticVal = val; \
+				PopTransparent(2); \
+				EndPopup(); \
+			} \
+		} \
+		return bReturn; \
 	}
 
 	WRAPPER(FToggle, bool, VA_LIST(int iFlags = 0), VA_LIST(&val, iFlags))
+	WRAPPER(FToggle, int, VA_LIST(int iBit, int iFlags = 0), VA_LIST(&val, iBit, iFlags))
 	WRAPPER(FSlider, FloatRange_t, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val.Min, &val.Max, var.m_unMin.f, var.m_unMax.f, var.m_unStep.f, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
 	WRAPPER(FSlider, IntRange_t, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val.Min, &val.Max, var.m_unMin.i, var.m_unMax.i, var.m_unStep.i, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))
 	WRAPPER(FSlider, float, VA_LIST(int iFlags = 0, const char* sFormatOverride = nullptr), VA_LIST(&val, var.m_unMin.f, var.m_unMax.f, var.m_unStep.f, sFormatOverride ? sFormatOverride : var.m_sExtra, iFlags))

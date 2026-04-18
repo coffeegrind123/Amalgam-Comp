@@ -1,9 +1,4 @@
 #pragma once
-#include <chrono>
-
-/*
- *	Credits to cathook (nullifiedcat)
- */
 
 class Timer
 {
@@ -19,7 +14,10 @@ public:
 
 	// Check interval and update timer if elapsed
 	bool Run(float flS);
+<<<<<<< HEAD
 
 	// Update timer to current time
+=======
+>>>>>>> upstream/master
 	void Update();
 };

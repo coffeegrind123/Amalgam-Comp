@@ -5,17 +5,17 @@ void CAutoDetonate::PredictPlayers(CTFPlayer* pLocal, float flLatency, bool bLoc
 	if (!m_mRestore.empty())
 		RestorePlayers();
 
-	for (auto pEntity : H::Entities.GetGroup(EGroupType::PLAYERS_ALL))
+	for (auto pEntity : H::Entities.GetGroup(EntityEnum::PlayerAll))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
 		if (!bLocal
-			? (pPlayer == pLocal || pPlayer->IsDormant() || !pPlayer->IsAlive() || pPlayer->IsAGhost())
+			? (pPlayer == pLocal || !pPlayer->IsAlive() || pPlayer->IsAGhost())
 			: (pLocal != pPlayer || !pLocal->IsAlive() || pLocal->IsAGhost()))
 			continue;
 
 		m_mRestore[pPlayer] = pPlayer->GetAbsOrigin();
 
-		pPlayer->SetAbsOrigin(SDK::PredictOrigin(pPlayer->m_vecOrigin(), pPlayer->m_vecVelocity(), flLatency, true, pPlayer->m_vecMins() + 0.125f, pPlayer->m_vecMaxs() - 0.125f, pPlayer->SolidMask()));
+		pPlayer->SetAbsOrigin(SDK::PredictOrigin(pPlayer->m_vecOrigin(), pPlayer->m_vecVelocity(), flLatency, true, pPlayer->m_vecMins() + PLAYER_ORIGIN_COMPRESSION, pPlayer->m_vecMaxs() - PLAYER_ORIGIN_COMPRESSION, pPlayer->SolidMask()));
 	}
 }
 
@@ -26,9 +26,9 @@ void CAutoDetonate::RestorePlayers()
 	m_mRestore.clear();
 }
 
-static inline bool GetRadius(EGroupType entityGroup, CBaseEntity* pProjectile, float& flRadius, CTFWeaponBase*& pWeapon)
+bool CAutoDetonate::GetRadius(EntityEnum::EntityEnum iGroup, CBaseEntity* pProjectile, float& flRadius, CTFWeaponBase*& pWeapon)
 {
-	if (entityGroup == EGroupType::MISC_LOCAL_STICKIES)
+	if (iGroup == EntityEnum::LocalStickies)
 		pWeapon = pProjectile->As<CTFGrenadePipebombProjectile>()->m_hOriginalLauncher()->As<CTFWeaponBase>();
 	else
 		pWeapon = pProjectile->As<CTFProjectile_Flare>()->m_hLauncher()->As<CTFWeaponBase>();
@@ -39,13 +39,13 @@ static inline bool GetRadius(EGroupType entityGroup, CBaseEntity* pProjectile, f
 			return false;
 	}
 
-	if (entityGroup == EGroupType::MISC_LOCAL_STICKIES)
+	if (iGroup == EntityEnum::LocalStickies)
 	{
 		auto pPipebomb = pProjectile->As<CTFGrenadePipebombProjectile>();
 		if (!pPipebomb->m_flCreationTime() || I::GlobalVars->curtime < pPipebomb->m_flCreationTime() + SDK::AttribHookValue(0.8f, "sticky_arm_time", pWeapon))
 			return false;
 
-		flRadius *= 146.f;
+		flRadius *= TF_ROCKET_RADIUS;
 		if (!pPipebomb->m_bTouched())
 		{
 			static auto tf_grenadelauncher_livetime = H::ConVars.FindVar("tf_grenadelauncher_livetime");
@@ -58,23 +58,65 @@ static inline bool GetRadius(EGroupType entityGroup, CBaseEntity* pProjectile, f
 		}
 	}
 	else
-		flRadius *= 110.f;
+		flRadius *= TF_FLARE_DET_RADIUS;
 	flRadius = SDK::AttribHookValue(flRadius, "mult_explosion_radius", pWeapon);
 	return true;
 }
 
-static inline bool CheckEntities(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, CBaseEntity* pProjectile, float flRadius, Vec3 vOrigin)
+Vec3 CAutoDetonate::GetOrigin(CBaseEntity* pProjectile, EntityEnum::EntityEnum iGroup, float flLatency)
+{
+	Vec3 vOrigin = SDK::PredictOrigin(pProjectile->m_vecOrigin(), pProjectile->GetAbsVelocity(), flLatency);
+
+	if (iGroup == EntityEnum::LocalStickies)
+	{	// why is this even a thing?
+		CGameTrace trace = {};
+		CTraceFilterWorldAndPropsOnly filter = {};
+
+		SDK::Trace(vOrigin + Vec3(0, 0, 8), vOrigin - Vec3(0, 0, 24), MASK_SHOT_HULL, &filter, &trace);
+		if (trace.fraction != 1.0)
+			return trace.endpos + trace.plane.normal;
+	}
+
+	return vOrigin;
+}
+
+bool CAutoDetonate::CheckEntity(CBaseEntity* pEntity, CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, CBaseEntity* pProjectile, float flRadius, Vec3 vOrigin)
+{
+	// CEntitySphereQuery actually does a box test so we need to make sure the distance is less than the radius first
+	Vec3 vPos; pEntity->m_Collision()->CalcNearestPoint(vOrigin, &vPos);
+	if (vOrigin.DistTo(vPos) > flRadius)
+		return false;
+
+	if (pEntity != pLocal
+		? !SDK::VisPosCollideable(pProjectile, pEntity, vOrigin, pEntity->IsPlayer() ? pEntity->GetAbsOrigin() + pEntity->As<CTFPlayer>()->GetViewOffset() : pEntity->GetCenter(), MASK_SHOT)
+		: !SDK::VisPosWorld(pProjectile, pEntity, vOrigin, pEntity->GetAbsOrigin() + pEntity->As<CTFPlayer>()->m_vecViewOffset(), MASK_SHOT))
+		return false;
+
+	if (pCmd && pWeapon->GetWeaponID() == TF_WEAPON_PIPEBOMBLAUNCHER && pWeapon->As<CTFPipebombLauncher>()->GetDetonateType() == TF_DETONATE_MODE_DOT)
+	{
+		Vec3 vAngleTo = Math::CalcAngle(pLocal->GetShootPos(), vOrigin);
+		SDK::FixMovement(pCmd, vAngleTo);
+		pCmd->viewangles = vAngleTo;
+		G::PSilentAngles = true;
+	}
+	return true;
+}
+
+bool CAutoDetonate::CheckEntities(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, CBaseEntity* pProjectile, float flRadius, Vec3 vOrigin)
 {
 	flRadius -= 1;
-
+	
 	CBaseEntity* pEntity;
 	for (CEntitySphereQuery sphere(vOrigin, flRadius);
-		(pEntity = sphere.GetCurrentEntity()) != nullptr;
+		pEntity = sphere.GetCurrentEntity();
 		sphere.NextEntity())
 	{
-		if (pEntity == pLocal || pEntity->IsPlayer() && (!pEntity->As<CTFPlayer>()->IsAlive() || pEntity->As<CTFPlayer>()->IsAGhost()) || pEntity->m_iTeamNum() == pLocal->m_iTeamNum())
+		if (pEntity == pLocal || pEntity->IsPlayer() && (!pEntity->As<CTFPlayer>()->IsAlive() || pEntity->As<CTFPlayer>()->IsAGhost())
+			|| !F::AimbotGlobal.FriendlyFire() && pEntity->m_iTeamNum() == pLocal->m_iTeamNum()
+			|| F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 			continue;
 
+<<<<<<< HEAD
 		// CEntitySphereQuery actually does a box test so we need to make sure the distance is less than the radius first
 		Vec3 vPos; pEntity->m_Collision()->CalcNearestPoint(vOrigin, &vPos);
 		if (vOrigin.DistTo(vPos) > flRadius)
@@ -98,32 +140,36 @@ static inline bool CheckEntities(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUse
 		}
 
 		return true;
+=======
+		if (Vars::Aimbot::Projectile::AutoDetonate.Value & Vars::Aimbot::Projectile::AutoDetonateEnum::IgnoreInvisible && pEntity->IsPlayer() && pEntity->As<CTFPlayer>()->IsInvisible(Vars::Aimbot::General::IgnoreInvisible.Value / 100.f))
+			continue;
+
+		if (CheckEntity(pEntity, pLocal, pWeapon, pCmd, pProjectile, flRadius, vOrigin))
+			return true;
+>>>>>>> upstream/master
 	}
 
 	return false;
 }
 
-bool CAutoDetonate::CheckDetonation(CTFPlayer* pLocal, EGroupType entityGroup, float flRadiusScale, CUserCmd* pCmd)
+bool CAutoDetonate::CheckTargets(CTFPlayer* pLocal, EntityEnum::EntityEnum iGroup, float flRadiusScale, CUserCmd* pCmd)
 {
-	auto& vProjectiles = H::Entities.GetGroup(entityGroup);
+	auto& vProjectiles = H::Entities.GetGroup(iGroup);
 	if (vProjectiles.empty())
 		return false;
 
 	float flLatency = F::Backtrack.GetReal();
-
 	for (auto pProjectile : vProjectiles)
 	{
 		float flRadius = flRadiusScale;
 		CTFWeaponBase* pWeapon = nullptr;
-		if (!GetRadius(entityGroup, pProjectile, flRadius, pWeapon))
+		if (!GetRadius(iGroup, pProjectile, flRadius, pWeapon))
 			continue;
 
-		Vec3 vOrigin = SDK::PredictOrigin(pProjectile->m_vecOrigin(), pProjectile->GetAbsVelocity(), flLatency);
-
 		PredictPlayers(pLocal, flLatency);
-		bool bCheck = CheckEntities(pLocal, pWeapon, nullptr, pProjectile, flRadius, vOrigin);
+		bool bCheck = CheckEntities(pLocal, pWeapon, nullptr, pProjectile, flRadius, GetOrigin(pProjectile, iGroup, flLatency));
 		PredictPlayers(pLocal, 0.f);
-		bCheck = bCheck && CheckEntities(pLocal, pWeapon, pCmd, pProjectile, flRadius, pProjectile->m_vecOrigin());
+		bCheck &= CheckEntities(pLocal, pWeapon, pCmd, pProjectile, flRadius, GetOrigin(pProjectile, iGroup));
 		RestorePlayers();
 		if (bCheck)
 			return true;
@@ -132,6 +178,7 @@ bool CAutoDetonate::CheckDetonation(CTFPlayer* pLocal, EGroupType entityGroup, f
 	return false;
 }
 
+<<<<<<< HEAD
 static inline bool CheckLocal(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pProjectile, float flRadius, Vec3 vOrigin)
 {
 	flRadius += 1;
@@ -147,11 +194,14 @@ static inline bool CheckLocal(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEn
 }
 
 bool CAutoDetonate::CheckSelf(CTFPlayer* pLocal, EGroupType entityGroup)
+=======
+bool CAutoDetonate::CheckSelf(CTFPlayer* pLocal, EntityEnum::EntityEnum iGroup)
+>>>>>>> upstream/master
 {
 	if (!(Vars::Aimbot::Projectile::AutoDetonate.Value & Vars::Aimbot::Projectile::AutoDetonateEnum::PreventSelfDamage) || !pLocal->IsAlive() || pLocal->IsAGhost())
 		return false;
 
-	auto& vProjectiles = H::Entities.GetGroup(entityGroup);
+	auto& vProjectiles = H::Entities.GetGroup(iGroup);
 	if (vProjectiles.empty())
 		return false;
 
@@ -161,14 +211,12 @@ bool CAutoDetonate::CheckSelf(CTFPlayer* pLocal, EGroupType entityGroup)
 	{
 		float flRadius = 1.f;
 		CTFWeaponBase* pWeapon = nullptr;
-		if (!GetRadius(entityGroup, pProjectile, flRadius, pWeapon))
+		if (!GetRadius(iGroup, pProjectile, flRadius, pWeapon))
 			continue;
 
-		Vec3 vOrigin = SDK::PredictOrigin(pProjectile->m_vecOrigin(), pProjectile->GetAbsVelocity(), flLatency);
-
 		PredictPlayers(pLocal, 0.f, true);
-		bool bCheck = CheckLocal(pLocal, pWeapon, pProjectile, flRadius, vOrigin)
-				   && CheckLocal(pLocal, pWeapon, pProjectile, flRadius, pProjectile->m_vecOrigin());
+		bool bCheck = CheckEntity(pLocal, pLocal, pWeapon, nullptr, pProjectile, flRadius, GetOrigin(pProjectile, iGroup, flLatency))
+				   && CheckEntity(pLocal, pLocal, pWeapon, nullptr, pProjectile, flRadius, GetOrigin(pProjectile, iGroup));
 		RestorePlayers();
 		if (bCheck)
 			return true;
@@ -177,18 +225,21 @@ bool CAutoDetonate::CheckSelf(CTFPlayer* pLocal, EGroupType entityGroup)
 	return false;
 }
 
-void CAutoDetonate::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
+bool CAutoDetonate::Check(CTFPlayer* pLocal, CUserCmd* pCmd, EntityEnum::EntityEnum iGroup, int iFlag)
+{
+	if (!(Vars::Aimbot::Projectile::AutoDetonate.Value & iFlag))
+		return false;
+
+	return CheckTargets(pLocal, iGroup, Vars::Aimbot::Projectile::AutodetRadius.Value / 100, pCmd)
+		&& !CheckSelf(pLocal, iGroup);
+}
+
+void CAutoDetonate::Run(CTFPlayer* pLocal, CUserCmd* pCmd)
 {
 	if (!Vars::Aimbot::Projectile::AutoDetonate.Value)
 		return;
 
-	if ((Vars::Aimbot::Projectile::AutoDetonate.Value & Vars::Aimbot::Projectile::AutoDetonateEnum::Stickies
-		&& CheckDetonation(pLocal, EGroupType::MISC_LOCAL_STICKIES, Vars::Aimbot::Projectile::AutodetRadius.Value / 100, pCmd)
-		&& !CheckSelf(pLocal, EGroupType::MISC_LOCAL_STICKIES))
-		|| (Vars::Aimbot::Projectile::AutoDetonate.Value & Vars::Aimbot::Projectile::AutoDetonateEnum::Flares
-		&& CheckDetonation(pLocal, EGroupType::MISC_LOCAL_FLARES, Vars::Aimbot::Projectile::AutodetRadius.Value / 100, pCmd))
-		&& !CheckSelf(pLocal, EGroupType::MISC_LOCAL_FLARES))
-	{
+	if (Check(pLocal, pCmd, EntityEnum::LocalStickies, Vars::Aimbot::Projectile::AutoDetonateEnum::Stickies)
+		|| Check(pLocal, pCmd, EntityEnum::LocalFlares, Vars::Aimbot::Projectile::AutoDetonateEnum::Flares))
 		pCmd->buttons |= IN_ATTACK2;
-	}
 }

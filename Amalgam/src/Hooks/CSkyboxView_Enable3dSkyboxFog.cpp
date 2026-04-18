@@ -5,21 +5,24 @@ MAKE_SIGNATURE(CSkyboxView_Enable3dSkyboxFog, "client.dll", "40 57 48 83 EC ? E8
 MAKE_HOOK(CSkyboxView_Enable3dSkyboxFog, S::CSkyboxView_Enable3dSkyboxFog(), void,
 	void* rcx)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::CSkyboxView_Enable3dSkyboxFog[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx);
-#endif
+	DEBUG_RETURN(CSkyboxView_Enable3dSkyboxFog, rcx);
 
-	if (!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Fog) || I::EngineClient->IsTakingScreenshot() && Vars::Visuals::UI::CleanScreenshots.Value)
+	if (!(Vars::Visuals::World::Modulations.Value & Vars::Visuals::World::ModulationsEnum::Fog) || SDK::CleanScreenshot())
 		return CALL_ORIGINAL(rcx);
-
-	if (!Vars::Colors::FogModulation.Value.a)
-		return;
 
 	CALL_ORIGINAL(rcx);
 	if (auto pRenderContext = I::MaterialSystem->GetRenderContext())
 	{
-		float blend[3] = { float(Vars::Colors::FogModulation.Value.r) / 255.f, float(Vars::Colors::FogModulation.Value.g) / 255.f, float(Vars::Colors::FogModulation.Value.b) / 255.f };
-		pRenderContext->FogColor3fv(blend);
+		if (Vars::Colors::FogModulation.Value.a)
+		{
+			pRenderContext->FogColor3ub(Vars::Colors::FogModulation.Value.r, Vars::Colors::FogModulation.Value.g, Vars::Colors::FogModulation.Value.b);
+
+			float flRatio = 255.f / Vars::Colors::FogModulation.Value.a;
+			float flStart, flEnd; pRenderContext->GetFogDistances(&flStart, &flEnd, nullptr);
+			pRenderContext->FogStart(flStart * flRatio);
+			pRenderContext->FogEnd(flEnd * flRatio);
+		}
+		else
+			pRenderContext->FogMode(MATERIAL_FOG_NONE);
 	}
 }

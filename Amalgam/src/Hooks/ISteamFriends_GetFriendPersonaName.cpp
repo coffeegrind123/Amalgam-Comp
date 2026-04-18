@@ -7,30 +7,18 @@ MAKE_SIGNATURE(GetPlayerNameForSteamID_GetFriendPersonaName_Call, "client.dll", 
 MAKE_HOOK(ISteamFriends_GetFriendPersonaName, U::Memory.GetVirtual(I::SteamFriends, 7), const char*,
 	void* rcx, CSteamID steamIDFriend)
 {
-#ifdef DEBUG_HOOKS
-	if (!Vars::Hooks::ISteamFriends_GetFriendPersonaName[DEFAULT_BIND])
-		return CALL_ORIGINAL(rcx, steamIDFriend);
-#endif
+	DEBUG_RETURN(ISteamFriends_GetFriendPersonaName, rcx, steamIDFriend);
 
-	static const auto dwDesired = S::GetPlayerNameForSteamID_GetFriendPersonaName_Call();
 	const auto dwRetAddr = uintptr_t(_ReturnAddress());
+	const auto dwDesired = S::GetPlayerNameForSteamID_GetFriendPersonaName_Call();
 
-	if (Vars::Visuals::UI::StreamerMode.Value && dwRetAddr == dwDesired)
+	if (dwRetAddr == dwDesired && Vars::Visuals::UI::StreamerMode.Value)
 	{
-		if (I::SteamUser->GetSteamID() == steamIDFriend)
+		switch (F::PlayerUtils.GetNameType(steamIDFriend.GetAccountID()))
 		{
-			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Local)
-				return "Local";
-		}
-		else if (I::SteamFriends->HasFriend(steamIDFriend, k_EFriendFlagImmediate))
-		{
-			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Friends)
-				return "Friend";
-		}
-		else
-		{
-			if (Vars::Visuals::UI::StreamerMode.Value >= Vars::Visuals::UI::StreamerModeEnum::Party)
-				return "Party";
+		case NameTypeEnum::Local: return LOCAL;
+		case NameTypeEnum::Friend: return FRIEND;
+		case NameTypeEnum::Party: return PARTY;
 		}
 	}
 

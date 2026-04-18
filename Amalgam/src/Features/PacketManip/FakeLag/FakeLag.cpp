@@ -6,10 +6,7 @@
 
 bool CFakeLag::IsAllowed(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
-	if (!(Vars::Fakelag::Fakelag.Value || m_bPreservingBlast || m_bUnducking)
-		|| I::ClientState->chokedcommands >= std::min(24 - F::Ticks.m_iShiftedTicks, std::min(21, F::Ticks.m_iMaxShift))
-		|| F::Ticks.m_iShiftedGoal != F::Ticks.m_iShiftedTicks || F::Ticks.m_bRecharge
-		|| !pLocal->IsAlive() || pLocal->IsAGhost())
+	if (!pLocal->IsAlive() || pLocal->IsAGhost())
 		return false;
 
 	if (m_bPreservingBlast)
@@ -17,6 +14,11 @@ bool CFakeLag::IsAllowed(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pC
 		G::PSilentAngles = true; // prevent unchoking while grounded
 		return true;
 	}
+
+	if (!(Vars::Fakelag::Fakelag.Value || m_bUnducking)
+		|| !F::Ticks.CanChoke(false, F::Ticks.m_iMaxShift)
+		|| F::Ticks.m_iShiftedGoal != F::Ticks.m_iShiftedTicks || F::Ticks.m_bRecharge)
+		return false;
 
 	if (G::Attacking == 1 && Vars::Fakelag::UnchokeOnAttack.Value || F::AutoRocketJump.IsRunning()
 		|| Vars::Fakelag::Options.Value & Vars::Fakelag::OptionsEnum::NotAirborne && !pLocal->m_hGroundEntity()
@@ -53,6 +55,7 @@ void CFakeLag::PreserveBlastJump(CTFPlayer* pLocal)
 	if (!Vars::Fakelag::RetainBlastJump.Value || Vars::Misc::Movement::AutoRocketJump.Value || Vars::Misc::Movement::AutoCTap.Value
 		|| !pLocal->IsAlive() || pLocal->IsAGhost() || Vars::Fakelag::RetainSoldierOnly.Value && pLocal->m_iClass() != TF_CLASS_SOLDIER)
 		return;
+
 	static bool bStaticGround = true;
 	const bool bLastGround = bStaticGround;
 	const bool bCurrGround = bStaticGround = pLocal->m_hGroundEntity();
@@ -69,6 +72,7 @@ void CFakeLag::Unduck(CTFPlayer* pLocal, CUserCmd* pCmd)
 	if (!(Vars::Fakelag::Options.Value & Vars::Fakelag::OptionsEnum::OnUnduck)
 		|| !pLocal->IsAlive() || pLocal->IsAGhost())
 		return;
+
 	if (!(pLocal->m_hGroundEntity() && pLocal->IsDucking() && !(pCmd->buttons & IN_DUCK)))
 		return;
 
@@ -83,9 +87,6 @@ void CFakeLag::Prediction(CTFPlayer* pLocal, CUserCmd* pCmd)
 
 void CFakeLag::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd, bool* pSendPacket)
 {
-	if (!pLocal)
-		return;
-
 	if (!m_iGoal)
 	{
 		switch (Vars::Fakelag::Fakelag.Value)

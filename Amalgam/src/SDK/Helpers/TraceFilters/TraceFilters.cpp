@@ -31,11 +31,9 @@ bool CTraceFilterHitscan::ShouldHitEntity(IHandleEntity* pServerEntity, int nCon
 	case ETFClassID::CObjectSentrygun:
 	case ETFClassID::CObjectDispenser:
 	case ETFClassID::CObjectTeleporter: 
-	{
 		if (iType != SKIP_CHECK && (iWeapon == WEAPON_INCLUDE ? bWeapon : !bWeapon))
 			return iType == FORCE_HIT ? true : false;
 		return pEntity->m_iTeamNum() != iTeam;
-	}
 	}
 
 	return true;
@@ -69,11 +67,21 @@ bool CTraceFilterCollideable::ShouldHitEntity(IHandleEntity* pServerEntity, int 
 	case ETFClassID::CDynamicProp:
 	case ETFClassID::CPhysicsProp:
 	case ETFClassID::CPhysicsPropMultiplayer:
+	case ETFClassID::CFunc_LOD:
 	case ETFClassID::CObjectCartDispenser:
 	case ETFClassID::CFuncTrackTrain:
-	case ETFClassID::CFuncConveyor: return true;
+	case ETFClassID::CFuncConveyor:
+	case ETFClassID::CTFGenericBomb:
+	case ETFClassID::CTFPumpkinBomb: return true;
+	case ETFClassID::CFuncRespawnRoomVisualizer:
+		if (nContentsMask & CONTENTS_PLAYERCLIP)
+			return pEntity->m_iTeamNum() != iTeam;
+		break;
+	case ETFClassID::CTFMedigunShield:
+		if (!(nContentsMask & CONTENTS_PLAYERCLIP))
+			return pEntity->m_iTeamNum() != iTeam;
+		break;
 	case ETFClassID::CTFPlayer:
-	{
 		if (iPlayer == PLAYER_ALL)
 			return true;
 		if (iPlayer == PLAYER_NONE)
@@ -81,18 +89,17 @@ bool CTraceFilterCollideable::ShouldHitEntity(IHandleEntity* pServerEntity, int 
 		if (iType != SKIP_CHECK && (iWeapon == WEAPON_INCLUDE ? bWeapon : !bWeapon))
 			return iType == FORCE_HIT ? true : false;
 		return pEntity->m_iTeamNum() != iTeam;
-	}
 	case ETFClassID::CBaseObject:
 	case ETFClassID::CObjectSentrygun:
 	case ETFClassID::CObjectDispenser: return iObject == OBJECT_ALL ? true : iObject == OBJECT_NONE ? false : pEntity->m_iTeamNum() != iTeam;
 	case ETFClassID::CObjectTeleporter: return true;
-	case ETFClassID::CTFMedigunShield:
-		if (!(nContentsMask & CONTENTS_PLAYERCLIP))
-			return pEntity->m_iTeamNum() != iTeam;
-		break;
-	case ETFClassID::CFuncRespawnRoomVisualizer:
-		if (nContentsMask & CONTENTS_PLAYERCLIP)
-			return pEntity->m_iTeamNum() != iTeam;
+	//case ETFClassID::CTFBaseBoss:
+	//case ETFClassID::CTFTankBoss:
+	//case ETFClassID::CMerasmus:
+	//case ETFClassID::CEyeballBoss:
+	//case ETFClassID::CHeadlessHatman:
+	//case ETFClassID::CZombie: return bMisc;
+	case ETFClassID::CTFGrenadePipebombProjectile: return bMisc && pEntity->As<CTFGrenadePipebombProjectile>()->m_iType() == TF_GL_MODE_REMOTE_DETONATE;
 	}
 
 	return false;
@@ -107,7 +114,7 @@ bool CTraceFilterWorldAndPropsOnly::ShouldHitEntity(IHandleEntity* pServerEntity
 	if (!pServerEntity || pServerEntity == pSkip)
 		return false;
 	if (pServerEntity->GetRefEHandle().GetSerialNumber() == (1 << 15))
-		return I::ClientEntityList->GetClientEntity(0) != pSkip;
+		return pServerEntity->GetRefEHandle().GetEntryIndex() != iTeam; // just use team variable since cliententitylist can give us nullptrs for some props for whatever reason
 
 	auto pEntity = reinterpret_cast<CBaseEntity*>(pServerEntity);
 	if (iTeam == -1) iTeam = pSkip ? pSkip->m_iTeamNum() : 0;
@@ -119,12 +126,11 @@ bool CTraceFilterWorldAndPropsOnly::ShouldHitEntity(IHandleEntity* pServerEntity
 	case ETFClassID::CDynamicProp:
 	case ETFClassID::CPhysicsProp:
 	case ETFClassID::CPhysicsPropMultiplayer:
+	case ETFClassID::CFunc_LOD:
 	case ETFClassID::CObjectCartDispenser:
 	case ETFClassID::CFuncTrackTrain:
 	case ETFClassID::CFuncConveyor: return true;
-	case ETFClassID::CFuncRespawnRoomVisualizer:
-		if (nContentsMask & CONTENTS_PLAYERCLIP)
-			return pEntity->m_iTeamNum() != iTeam;
+	case ETFClassID::CFuncRespawnRoomVisualizer: return nContentsMask & CONTENTS_PLAYERCLIP && pEntity->m_iTeamNum() != iTeam;
 	}
 
 	return false;

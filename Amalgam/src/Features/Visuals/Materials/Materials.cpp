@@ -6,12 +6,17 @@
 #include "../StickyCam/StickyCam.h"
 #include "../../Configs/Configs.h"
 #include "../../Binds/Binds.h"
+<<<<<<< HEAD
 #include "../../../SDK/Helpers/Memory/KeyValuesPool.h"
+=======
+#include "../Groups/Groups.h"
+>>>>>>> upstream/master
 #include <filesystem>
 #include <fstream>
 
 IMaterial* CMaterials::Create(char const* szName, KeyValues* pKV)
 {
+<<<<<<< HEAD
 	if (!I::MaterialSystem || !szName || !pKV)
 		return nullptr;
 		
@@ -29,6 +34,11 @@ IMaterial* CMaterials::Create(char const* szName, KeyValues* pKV)
 		// Material creation failed
 	}
 	return nullptr;
+=======
+	IMaterial* pMaterial = I::MaterialSystem->CreateMaterial(szName, pKV);
+	m_mMatList[pMaterial];
+	return pMaterial;
+>>>>>>> upstream/master
 }
 
 void CMaterials::Remove(IMaterial* pMaterial)
@@ -63,7 +73,7 @@ void CMaterials::Remove(IMaterial* pMaterial)
 
 
 
-void CMaterials::StoreStruct(std::string sName, std::string sVMT, bool bLocked)
+void CMaterials::StoreStruct(const std::string& sName, const std::string& sVMT, bool bLocked)
 {
 	Material_t tMaterial = {};
 	tMaterial.m_sName = sName;
@@ -194,19 +204,19 @@ void CMaterials::LoadMaterials()
 			"\n}",
 		true);
 	// user materials
-	for (auto& entry : std::filesystem::directory_iterator(F::Configs.m_sMaterialsPath))
+	for (auto& tEntry : std::filesystem::directory_iterator(F::Configs.m_sMaterialsPath))
 	{
 		// Ignore all non-material files
-		if (!entry.is_regular_file() || entry.path().extension() != std::string(".vmt"))
+		if (!tEntry.is_regular_file() || tEntry.path().extension() != std::string(".vmt"))
 			continue;
 
-		std::ifstream inStream(entry.path());
-		if (!inStream.good())
+		std::ifstream fStream(tEntry.path());
+		if (!fStream.good())
 			continue;
 
-		std::string sName = entry.path().filename().string();
+		std::string sName = tEntry.path().filename().string();
 		sName.erase(sName.end() - 4, sName.end());
-		const std::string sVMT((std::istreambuf_iterator(inStream)), std::istreambuf_iterator<char>());
+		std::string sVMT((std::istreambuf_iterator(fStream)), std::istreambuf_iterator<char>());
 
 		auto uHash = FNV1A::Hash32(sName.c_str());
 		if (uHash == FNV1A::Hash32Const("Original") || m_mMaterials.contains(uHash))
@@ -217,13 +227,19 @@ void CMaterials::LoadMaterials()
 	// create materials
 	for (auto& [_, tMaterial] : m_mMaterials)
 	{
+<<<<<<< HEAD
 		KeyValues* kv = CKeyValuesPool::Alloc(tMaterial.m_sName.c_str());
 		if (!kv)
 			continue;
 			
 		bool bLoad = kv->LoadFromBuffer(tMaterial.m_sName.c_str(), tMaterial.m_sVMT.c_str());
+=======
+		KeyValues* kv = new KeyValues(tMaterial.m_sName.c_str());
+		if (!kv->LoadFromBuffer(tMaterial.m_sName.c_str(), tMaterial.m_sVMT.c_str()))
+			continue;
+
+>>>>>>> upstream/master
 		ModifyKeyValues(kv);
-			
 		tMaterial.m_pMaterial = Create(tMaterial.m_sName.c_str(), kv);
 		
 		// KeyValues are now owned by the material system, don't delete manually
@@ -240,6 +256,36 @@ void CMaterials::LoadMaterials()
 	auto pMaterial = *reinterpret_cast<IMaterial**>(U::Memory.RelToAbs(S::Wireframe()));
 	pMaterial->SetMaterialVarFlag(MATERIAL_VAR_VERTEXALPHA, true);
 
+	static std::unordered_map<std::string, int> mSkyboxes = {};
+	static std::vector<const char*> vFaces = { "rt.vmt", "lf.vmt", "bk.vmt", "ft.vmt", "up.vmt", "dn.vmt" };
+	FileFindHandle_t hFind;
+	for (char const* szFile = I::FileSystem->FindFirst("materials/skybox/*.vmt", &hFind); szFile && *szFile; szFile = I::FileSystem->FindNext(hFind))
+	{
+		std::string sFile = szFile;
+
+		int iFace = -1;
+		for (int i = 0; i < vFaces.size(); i++)
+		{
+			auto sFace = vFaces[i];
+			if (sFile.find(sFace) == sFile.length() - strlen(sFace))
+			{
+				iFace = 1 << i;
+				sFile = sFile.substr(0, sFile.length() - strlen(sFace));
+				break;
+			}
+		}
+		if (iFace == -1)
+			continue;
+
+		mSkyboxes[sFile] |= iFace;
+	}
+	Vars::Visuals::World::SkyboxChanger.m_vValues = { "Off" };
+	for (auto& [sSkybox, iFaces] : mSkyboxes)
+	{
+		if (iFaces == 0b111111)
+			Vars::Visuals::World::SkyboxChanger.m_vValues.push_back(sSkybox.c_str());
+	}
+
 	m_bLoaded = true;
 }
 
@@ -247,8 +293,8 @@ void CMaterials::UnloadMaterials()
 {
 	m_bLoaded = false;
 
-	for (auto& [_, mat] : m_mMaterials)
-		Remove(mat.m_pMaterial);
+	for (auto& [_, tMaterial] : m_mMaterials)
+		Remove(tMaterial.m_pMaterial);
 	m_mMaterials.clear();
 	m_mMatList.clear();
 
@@ -269,10 +315,10 @@ void CMaterials::ReloadMaterials()
 
 void CMaterials::SetColor(Material_t* pMaterial, Color_t tColor)
 {
-	float r = float(tColor.r) / 255.f;
-	float g = float(tColor.g) / 255.f;
-	float b = float(tColor.b) / 255.f;
-	float a = float(tColor.a) / 255.f;
+	float r = tColor.r / 255.f;
+	float g = tColor.g / 255.f;
+	float b = tColor.b / 255.f;
+	float a = tColor.a / 255.f;
 
 	I::RenderView->SetColorModulation(r, g, b);
 	I::RenderView->SetBlend(a);
@@ -339,13 +385,20 @@ void CMaterials::AddMaterial(const char* sName)
 		);
 	auto& tMaterial = m_mMaterials[uHash];
 
+<<<<<<< HEAD
 	KeyValues* kv = CKeyValuesPool::Alloc(sName);
 	if (!kv)
 		return;
 		
 	kv->LoadFromBuffer(sName, tMaterial.m_sVMT.c_str());
 	ModifyKeyValues(kv);
+=======
+	KeyValues* kv = new KeyValues(sName);
+	if (!kv->LoadFromBuffer(sName, tMaterial.m_sVMT.c_str()))
+		return;
+>>>>>>> upstream/master
 
+	ModifyKeyValues(kv);
 	tMaterial.m_pMaterial = Create(sName, kv);
 	// KeyValues ownership transferred to material system
 	//StoreVars(tMaterial);
@@ -371,6 +424,7 @@ void CMaterials::EditMaterial(const char* sName, const char* sVMT)
 		RemoveVars(tMaterial);
 		tMaterial.m_sVMT = sVMT;
 
+<<<<<<< HEAD
 		KeyValues* kv = CKeyValuesPool::Alloc(sName);
 		if (!kv)
 		{
@@ -380,7 +434,13 @@ void CMaterials::EditMaterial(const char* sName, const char* sVMT)
 		
 		kv->LoadFromBuffer(sName, sVMT);
 		ModifyKeyValues(kv);
+=======
+		KeyValues* kv = new KeyValues(sName);
+		if (!kv->LoadFromBuffer(sName, sVMT))
+			return;
+>>>>>>> upstream/master
 
+		ModifyKeyValues(kv);
 		tMaterial.m_pMaterial = Create(sName, kv);
 		// KeyValues ownership transferred to material system
 		//StoreVars(tMaterial);
@@ -408,29 +468,29 @@ void CMaterials::RemoveMaterial(const char* sName)
 
 		std::filesystem::remove(F::Configs.m_sMaterialsPath + sName + ".vmt");
 
+		auto removeFromVal = [&](std::vector<std::pair<std::string, Color_t>>& val)
+			{
+				for (auto it = val.begin(); it != val.end();)
+				{
+					if (FNV1A::Hash32(it->first.c_str()) == uHash)
+						it = val.erase(it);
+					else
+						++it;
+				}
+			};
 		auto removeFromVar = [&](ConfigVar<std::vector<std::pair<std::string, Color_t>>>& var)
 			{
 				for (auto& [iBind, vVal] : var.Map)
 				{
-					for (auto it = vVal.begin(); it != vVal.end();)
-					{
-						if (FNV1A::Hash32(it->first.c_str()) == uHash)
-							it = vVal.erase(it);
-						else
-							++it;
-					}
+					removeFromVal(vVal);
 				}
 			};
-		removeFromVar(Vars::Chams::Team::Visible);
-		removeFromVar(Vars::Chams::Team::Occluded);
-		removeFromVar(Vars::Chams::Enemy::Visible);
-		removeFromVar(Vars::Chams::Enemy::Occluded);
-		removeFromVar(Vars::Chams::World::Visible);
-		removeFromVar(Vars::Chams::World::Occluded);
-		removeFromVar(Vars::Chams::Backtrack::Visible);
-		removeFromVar(Vars::Chams::FakeAngle::Visible);
-		removeFromVar(Vars::Chams::Viewmodel::WeaponMaterial);
-		removeFromVar(Vars::Chams::Viewmodel::HandsMaterial);
+		for (auto& tGroup : F::Groups.m_vGroups)
+		{
+			removeFromVal(tGroup.m_tChams.Visible);
+			removeFromVal(tGroup.m_tChams.Occluded);
+			removeFromVal(tGroup.m_vBacktrackChams);
+		}
 	}
 
 	m_bLoaded = true;
