@@ -33,9 +33,10 @@ Cleaned up temporary files created during manual integration of upstream changes
 - `patch_36c2899.patch`
 - `patch_fce4740.patch`
 
-### Shell Scripts (.sh) - 6 files (excluding libolm project files)
+### Shell Scripts (.sh) - 7 files (excluding libolm project files)
 - `merge_core.sh`
 - `update_calls.sh`
+- `resolve_conflicts.sh`
 - (4 other temporary scripts)
 
 ### Merged Files (.merged) - 1 file
