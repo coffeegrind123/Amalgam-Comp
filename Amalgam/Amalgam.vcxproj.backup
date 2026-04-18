@@ -971,6 +971,7 @@
     <ClCompile Include="src\Hooks\CBasePlayer_CalcViewModelView.cpp" />
     <ClCompile Include="src\Hooks\CBasePlayer_ItemPostFrame.cpp" />
     <ClCompile Include="src\Hooks\CBaseViewModel_ShouldFlipViewModel.cpp" />
+    <ClCompile Include="src\Hooks\Cbuf_ExecuteCommand.cpp" />
     <ClCompile Include="src\Hooks\CClientModeShared_CreateMove.cpp" />
     <ClCompile Include="src\Hooks\CClientModeShared_DoPostScreenSpaceEffects.cpp" />
     <ClCompile Include="src\Hooks\CClientModeShared_OverrideView.cpp" />

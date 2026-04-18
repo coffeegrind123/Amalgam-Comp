@@ -1,0 +1,117 @@
+From 236439d1db4fa66e5782b76880a518d4c3ca1ff5 Mon Sep 17 00:00:00 2001
+From: rei-2 <174158077+rei-2@users.noreply.github.com>
+Date: Fri, 19 Dec 2025 21:24:20 -0500
+Subject: [PATCH] fix for latest game update
+
+---
+ Amalgam/src/Hooks/CBaseViewModel_ShouldFlipViewModel.cpp | 2 +-
+ Amalgam/src/Hooks/CTFPlayer_UpdateStepSound.cpp          | 4 +++-
+ Amalgam/src/Hooks/GetClientInterpAmount.cpp              | 6 +++---
+ Amalgam/src/SDK/Definitions/Main/CBaseEntity.h           | 2 +-
+ Amalgam/src/SDK/Definitions/Main/CTFPlayer.h             | 1 +
+ Amalgam/src/SDK/Definitions/Main/CTFWeaponBase.h         | 2 +-
+ 6 files changed, 10 insertions(+), 7 deletions(-)
+
+diff --git a/Amalgam/src/Hooks/CBaseViewModel_ShouldFlipViewModel.cpp b/Amalgam/src/Hooks/CBaseViewModel_ShouldFlipViewModel.cpp
+index 0823794..0cdfbea 100644
+--- a/Amalgam/src/Hooks/CBaseViewModel_ShouldFlipViewModel.cpp
++++ b/Amalgam/src/Hooks/CBaseViewModel_ShouldFlipViewModel.cpp
+@@ -1,6 +1,6 @@
+ #include "../SDK/SDK.h"
+ 
+-MAKE_SIGNATURE(CBaseViewModel_ShouldFlipViewModel, "client.dll", "8B 91 ? ? ? ? 85 D2 74 ? B8 ? ? ? ? 83 FA ? 74 ? 0F B7 C2 4C 8B 05 ? ? ? ? 8B C8 49 83 C0 ? 48 C1 E1 ? 4C 03 C1 74 ? C1 EA ? 41 39 50 ? 75 ? 49 8B 08 48 85 C9 74 ? 48 8B 05", 0x0);
++MAKE_SIGNATURE(CBaseViewModel_ShouldFlipViewModel, "client.dll", "40 57 48 83 EC ? 8B 91 ? ? ? ? 85 D2", 0x0);
+ 
+ MAKE_HOOK(CBaseViewModel_ShouldFlipViewModel, S::CBaseViewModel_ShouldFlipViewModel(), bool,
+ 	void* rcx)
+diff --git a/Amalgam/src/Hooks/CTFPlayer_UpdateStepSound.cpp b/Amalgam/src/Hooks/CTFPlayer_UpdateStepSound.cpp
+index cac66f6..b59cefe 100644
+--- a/Amalgam/src/Hooks/CTFPlayer_UpdateStepSound.cpp
++++ b/Amalgam/src/Hooks/CTFPlayer_UpdateStepSound.cpp
+@@ -1,5 +1,6 @@
+ #include "../SDK/SDK.h"
+ 
++/*
+ MAKE_SIGNATURE(CTFPlayer_UpdateStepSound, "client.dll", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 4C 8B F2 48 8B F9 BA", 0x0);
+ MAKE_SIGNATURE(CTFPlayer_FireEvent_UpdateStepSound_Call, "client.dll", "4D 85 F6 0F 84 ? ? ? ? 48 8D 8E", 0x0);
+ 
+@@ -18,4 +19,5 @@ MAKE_HOOK(CTFPlayer_UpdateStepSound, S::CTFPlayer_UpdateStepSound(), void,
+ 		return;
+ 
+ 	CALL_ORIGINAL(rcx, psurface, vecOrigin, vecVelocity);
+-}
+\ No newline at end of file
++}
++*/
+\ No newline at end of file
+diff --git a/Amalgam/src/Hooks/GetClientInterpAmount.cpp b/Amalgam/src/Hooks/GetClientInterpAmount.cpp
+index ff6ded3..5d02c30 100644
+--- a/Amalgam/src/Hooks/GetClientInterpAmount.cpp
++++ b/Amalgam/src/Hooks/GetClientInterpAmount.cpp
+@@ -1,8 +1,8 @@
+ #include "../SDK/SDK.h"
+ 
+ MAKE_SIGNATURE(GetClientInterpAmount, "client.dll", "40 53 48 83 EC ? 8B 05 ? ? ? ? A8 ? 75 ? 48 8B 0D ? ? ? ? 48 8D 15", 0x0);
+-MAKE_SIGNATURE(CNetGraphPanel_DrawTextFields_GetClientInterpAmount_Call1, "client.dll", "F3 41 0F 59 C1 4C 8D 05", 0x0);
+-MAKE_SIGNATURE(CNetGraphPanel_DrawTextFields_GetClientInterpAmount_Call2, "client.dll", "0F 28 F8 0F 2F 3D ? ? ? ? 76", 0x0);
++MAKE_SIGNATURE(CNetGraphPanel_DrawTextFields_GetClientInterpAmount_Call1, "client.dll", "48 8B 05 ? ? ? ? 4C 8D 05 ? ? ? ? F3 44 0F 10 0D", 0x0);
++MAKE_SIGNATURE(CNetGraphPanel_DrawTextFields_GetClientInterpAmount_Call2, "client.dll", "48 8B 05 ? ? ? ? F3 0F 10 48 ? F3 0F 5E C1", 0x0);
+ 
+ MAKE_HOOK(GetClientInterpAmount, S::GetClientInterpAmount(), float,
+ 	)
+@@ -22,5 +22,5 @@ MAKE_HOOK(GetClientInterpAmount, S::GetClientInterpAmount(), float,
+ 	if (dwRetAddr != dwUndesired1 && dwRetAddr != dwUndesired2)
+ 		return 0.f;
+ 
+-		return CALL_ORIGINAL();
++	return CALL_ORIGINAL();
+ }
+\ No newline at end of file
+diff --git a/Amalgam/src/SDK/Definitions/Main/CBaseEntity.h b/Amalgam/src/SDK/Definitions/Main/CBaseEntity.h
+index ee3523d..67f68af 100644
+--- a/Amalgam/src/SDK/Definitions/Main/CBaseEntity.h
++++ b/Amalgam/src/SDK/Definitions/Main/CBaseEntity.h
+@@ -61,6 +61,7 @@ public:
+ 	NETVAR(m_clrRender, Color_t, "CBaseEntity", "m_clrRender");
+ 	NETVAR(m_iTeamNum, int, "CBaseEntity", "m_iTeamNum");
+ 	NETVAR(m_CollisionGroup, int, "CBaseEntity", "m_CollisionGroup");
++	NETVAR(m_flGravity, float, "CBaseEntity", "m_flGravity");
+ 	NETVAR(m_flElasticity, float, "CBaseEntity", "m_flElasticity");
+ 	NETVAR(m_flShadowCastDistance, float, "CBaseEntity", "m_flShadowCastDistance");
+ 	NETVAR(m_hOwnerEntity, EHANDLE, "CBaseEntity", "m_hOwnerEntity");
+@@ -91,7 +92,6 @@ public:
+ 	NETVAR(movetype, int, "CBaseEntity", "movetype");
+ 	
+ 	NETVAR_OFF(m_flOldSimulationTime, float, "CBaseEntity", "m_flSimulationTime", 4);
+-	NETVAR_OFF(m_flGravity, float, "CTFPlayer", "m_nWaterLevel", -28);
+ 	NETVAR_OFF(m_MoveType, byte, "CTFPlayer", "m_nWaterLevel", -4);
+ 	NETVAR_OFF(m_MoveCollide, byte, "CTFPlayer", "m_nWaterLevel", -3);
+ 	NETVAR_OFF(m_nWaterType, byte, "CTFPlayer", "m_nWaterLevel", 1);
+diff --git a/Amalgam/src/SDK/Definitions/Main/CTFPlayer.h b/Amalgam/src/SDK/Definitions/Main/CTFPlayer.h
+index a54fdba..d200229 100644
+--- a/Amalgam/src/SDK/Definitions/Main/CTFPlayer.h
++++ b/Amalgam/src/SDK/Definitions/Main/CTFPlayer.h
+@@ -155,6 +155,7 @@ public:
+ 	NETVAR(m_flLastDamageTime, float, "CTFPlayer", "m_flLastDamageTime");
+ 	NETVAR(m_bInPowerPlay, bool, "CTFPlayer", "m_bInPowerPlay");
+ 	NETVAR(m_iSpawnCounter, int, "CTFPlayer", "m_iSpawnCounter");
++	NETVAR(m_bFlipViewModels, bool, "CTFPlayer", "m_bFlipViewModels");
+ 	NETVAR(m_bArenaSpectator, bool, "CTFPlayer", "m_bArenaSpectator");
+ 	NETVAR_EMBED(m_AttributeManager, void*, "CTFPlayer", "m_AttributeManager");
+ 	NETVAR(m_hOuter, EHANDLE, "CTFPlayer", "m_hOuter");
+diff --git a/Amalgam/src/SDK/Definitions/Main/CTFWeaponBase.h b/Amalgam/src/SDK/Definitions/Main/CTFWeaponBase.h
+index 5934ab8..7842a6a 100644
+--- a/Amalgam/src/SDK/Definitions/Main/CTFWeaponBase.h
++++ b/Amalgam/src/SDK/Definitions/Main/CTFWeaponBase.h
+@@ -5,7 +5,7 @@ MAKE_SIGNATURE(CTFWeaponBase_GetSpreadAngles, "client.dll", "48 89 5C 24 ? 48 89
+ MAKE_SIGNATURE(CTFWeaponBase_UpdateAllViewmodelAddons, "client.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 8B F8", 0x0);
+ MAKE_SIGNATURE(CTFWeaponBase_CalcIsAttackCritical, "client.dll", "48 89 74 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B C8 C7 44 24 ? ? ? ? ? 4C 8D 0D ? ? ? ? 33 D2 4C 8D 05 ? ? ? ? E8 ? ? ? ? 48 8B F0 48 85 C0 0F 84 ? ? ? ? 48 8B 10", 0x0);
+ MAKE_SIGNATURE(CTFWeaponBase_GetAppropriateWorldOrViewModel, "client.dll", "48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 8B C8 C7 44 24 ? ? ? ? ? 4C 8D 0D ? ? ? ? 33 D2 4C 8D 05 ? ? ? ? E8 ? ? ? ? 48 8B F8 48 85 C0 74 ? 48 8B CB", 0x0);
+-MAKE_SIGNATURE(CTFWeaponBase_IncrementAmmo, "client.dll", "48 89 5C 24 ? 56 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 8B C8", 0x0);
++MAKE_SIGNATURE(CTFWeaponBase_IncrementAmmo, "client.dll", "48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 E8 ? ? ? ? 48 8B C8 C7 44 24 ? ? ? ? ? 4C 8D 0D ? ? ? ? 33 D2 4C 8D 05 ? ? ? ? E8 ? ? ? ? 80 BB", 0x0);
+ MAKE_SIGNATURE(CWeaponMedigun_UpdateEffects, "client.dll", "40 57 48 81 EC ? ? ? ? 8B 91 ? ? ? ? 48 8B F9 85 D2 0F 84 ? ? ? ? 48 89 B4 24", 0x0);
+ MAKE_SIGNATURE(CWeaponMedigun_StopChargeEffect, "client.dll", "40 53 48 83 EC ? 44 0F B6 C2", 0x0);
+ MAKE_SIGNATURE(CWeaponMedigun_ManageChargeEffect, "client.dll", "48 89 5C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 48 8B F1 E8 ? ? ? ? 48 8B D8", 0x0);
+-- 
+2.39.5
+

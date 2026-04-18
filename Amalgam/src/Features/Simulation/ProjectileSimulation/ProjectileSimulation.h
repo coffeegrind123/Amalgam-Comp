@@ -3,7 +3,7 @@
 
 Enum(ProjSim,
 	None = 0,
-	Trace = 1 << 0,
+	Redirect = 1 << 0,
 	InitCheck = 1 << 1,
 	Quick = 1 << 2,
 	NoRandomAngles = 1 << 3,
@@ -49,7 +49,7 @@ class CProjectileSimulation
 	};
 
 public:
-	bool GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags = ProjSimEnum::Trace | ProjSimEnum::InitCheck, float flAutoCharge = -1.f);
+	bool GetInfo(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, Vec3 vAngles, ProjectileInfo& tProjInfo, int iFlags = ProjSimEnum::Redirect | ProjSimEnum::InitCheck, float flAutoCharge = -1.f);
 	void SetupTrace(CTraceFilterCollideable& filter, int& nMask, CTFWeaponBase* pWeapon, int nTick = 0, bool bQuick = false);
 
 	void GetInfo(CBaseEntity* pProjectile, ProjectileInfo& tProjInfo);

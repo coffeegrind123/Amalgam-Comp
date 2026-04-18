@@ -58,7 +58,7 @@ void CVisuals::ProjectileTrace(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, const
 		return;
 
 	Vec3 vAngles = bQuick ? I::EngineClient->GetViewAngles() : G::CurrentUserCmd->viewangles;
-	int iFlags = bQuick ? ProjSimEnum::Trace | ProjSimEnum::InitCheck | ProjSimEnum::Quick : ProjSimEnum::Trace | ProjSimEnum::InitCheck;
+	int iFlags = bQuick ? ProjSimEnum::Redirect | ProjSimEnum::InitCheck | ProjSimEnum::Quick : ProjSimEnum::Redirect | ProjSimEnum::InitCheck;
 	if (bQuick && F::Spectate.m_iTarget != -1)
 	{
 		pPlayer = I::ClientEntityList->GetClientEntity(I::EngineClient->GetPlayerForUserID(F::Spectate.m_iTarget))->As<CTFPlayer>();

@@ -1141,13 +1141,13 @@ void CAimbotProjectile::CalculateAngle(const Vec3& vLocalPos, const Vec3& vTarge
 		return;
 	}
 
-	int iFlags = (bAccuracy ? ProjSimEnum::Trace : ProjSimEnum::None) | ProjSimEnum::NoRandomAngles | ProjSimEnum::PredictCmdNum;
+	int iFlags = (bAccuracy ? ProjSimEnum::Redirect : ProjSimEnum::None) | ProjSimEnum::NoRandomAngles | ProjSimEnum::PredictCmdNum;
 #ifdef SPLASH_DEBUG6
-	if (iFlags & ProjSimEnum::Trace)
+	if (iFlags & ProjSimEnum::Redirect)
 	{
 		if (Vars::Visuals::Trajectory::Override.Value)
 		{
-			if (!Vars::Visuals::Trajectory::Pipes.Value)
+			if (Vars::Visuals::Trajectory::ForwardRedirect.Value)
 				mTraceCount["Setup trace calculate"]++;
 		}
 		else
@@ -1240,11 +1240,11 @@ void CAimbotProjectile::CalculateAngle(const Vec3& vLocalPos, const Vec3& vTarge
 
 bool CAimbotProjectile::TestAngle(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, Target_t& tTarget, Vec3& vPoint, Vec3& vAngles, int iSimTime, bool bSplash, bool* pHitSolid, std::vector<Vec3>* pProjectilePath)
 {
-	int iFlags = ProjSimEnum::Trace | ProjSimEnum::InitCheck | ProjSimEnum::NoRandomAngles | ProjSimEnum::PredictCmdNum;
+	int iFlags = ProjSimEnum::Redirect | ProjSimEnum::InitCheck | ProjSimEnum::NoRandomAngles | ProjSimEnum::PredictCmdNum;
 #ifdef SPLASH_DEBUG6
 	if (Vars::Visuals::Trajectory::Override.Value)
 	{
-		if (!Vars::Visuals::Trajectory::Pipes.Value)
+		if (Vars::Visuals::Trajectory::ForwardRedirect.Value)
 			mTraceCount["Setup trace test"]++;
 	}
 	else
